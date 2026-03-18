@@ -19,7 +19,7 @@ export async function createSession(data: {
 
   if (error) throw new Error(error.message)
   revalidatePath("/admin/sessions")
-  revalidatePath("/schedule")
+  revalidatePath("/current")
 }
 
 export async function updateSession(
@@ -43,7 +43,7 @@ export async function updateSession(
 
   if (error) throw new Error(error.message)
   revalidatePath("/admin/sessions")
-  revalidatePath("/schedule")
+  revalidatePath("/current")
 }
 
 export async function deleteSession(id: string) {
@@ -52,7 +52,7 @@ export async function deleteSession(id: string) {
 
   if (error) throw new Error(error.message)
   revalidatePath("/admin/sessions")
-  revalidatePath("/schedule")
+  revalidatePath("/current")
 }
 
 export async function assignPlayersToSession(
@@ -79,5 +79,5 @@ export async function assignPlayersToSession(
   }
 
   revalidatePath("/admin/sessions")
-  revalidatePath("/schedule")
+  revalidatePath("/current")
 }

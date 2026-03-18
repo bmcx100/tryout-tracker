@@ -1,6 +1,6 @@
 "use client"
 
-export default function ScheduleError({
+export default function CurrentRoundsError({
   reset,
 }: {
   error: Error & { digest?: string }
@@ -11,7 +11,7 @@ export default function ScheduleError({
       <div className="app-empty-state">
         <p className="app-empty-title">Something went wrong</p>
         <p className="app-empty-desc">
-          Failed to load the schedule. Please try again.
+          Failed to load current rounds. Please try again.
         </p>
         <button className="btn-primary" onClick={reset}>
           Try Again

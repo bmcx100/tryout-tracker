@@ -23,5 +23,5 @@ export async function confirmImport(players: Array<{ number: number; first_name?
   }
 
   revalidatePath("/admin/players")
-  revalidatePath("/explore")
+  revalidatePath("/players")
 }

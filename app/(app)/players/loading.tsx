@@ -1,10 +1,15 @@
 import { Skeleton } from "@/components/ui/skeleton"
 
-export default function ExploreLoading() {
+export default function PlayersLoading() {
   return (
     <div className="app-page">
       <div className="app-page-header">
         <Skeleton className="loading-title" />
+      </div>
+      <div className="loading-filters">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <Skeleton key={i} className="loading-filter" />
+        ))}
       </div>
       <Skeleton className="loading-search" />
       <div className="loading-filters">

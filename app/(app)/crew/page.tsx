@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { removeFromCrew } from "@/lib/actions/crew"
 import type { CrewMember } from "@/lib/types"
 import { CrewGroup } from "@/components/crew/crew-group"
 import { CrewDetailSheet } from "@/components/crew/crew-detail-sheet"
@@ -52,6 +53,11 @@ export default function CrewPage() {
     setSheetOpen(true)
   }
 
+  const handleRemove = async (member: CrewMember) => {
+    await removeFromCrew(member.id)
+    await fetchCrew()
+  }
+
   if (loading) {
     return (
       <div className="app-page">
@@ -78,7 +84,7 @@ export default function CrewPage() {
         <div className="app-empty-state">
           <p className="app-empty-title">Your crew is empty</p>
           <p className="app-empty-desc">
-            Head to <Link href="/explore" className="crew-link">Explore</Link> to add your kid&apos;s friends and teammates.
+            Head to <Link href="/players" className="crew-link">Players</Link> to add your kid&apos;s friends and teammates.
           </p>
         </div>
       ) : (
@@ -88,6 +94,7 @@ export default function CrewPage() {
             tag={tag}
             members={members}
             onMemberClick={handleMemberClick}
+            onRemoveMember={handleRemove}
           />
         ))
       )}

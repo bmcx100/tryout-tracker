@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { createPlayer, updatePlayer, deletePlayer, bulkCreatePlayers } from "@/lib/actions/players"
+import { getAgeGroup, playerName } from "@/lib/utils"
 import type { Player, PlayerLevel, PlayerStatus } from "@/lib/types"
 import {
   Dialog,
@@ -48,6 +49,7 @@ export default function AdminPlayersPage() {
   const [players, setPlayers] = useState<Player[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Player | null>(null)
+  const [ageFilter, setAgeFilter] = useState<string>("all")
   const [filterLevel, setFilterLevel] = useState<string>("all")
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [bulkOpen, setBulkOpen] = useState(false)
@@ -78,7 +80,18 @@ export default function AdminPlayersPage() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = players.filter((p) => {
-    if (filterLevel !== "all" && p.current_level !== filterLevel) return false
+    if (ageFilter !== "all") {
+      const ag = getAgeGroup(p.birth_year)
+      if (ag !== ageFilter) return false
+    }
+    if (filterLevel !== "all") {
+      let level: string | null = p.current_level || p.entry_level || p.previous_level
+      if (!level && p.previous_team) {
+        const match = p.previous_team.match(/^U\d+(.*)/i)
+        if (match) level = match[1].toUpperCase()
+      }
+      if (level !== filterLevel) return false
+    }
     if (filterStatus !== "all" && p.status !== filterStatus) return false
     return true
   })
@@ -185,28 +198,6 @@ export default function AdminPlayersPage() {
       <div className="admin-page-header">
         <h1 className="app-page-title">Players</h1>
         <div className="admin-filters">
-          <Select value={filterLevel} onValueChange={setFilterLevel}>
-            <SelectTrigger className="admin-filter-select">
-              <SelectValue placeholder="Level" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Levels</SelectItem>
-              {LEVELS.map((l) => (
-                <SelectItem key={l} value={l}>{l}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="admin-filter-select">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setEditing(null) }}>
             <DialogTrigger className="btn-primary">Add Player</DialogTrigger>
             <DialogContent>
@@ -338,7 +329,7 @@ export default function AdminPlayersPage() {
                       {bulkPreview.slice(0, 10).map((p) => (
                         <div key={p.number} className="bulk-preview-row">
                           <span className="bulk-preview-num">#{p.number}</span>
-                          <span>{[p.first_name, p.last_name].filter(Boolean).join(" ") || "—"}</span>
+                          <span>{playerName(p.first_name, p.last_name)}</span>
                           <span className="bulk-preview-team">{p.previous_team || "—"}</span>
                           {p.position && <span className="bulk-preview-team">{p.position}</span>}
                           {p.birth_year && <span className="bulk-preview-team">{p.birth_year}</span>}
@@ -363,6 +354,23 @@ export default function AdminPlayersPage() {
           </Dialog>
         </div>
       </div>
+      <div className="feed-filters">
+        <button className={`feed-filter-btn${ageFilter === "all" ? " active" : ""}`} onClick={() => setAgeFilter("all")}>All</button>
+        <button className={`feed-filter-btn${ageFilter === "U13" ? " active" : ""}`} onClick={() => setAgeFilter("U13")}>U13</button>
+        <button className={`feed-filter-btn${ageFilter === "U15" ? " active" : ""}`} onClick={() => setAgeFilter("U15")}>U15</button>
+      </div>
+      <div className="feed-filters">
+        <button className={`feed-filter-btn${filterLevel === "all" ? " active" : ""}`} onClick={() => setFilterLevel("all")}>All</button>
+        {LEVELS.map((l) => (
+          <button key={l} className={`feed-filter-btn${filterLevel === l ? " active" : ""}`} onClick={() => setFilterLevel(l)}>{l}</button>
+        ))}
+      </div>
+      <div className="feed-filters">
+        <button className={`feed-filter-btn${filterStatus === "all" ? " active" : ""}`} onClick={() => setFilterStatus("all")}>All Statuses</button>
+        {STATUSES.map((s) => (
+          <button key={s} className={`feed-filter-btn${filterStatus === s ? " active" : ""}`} onClick={() => setFilterStatus(s)}>{s.replace(/_/g, " ")}</button>
+        ))}
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -380,7 +388,7 @@ export default function AdminPlayersPage() {
           {filtered.map((player) => (
             <TableRow key={player.id}>
               <TableCell className="admin-cell-number">{player.number}</TableCell>
-              <TableCell>{[player.first_name, player.last_name].filter(Boolean).join(" ") || "—"}</TableCell>
+              <TableCell>{playerName(player.first_name, player.last_name)}</TableCell>
               <TableCell>{player.position || "—"}</TableCell>
               <TableCell>{player.previous_team || "—"}</TableCell>
               <TableCell>{player.birth_year || "—"}</TableCell>

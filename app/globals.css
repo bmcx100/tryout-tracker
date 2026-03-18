@@ -1388,6 +1388,7 @@
 
 .crew-group {
   margin-bottom: 32px;
+  max-width: 480px;
 }
 
 .crew-group-header {
@@ -1407,56 +1408,79 @@
 }
 
 .crew-cards {
-  @apply flex flex-col gap-2;
+  @apply flex flex-col;
+  gap: 6px;
 }
 
-.crew-card {
-  @apply bg-ash flex items-center gap-3;
-  padding: 12px 16px;
+.crew-row {
+  @apply flex items-center gap-3;
+  padding: 8px 12px;
   border-radius: 0.5rem;
   border: 2px solid rgba(17, 17, 17, 0.12);
+  background: var(--color-concrete);
+}
+
+.crew-row:hover {
+  background: rgba(17, 17, 17, 0.04);
+}
+
+.crew-row-heart {
+  @apply flex items-center justify-center;
+  background: none;
+  border: none;
   cursor: pointer;
-  transition: border-color 150ms;
+  padding: 2px;
+  flex-shrink: 0;
+  color: #E63B2E;
+  transition: opacity 150ms;
 }
 
-.crew-card:hover {
-  border-color: rgba(17, 17, 17, 0.24);
+.crew-row-heart:hover {
+  opacity: 0.5;
 }
 
-.crew-card-number {
-  @apply font-data font-bold text-signal;
-  font-size: 20px;
-  min-width: 48px;
+.crew-heart-filled {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
 }
 
-.crew-card-info {
-  @apply flex flex-col;
+.crew-row-info {
+  @apply flex items-center gap-4;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.crew-row-number {
+  @apply font-data text-ink;
+  font-size: 14px;
+  min-width: 40px;
+}
+
+.crew-row-name {
+  @apply font-data text-ink;
+  font-size: 14px;
   flex: 1;
   min-width: 0;
 }
 
-.crew-card-name {
-  @apply font-heading font-bold text-ink;
-  font-size: 14px;
-}
-
-.crew-card-real-name {
+.crew-row-team {
   @apply font-data text-steel;
-  font-size: 11px;
-}
-
-.crew-card-status {
-  @apply flex flex-col items-end;
-}
-
-.crew-card-level {
-  @apply font-data font-bold text-ink;
   font-size: 12px;
+  flex-shrink: 0;
 }
 
-.crew-card-prev-team {
+.crew-row-pos {
   @apply font-data text-steel;
-  font-size: 10px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.crew-row-notes {
+  @apply font-data text-steel;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 /* Tag badges */
@@ -1577,6 +1601,7 @@
 
 .admin-layout {
   @apply flex flex-col;
+  padding: 24px 10px;
 }
 
 .admin-sub-nav {
@@ -1929,6 +1954,50 @@
 }
 
 /* ========================================
+   PLAYERS LIST (compact rows)
+   ======================================== */
+
+.players-list {
+  @apply flex flex-col;
+  max-width: 560px;
+}
+
+.player-row {
+  @apply flex items-center gap-4;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+.player-row:last-child {
+  border-bottom: none;
+}
+
+.player-row-number {
+  @apply font-data text-ink;
+  font-size: 14px;
+  min-width: 40px;
+}
+
+.player-row-name {
+  @apply font-data text-ink;
+  font-size: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.player-row-pos {
+  @apply font-data text-steel;
+  font-size: 13px;
+  min-width: 20px;
+}
+
+.player-row-team {
+  @apply font-data text-steel;
+  font-size: 13px;
+  min-width: 48px;
+}
+
+/* ========================================
    CREW DETAIL SHEET
    ======================================== */
 
@@ -2207,4 +2276,832 @@
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ========================================
+   AGE GROUP TABS
+   ======================================== */
+
+.age-group-tabs {
+  @apply flex gap-1;
+  margin-bottom: 16px;
+}
+
+.age-group-tab {
+  @apply font-data font-bold uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  padding: 8px 20px;
+  border-radius: 0.25rem;
+  color: #6B6560;
+  background: none;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  cursor: pointer;
+  transition: color 150ms, background 150ms, border-color 150ms;
+}
+
+.age-group-tab:hover {
+  color: #111111;
+}
+
+.age-group-tab.active {
+  color: #111111;
+  background: rgba(17, 17, 17, 0.06);
+  border-color: #111111;
+}
+
+/* ========================================
+   HOME PAGE
+   ======================================== */
+
+.home-welcome {
+  @apply flex flex-col items-center text-center;
+  padding: 64px 16px;
+}
+
+.home-welcome-title {
+  @apply font-heading font-bold text-ink;
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.home-welcome-desc {
+  @apply text-steel;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 360px;
+  margin-bottom: 24px;
+}
+
+.home-welcome-links {
+  @apply flex flex-col gap-2;
+  width: 100%;
+  max-width: 280px;
+}
+
+@media (min-width: 768px) {
+  .home-welcome-links {
+    @apply flex-row;
+    max-width: none;
+    width: auto;
+  }
+}
+
+.home-dashboard {
+  @apply flex flex-col gap-4;
+}
+
+.home-section-title {
+  @apply font-heading font-bold text-ink;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+
+.home-recent {
+  @apply bg-ash;
+  padding: 16px;
+  border-radius: 0.5rem;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+}
+
+.home-see-all {
+  @apply font-data text-signal uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  display: block;
+  margin-top: 12px;
+}
+
+.home-upcoming {
+  @apply bg-ash;
+  padding: 16px;
+  border-radius: 0.5rem;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+}
+
+.home-sessions-list {
+  @apply flex flex-col gap-2;
+}
+
+.home-session-item {
+  @apply flex items-center gap-3;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+.home-session-item:last-child {
+  border-bottom: none;
+}
+
+.home-session-info {
+  @apply flex flex-col;
+}
+
+.home-session-time {
+  @apply font-data font-bold text-ink;
+  font-size: 12px;
+}
+
+.home-session-rink {
+  @apply font-data text-steel;
+  font-size: 11px;
+}
+
+.home-quick-links {
+  @apply flex flex-col gap-3;
+  max-width: 480px;
+}
+
+.home-quick-link {
+  @apply flex flex-col;
+  padding: 16px 20px;
+  border-radius: 0.5rem;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  background: var(--color-ash);
+  text-decoration: none;
+  transition: border-color 150ms;
+  flex: 1;
+}
+
+.home-quick-link:hover {
+  border-color: rgba(17, 17, 17, 0.24);
+}
+
+.home-quick-link-top {
+  @apply flex items-center justify-between w-full;
+}
+
+.home-quick-link-title {
+  @apply font-heading font-bold text-ink;
+  font-size: 16px;
+}
+
+.home-quick-link-count {
+  @apply font-data font-bold text-signal;
+  font-size: 14px;
+}
+
+.home-quick-link-desc {
+  @apply font-data text-steel;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* ========================================
+   TEAMS PAGE
+   ======================================== */
+
+.teams-view-toggle {
+  @apply flex gap-1;
+  margin-bottom: 16px;
+}
+
+.teams-view-btn {
+  @apply font-data font-bold uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  padding: 8px 20px;
+  border-radius: 0.25rem;
+  color: #6B6560;
+  background: none;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  cursor: pointer;
+  transition: color 150ms, background 150ms, border-color 150ms;
+}
+
+.teams-view-btn:hover {
+  color: #111111;
+}
+
+.teams-view-btn.active {
+  color: #111111;
+  background: rgba(17, 17, 17, 0.06);
+  border-color: #111111;
+}
+
+.teams-grid {
+  @apply flex flex-col gap-2;
+  max-width: 480px;
+}
+
+.team-card {
+  @apply bg-ash;
+  border-radius: 0.5rem;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  overflow: hidden;
+}
+
+.team-card-header {
+  @apply flex items-center justify-between w-full;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms;
+}
+
+.team-card-header:hover {
+  background: rgba(17, 17, 17, 0.03);
+}
+
+.team-card-title-row {
+  @apply flex items-center gap-2;
+}
+
+.team-card-name {
+  @apply font-heading font-bold text-ink;
+  font-size: 14px;
+}
+
+.team-card-count {
+  @apply font-data text-steel;
+  font-size: 11px;
+}
+
+.team-card-actions {
+  @apply flex items-center gap-2;
+}
+
+.team-card-chevron {
+  width: 16px;
+  height: 16px;
+  color: #6B6560;
+  transition: transform 200ms;
+  flex-shrink: 0;
+}
+
+.team-card-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.team-card-roster {
+  @apply flex flex-col;
+  padding: 0 16px 8px;
+}
+
+.team-card-empty {
+  @apply font-data text-steel;
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+/* Roster Groups — position-based shading */
+
+.roster-group {
+  padding: 4px 8px;
+  border-radius: 0.25rem;
+  margin-bottom: 2px;
+}
+
+.roster-group:last-child {
+  margin-bottom: 0;
+}
+
+.roster-group-d {
+  background: rgba(70, 130, 180, 0.08);
+}
+
+.roster-group-f {
+  background: rgba(60, 160, 80, 0.06);
+}
+
+.roster-group-g {
+  background: rgba(180, 120, 50, 0.07);
+}
+
+.roster-group-label {
+  @apply font-data uppercase text-steel;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  display: block;
+  padding-bottom: 2px;
+}
+
+/* Roster Row — compact single-line player */
+
+.roster-row {
+  @apply flex items-center gap-3;
+  padding: 3px 0;
+}
+
+.roster-row-number {
+  @apply font-data text-ink;
+  font-size: 14px;
+  min-width: 40px;
+}
+
+.roster-row-name {
+  @apply font-data text-ink;
+  font-size: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.roster-row-notes {
+  @apply font-data text-steel;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Crew Heart Button */
+
+.crew-heart {
+  @apply flex items-center justify-center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #D4CFC6;
+  transition: color 150ms, transform 100ms;
+  flex-shrink: 0;
+}
+
+.crew-heart:hover {
+  color: #6B6560;
+  transform: scale(1.1);
+}
+
+.crew-heart.active {
+  color: #E63B2E;
+  cursor: default;
+}
+
+.crew-heart.active .crew-heart-icon {
+  fill: #E63B2E;
+}
+
+.crew-heart-team {
+  color: #A8A29E;
+}
+
+.crew-heart-team:hover {
+  color: #57534E;
+}
+
+.crew-heart-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* ========================================
+   TRYOUTS PAGE
+   ======================================== */
+
+.tryouts-tab-toggle {
+  @apply flex gap-1;
+  margin-bottom: 16px;
+}
+
+.tryouts-tab-btn {
+  @apply font-data font-bold uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  padding: 8px 20px;
+  border-radius: 0.25rem;
+  color: #6B6560;
+  background: none;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: color 150ms, border-color 150ms, background 150ms;
+}
+
+.tryouts-tab-btn:hover {
+  color: #111111;
+}
+
+.tryouts-tab-btn.active {
+  color: #111111;
+  background: rgba(17, 17, 17, 0.06);
+  border-color: #111111;
+}
+
+.tab-hidden {
+  display: none;
+}
+
+/* Current Rounds Tab */
+
+.current-section {
+  margin-bottom: 32px;
+}
+
+.current-section-title {
+  @apply font-heading font-bold text-ink;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.current-section-empty {
+  @apply font-data text-steel;
+  font-size: 13px;
+  padding: 16px 0;
+}
+
+.current-rounds-list {
+  @apply flex flex-col gap-2;
+}
+
+.round-card {
+  @apply bg-ash;
+  border-radius: 0.5rem;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  overflow: hidden;
+}
+
+.round-card-header {
+  @apply flex items-center justify-between w-full;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms;
+}
+
+.round-card-header:hover {
+  background: rgba(17, 17, 17, 0.03);
+}
+
+.round-card-title-row {
+  @apply flex items-center gap-2;
+}
+
+.round-card-name {
+  @apply font-heading font-bold text-ink;
+  font-size: 14px;
+}
+
+.round-card-date {
+  @apply font-data text-steel;
+  font-size: 11px;
+}
+
+.round-card-count {
+  @apply font-data text-steel;
+  font-size: 11px;
+}
+
+.round-card-results {
+  @apply flex flex-col;
+  padding: 0 16px 12px;
+}
+
+.round-card-crew-section {
+  margin-bottom: 8px;
+}
+
+.round-card-other-section {
+  /* separator handled by label */
+}
+
+.round-card-section-label {
+  @apply font-data uppercase text-steel;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  display: block;
+  margin-bottom: 4px;
+  margin-top: 4px;
+}
+
+.round-result-row {
+  @apply flex items-center gap-3;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.04);
+}
+
+.round-result-row:last-child {
+  border-bottom: none;
+}
+
+.round-result-row.crew-highlight {
+  background: rgba(230, 59, 46, 0.04);
+  margin: 0 -8px;
+  padding: 6px 8px;
+  border-radius: 0.25rem;
+}
+
+.round-result-number {
+  @apply font-data font-bold text-signal;
+  font-size: 13px;
+  min-width: 40px;
+}
+
+.round-result-name {
+  @apply font-data text-ink;
+  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.round-result-badge {
+  @apply font-data font-bold uppercase;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 0.25rem;
+}
+
+.result-advanced {
+  color: #111111;
+  background: rgba(17, 17, 17, 0.06);
+}
+
+.result-cut_down {
+  color: #E63B2E;
+  background: rgba(230, 59, 46, 0.1);
+}
+
+.result-withdrawn {
+  color: #6B6560;
+  background: rgba(107, 101, 96, 0.1);
+}
+
+.result-placed {
+  color: #111111;
+  background: rgba(17, 17, 17, 0.08);
+}
+
+.round-card-empty {
+  @apply font-data text-steel;
+  font-size: 12px;
+  padding: 8px 0;
+}
+
+/* ========================================
+   SCENARIO BUILDER
+   ======================================== */
+
+.scenario-builder {
+  max-width: 480px;
+}
+
+.scenario-actions {
+  @apply flex items-center;
+  margin-bottom: 16px;
+}
+
+.scenario-reset-btn {
+  @apply flex items-center gap-1 font-data font-bold uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  padding: 6px 12px;
+  border-radius: 0.25rem;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  background: none;
+  cursor: pointer;
+  color: #6B6560;
+  transition: color 150ms, border-color 150ms;
+}
+
+.scenario-reset-btn:hover {
+  color: #111111;
+  border-color: rgba(17, 17, 17, 0.24);
+}
+
+.scenario-reset-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.scenario-teams {
+  @apply flex flex-col gap-3;
+}
+
+.scenario-team-card {
+  @apply bg-ash;
+  border-radius: 0.5rem;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  overflow: hidden;
+}
+
+.scenario-team-header {
+  @apply flex items-center justify-between w-full;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms;
+}
+
+.scenario-team-header:hover {
+  background: rgba(17, 17, 17, 0.03);
+}
+
+.scenario-team-title-row {
+  @apply flex items-center gap-2;
+}
+
+.scenario-team-name {
+  @apply font-heading font-bold text-ink;
+  font-size: 14px;
+}
+
+.scenario-team-count {
+  @apply font-data font-bold text-steel;
+  font-size: 11px;
+}
+
+.scenario-team-count.full {
+  color: #16a34a;
+}
+
+.scenario-team-locked {
+  @apply font-data text-steel;
+  font-size: 10px;
+}
+
+.scenario-team-bubble {
+  @apply font-data;
+  font-size: 10px;
+  color: #E63B2E;
+}
+
+.scenario-team-roster {
+  @apply flex flex-col;
+  padding: 0 16px 8px;
+}
+
+/* Scenario Player Row */
+
+.scenario-player-row {
+  @apply flex items-center gap-3;
+  padding: 4px 0;
+}
+
+.scenario-player-row.crew {
+  background: rgba(230, 59, 46, 0.04);
+  margin: 0 -4px;
+  padding: 4px;
+  border-radius: 0.25rem;
+}
+
+.scenario-player-row.bubble {
+  border-left: 3px solid #E63B2E;
+  padding-left: 8px;
+}
+
+.scenario-player-row.team-divider {
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+  margin-top: 4px;
+  padding-top: 8px;
+}
+
+.scenario-player-number {
+  @apply font-data text-ink;
+  font-size: 13px;
+  min-width: 36px;
+}
+
+.scenario-player-name {
+  @apply font-data text-ink;
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+}
+
+.scenario-player-pos {
+  @apply font-data text-steel;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.scenario-player-prev {
+  @apply font-data text-steel;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.scenario-bubble-badge {
+  @apply font-data font-bold uppercase;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: #E63B2E;
+  padding: 2px 6px;
+  border-radius: 0.25rem;
+  flex-shrink: 0;
+}
+
+.scenario-pos-count {
+  @apply font-data;
+  font-size: 9px;
+  color: #6B6560;
+  margin-left: 6px;
+}
+
+.scenario-pos-count.full {
+  color: #16a34a;
+}
+
+.scenario-crew-icon {
+  color: #E63B2E;
+  flex-shrink: 0;
+}
+
+.scenario-crew-icon .crew-heart-icon {
+  width: 12px;
+  height: 12px;
+  fill: #E63B2E;
+}
+
+.scenario-lock-btn {
+  @apply flex items-center justify-center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #6B6560;
+  transition: color 150ms;
+  flex-shrink: 0;
+}
+
+.scenario-lock-btn:hover {
+  color: #111111;
+}
+
+.scenario-lock-btn.locked {
+  color: #E63B2E;
+}
+
+.scenario-lock-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.scenario-move-btn {
+  @apply flex items-center justify-center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #6B6560;
+  transition: color 150ms;
+  flex-shrink: 0;
+}
+
+.scenario-move-btn:hover {
+  color: #111111;
+}
+
+.scenario-move-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.scenario-move-popover {
+  @apply flex flex-col;
+  padding: 4px;
+  min-width: 120px;
+}
+
+.scenario-move-option {
+  @apply font-data text-ink;
+  font-size: 12px;
+  padding: 6px 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 0.25rem;
+  transition: background 150ms;
+}
+
+.scenario-move-option:hover {
+  background: rgba(17, 17, 17, 0.06);
+}
+
+.scenario-move-unassign {
+  color: #6B6560;
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+  margin-top: 4px;
+  padding-top: 8px;
+}
+
+/* Unassigned Pool */
+
+.scenario-unassigned {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 0.5rem;
+  border: 2px dashed rgba(17, 17, 17, 0.12);
+}
+
+.scenario-unassigned-title {
+  @apply font-data font-bold uppercase text-steel;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.scenario-unassigned-list {
+  @apply flex flex-col;
 }

@@ -1,6 +1,6 @@
 "use client"
 
-export default function ExploreError({
+export default function TeamsError({
   reset,
 }: {
   error: Error & { digest?: string }
@@ -11,7 +11,7 @@ export default function ExploreError({
       <div className="app-empty-state">
         <p className="app-empty-title">Something went wrong</p>
         <p className="app-empty-desc">
-          Failed to load players. Please try again.
+          Failed to load teams. Please try again.
         </p>
         <button className="btn-primary" onClick={reset}>
           Try Again

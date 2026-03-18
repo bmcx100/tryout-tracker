@@ -12,10 +12,12 @@ export function CrewGroup({
   tag,
   members,
   onMemberClick,
+  onRemoveMember,
 }: {
   tag: string
   members: CrewMember[]
   onMemberClick?: (member: CrewMember) => void
+  onRemoveMember?: (member: CrewMember) => void
 }) {
   if (members.length === 0) return null
 
@@ -31,6 +33,7 @@ export function CrewGroup({
             key={member.id}
             member={member}
             onClick={() => onMemberClick?.(member)}
+            onRemove={() => onRemoveMember?.(member)}
           />
         ))}
       </div>

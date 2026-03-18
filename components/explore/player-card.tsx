@@ -1,3 +1,4 @@
+import { playerName } from "@/lib/utils"
 import type { Player } from "@/lib/types"
 
 export function PlayerCard({
@@ -18,7 +19,7 @@ export function PlayerCard({
     friend: "Friend",
   }
 
-  const fullName = [player.first_name, player.last_name].filter(Boolean).join(" ")
+  const fullName = playerName(player.first_name, player.last_name)
 
   return (
     <div className="explore-card">

@@ -21,9 +21,10 @@ export async function addToCrew(data: {
 
   if (error) throw new Error(error.message)
   revalidatePath("/crew")
-  revalidatePath("/feed")
-  revalidatePath("/schedule")
-  revalidatePath("/explore")
+  revalidatePath("/home")
+  revalidatePath("/current")
+  revalidatePath("/players")
+  revalidatePath("/teams")
 }
 
 export async function updateCrewMember(
@@ -50,7 +51,8 @@ export async function removeFromCrew(id: string) {
 
   if (error) throw new Error(error.message)
   revalidatePath("/crew")
-  revalidatePath("/feed")
-  revalidatePath("/schedule")
-  revalidatePath("/explore")
+  revalidatePath("/home")
+  revalidatePath("/current")
+  revalidatePath("/players")
+  revalidatePath("/teams")
 }

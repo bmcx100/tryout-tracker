@@ -1,50 +1,38 @@
+import { Heart } from "lucide-react"
 import type { CrewMember } from "@/lib/types"
-
-const TAG_LABELS: Record<string, string> = {
-  bff: "BFF",
-  teammate: "Teammate",
-  old_teammate: "Old Teammate",
-  friend: "Friend",
-}
-
-const TAG_CLASSES: Record<string, string> = {
-  bff: "tag-bff",
-  teammate: "tag-teammate",
-  old_teammate: "tag-old-teammate",
-  friend: "tag-friend",
-}
 
 export function CrewCard({
   member,
   onClick,
+  onRemove,
 }: {
   member: CrewMember
   onClick?: () => void
+  onRemove?: () => void
 }) {
-  const statusLabel = member.player
-    ? `${member.player.current_level || "—"} — ${(member.player.status || "").replace(/_/g, " ")}`
-    : "—"
-
-  const fullName = member.player
-    ? [member.player.first_name, member.player.last_name].filter(Boolean).join(" ")
-    : null
-
   return (
-    <div className="crew-card" onClick={onClick} role="button" tabIndex={0}>
-      <span className="crew-card-number">#{member.player_number}</span>
-      <div className="crew-card-info">
-        <span className="crew-card-name">{member.personal_name}</span>
-        {fullName && (
-          <span className="crew-card-real-name">{fullName}</span>
-        )}
-        <span className={`tag-badge ${TAG_CLASSES[member.tag]}`}>
-          {TAG_LABELS[member.tag]}
-        </span>
-      </div>
-      <div className="crew-card-status">
-        <span className="crew-card-level">{statusLabel}</span>
+    <div className="crew-row">
+      <button
+        className="crew-row-heart"
+        onClick={(e) => {
+          e.stopPropagation()
+          onRemove?.()
+        }}
+        aria-label="Remove from crew"
+      >
+        <Heart className="crew-heart-filled" />
+      </button>
+      <div className="crew-row-info" onClick={onClick} role="button" tabIndex={0}>
+        <span className="crew-row-number">#{member.player_number}</span>
+        <span className="crew-row-name">{member.personal_name}</span>
         {member.player?.previous_team && (
-          <span className="crew-card-prev-team">{member.player.previous_team}</span>
+          <span className="crew-row-team">{member.player.previous_team}</span>
+        )}
+        {member.player?.position && (
+          <span className="crew-row-pos">{member.player.position}</span>
+        )}
+        {member.notes && (
+          <span className="crew-row-notes">{member.notes}</span>
         )}
       </div>
     </div>

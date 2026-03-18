@@ -1,15 +1,16 @@
 "use client"
 
-import { Users, Activity, Calendar, Search, Settings } from "lucide-react"
+import { Home, Heart, Shield, UserSearch, Zap, Settings } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
 
 const NAV_ITEMS = [
-  { href: "/crew", label: "Crew", icon: Users },
-  { href: "/feed", label: "Feed", icon: Activity },
-  { href: "/schedule", label: "Schedule", icon: Calendar },
-  { href: "/explore", label: "Explore", icon: Search },
+  { href: "/home", label: "Home", icon: Home },
+  { href: "/current", label: "Tryouts", icon: Zap },
+  { href: "/crew", label: "My Crew", icon: Heart },
+  { href: "/teams", label: "Teams", icon: Shield },
+  { href: "/players", label: "Players", icon: UserSearch },
 ]
 
 export function AppSidebar() {
