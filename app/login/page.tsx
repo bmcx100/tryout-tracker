@@ -16,7 +16,7 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-brand">CABOT</div>
+        <div className="login-brand">TRYOUT TRACKER</div>
         <h1 className="login-headline">Sign in to follow your crew</h1>
         <p className="login-body">
           Track your BFFs, teammates, and friends through every tryout level.

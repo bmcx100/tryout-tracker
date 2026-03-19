@@ -110,7 +110,7 @@ export default function HomePage() {
           <h1 className="app-page-title">Home</h1>
         </div>
         <div className="home-welcome">
-          <h2 className="home-welcome-title">Welcome to Cabot</h2>
+          <h2 className="home-welcome-title">Welcome to Tryout Tracker</h2>
           <p className="home-welcome-desc">
             Track your kid&apos;s BFFs, teammates, and friends through tryouts.
             Start by finding your kid&apos;s team.

@@ -33,7 +33,7 @@ export function AppHeaderAuth() {
 
   return (
     <header className="app-header-auth">
-      <span className="app-header-auth-brand">CABOT</span>
+      <span className="app-header-auth-brand">TRYOUT TRACKER</span>
       <DropdownMenu>
         <DropdownMenuTrigger className="app-header-auth-trigger">
           <Avatar className="app-header-auth-avatar">

@@ -1,5 +1,5 @@
 -- ========================================
--- Cabot Tryout Crew Tracker — Database Schema
+-- Tryout Tracker — Database Schema
 -- Run this in one shot in Supabase SQL Editor
 -- ========================================
 

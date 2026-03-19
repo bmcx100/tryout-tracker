@@ -24,7 +24,7 @@ const dmSerifDisplay = DM_Serif_Display({
 })
 
 export const metadata: Metadata = {
-  title: "Cabot — Tryout Crew Tracker",
+  title: "Tryout Tracker",
   description: "Follow your crew through every tryout level. Track your BFFs, teammates, and friends as they move through hockey tryouts.",
 }
 

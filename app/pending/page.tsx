@@ -58,7 +58,7 @@ export default function PendingPage() {
   return (
     <div className="pending-page">
       <div className="pending-card">
-        <div className="pending-brand">CABOT</div>
+        <div className="pending-brand">TRYOUT TRACKER</div>
         <h1 className="pending-headline">Almost there</h1>
         <p className="pending-body">
           An admin needs to let you in. Once approved, you can start

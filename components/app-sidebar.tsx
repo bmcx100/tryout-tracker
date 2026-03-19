@@ -19,7 +19,7 @@ export function AppSidebar() {
 
   return (
     <aside className="app-sidebar">
-      <div className="app-sidebar-brand">CABOT</div>
+      <div className="app-sidebar-brand">TRYOUT TRACKER</div>
       <nav className="app-sidebar-items">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon
@@ -46,7 +46,7 @@ export function AppSidebar() {
         )}
       </nav>
       <div className="app-sidebar-footer">
-        Cabot Tryout Crew Tracker v0.1.0
+        Tryout Tracker v0.1.0
       </div>
     </aside>
   )

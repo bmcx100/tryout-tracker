@@ -3,7 +3,7 @@ export function Hero() {
     <section className="hero">
       <div className="hero-content">
         <p className="hero-label hero-enter hero-enter-1">
-          SYS://CABOT.CREW.V1
+          SYS://TRYOUT.TRACKER.V1
         </p>
         <h1 className="hero-headline hero-enter hero-enter-2">
           Follow your

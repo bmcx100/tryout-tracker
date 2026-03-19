@@ -15,7 +15,7 @@ export function SidebarNav() {
 
   return (
     <aside className="sidebar-nav">
-      <div className="sidebar-brand">CABOT</div>
+      <div className="sidebar-brand">TRYOUT TRACKER</div>
       <nav className="sidebar-items">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon
@@ -32,7 +32,7 @@ export function SidebarNav() {
         })}
       </nav>
       <div className="sidebar-footer">
-        Cabot Tryout Crew Tracker v0.1.0
+        Tryout Tracker v0.1.0
       </div>
     </aside>
   )
