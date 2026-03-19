@@ -29,8 +29,16 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Just refresh the session — that's it
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const pathname = request.nextUrl.pathname
+
+  // Redirect logged-in users from landing page to app
+  if (user && pathname === "/") {
+    const url = request.nextUrl.clone()
+    url.pathname = "/home"
+    return NextResponse.redirect(url)
+  }
 
   return supabaseResponse
 }
