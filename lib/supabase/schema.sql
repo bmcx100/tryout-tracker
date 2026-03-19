@@ -137,6 +137,22 @@ create table public.corrections (
 );
 
 -- ========================================
+-- USER SCENARIOS (saved scenario builder states)
+-- ========================================
+
+create table public.user_scenarios (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users on delete cascade not null,
+  name text not null,
+  description text,
+  scenario_data jsonb not null default '{}',
+  is_shared boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, name)
+);
+
+-- ========================================
 -- NOW safe to create helper function (profiles exists)
 -- ========================================
 
@@ -256,6 +272,25 @@ create policy "Users can delete own crew"
   on public.user_crew for delete
   using (auth.uid() = user_id);
 
+-- User Scenarios
+alter table public.user_scenarios enable row level security;
+
+create policy "Users can read own or shared scenarios"
+  on public.user_scenarios for select
+  using (auth.uid() = user_id or is_shared = true);
+
+create policy "Users can insert own scenarios"
+  on public.user_scenarios for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own scenarios"
+  on public.user_scenarios for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own scenarios"
+  on public.user_scenarios for delete
+  using (auth.uid() = user_id);
+
 -- Corrections
 alter table public.corrections enable row level security;
 
@@ -291,6 +326,7 @@ grant select, insert, update, delete on public.session_players to authenticated;
 grant select, insert, update, delete on public.rounds to authenticated;
 grant select, insert, update, delete on public.round_results to authenticated;
 grant select, insert, update, delete on public.user_crew to authenticated;
+grant select, insert, update, delete on public.user_scenarios to authenticated;
 grant select, insert, update on public.corrections to authenticated;
 
 grant select on public.players_view to authenticated;

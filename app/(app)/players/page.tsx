@@ -136,11 +136,7 @@ export default function PlayersPage() {
         />
       </div>
 
-      {loading ? (
-        <div className="app-empty-state">
-          <p className="app-empty-desc">Loading...</p>
-        </div>
-      ) : filtered.length === 0 ? (
+      {loading ? null : filtered.length === 0 ? (
         <div className="app-empty-state">
           <p className="app-empty-title">No players found</p>
           <p className="app-empty-desc">

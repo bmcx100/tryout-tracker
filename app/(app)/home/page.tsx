@@ -98,9 +98,6 @@ export default function HomePage() {
         <div className="app-page-header">
           <h1 className="app-page-title">Home</h1>
         </div>
-        <div className="app-empty-state">
-          <p className="app-empty-desc">Loading...</p>
-        </div>
       </div>
     )
   }

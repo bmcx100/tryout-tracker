@@ -6,11 +6,13 @@ export function RosterRow({
   player,
   isInCrew,
   onAddToCrew,
+  onRemoveFromCrew,
 }: {
   player: Player
   isInCrew: boolean
   crewTag?: string
   onAddToCrew: () => void
+  onRemoveFromCrew?: () => void
 }) {
   return (
     <div className="roster-row">
@@ -21,7 +23,7 @@ export function RosterRow({
       )}
       <button
         className={`crew-heart crew-heart-team${isInCrew ? " active" : ""}`}
-        onClick={isInCrew ? undefined : onAddToCrew}
+        onClick={isInCrew ? onRemoveFromCrew : onAddToCrew}
       >
         <Heart className="crew-heart-icon" />
       </button>

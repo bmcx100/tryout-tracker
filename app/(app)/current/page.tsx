@@ -18,7 +18,7 @@ interface RoundWithResults extends Round {
 type TryoutsTab = "results" | "rounds" | "scenario"
 
 export default function TryoutsPage() {
-  const [activeTab, setActiveTab] = useState<TryoutsTab>("rounds")
+  const [activeTab, setActiveTab] = useState<TryoutsTab>("scenario")
   const [rounds, setRounds] = useState<RoundWithResults[]>([])
   const [sessions, setSessions] = useState<SessionWithCrew[]>([])
   const [players, setPlayers] = useState<Player[]>([])
@@ -152,6 +152,12 @@ export default function TryoutsPage() {
 
       <div className="tryouts-tab-toggle">
         <button
+          className={`tryouts-tab-btn${activeTab === "scenario" ? " active" : ""}`}
+          onClick={() => setActiveTab("scenario")}
+        >
+          Scenario Builder
+        </button>
+        <button
           className={`tryouts-tab-btn${activeTab === "rounds" ? " active" : ""}`}
           onClick={() => setActiveTab("rounds")}
         >
@@ -163,19 +169,9 @@ export default function TryoutsPage() {
         >
           Results
         </button>
-        <button
-          className={`tryouts-tab-btn${activeTab === "scenario" ? " active" : ""}`}
-          onClick={() => setActiveTab("scenario")}
-        >
-          Scenario Builder
-        </button>
       </div>
 
-      {loading ? (
-        <div className="app-empty-state">
-          <p className="app-empty-desc">Loading...</p>
-        </div>
-      ) : (
+      {loading ? null : (
         <>
           <div className={activeTab !== "rounds" ? "tab-hidden" : ""}>
             <RoundsTab

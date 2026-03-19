@@ -11,6 +11,7 @@ export interface ScenarioPlayer {
   locked: boolean
   source: "returning" | "level_below" | "age_up" | "level_above" | "manual"
   bubble: boolean
+  priority: number
 }
 
 export function ScenarioPlayerRow({
@@ -43,19 +44,6 @@ export function ScenarioPlayerRow({
 
   return (
     <div className={rowClass}>
-      <span className="scenario-player-number">#{player.number}</span>
-      <span className="scenario-player-name">{fullName || "—"}</span>
-      {player.position && (
-        <span className="scenario-player-pos">{player.position}</span>
-      )}
-      {player.previous_team && (
-        <span className="scenario-player-prev">{player.previous_team}</span>
-      )}
-      {isInCrew && (
-        <span className="scenario-crew-icon">
-          <Heart className="crew-heart-icon" />
-        </span>
-      )}
       <button className={`scenario-lock-btn${locked ? " locked" : ""}`} onClick={onToggleLock}>
         {locked ? <Lock className="scenario-lock-icon" /> : <Unlock className="scenario-lock-icon" />}
       </button>
@@ -94,6 +82,19 @@ export function ScenarioPlayerRow({
             )}
           </PopoverContent>
         </Popover>
+      )}
+      <span className="scenario-player-number">#{player.number}</span>
+      <span className="scenario-player-name">{fullName || "—"}</span>
+      {player.position && (
+        <span className="scenario-player-pos">{player.position}</span>
+      )}
+      {player.previous_team && (
+        <span className="scenario-player-prev">{player.previous_team}</span>
+      )}
+      {isInCrew && (
+        <span className="scenario-crew-icon">
+          <Heart className="crew-heart-icon" />
+        </span>
       )}
     </div>
   )

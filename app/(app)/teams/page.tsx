@@ -85,11 +85,7 @@ export default function TeamsPage() {
         </button>
       </div>
 
-      {loading ? (
-        <div className="app-empty-state">
-          <p className="app-empty-desc">Loading...</p>
-        </div>
-      ) : view === "previous" ? (
+      {loading ? null : view === "previous" ? (
         <>
           <AgeGroupTabs active={ageGroup} onChange={setAgeGroup} />
           <div className="teams-grid">

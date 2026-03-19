@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, CheckCircle } from "lucide-react"
 import { ScenarioPlayerRow, type ScenarioPlayer } from "./scenario-player-row"
+import { getAgeGroup, extractLevelFromTeam, LEVEL_ORDER } from "@/lib/utils"
 import type { CrewMember } from "@/lib/types"
 
 function positionGroup(pos: string | null): "D" | "F" | "G" {
@@ -24,7 +25,9 @@ export function ScenarioTeamCard({
   availableTeams,
   onMovePlayer,
   onToggleLock,
+  onComplete,
   defaultExpanded,
+  isComplete,
 }: {
   teamName: string
   roster: ScenarioPlayer[]
@@ -32,15 +35,39 @@ export function ScenarioTeamCard({
   availableTeams: string[]
   onMovePlayer: (playerNumber: number, toTeam: string | null) => void
   onToggleLock: (playerNumber: number) => void
+  onComplete: () => void
   defaultExpanded?: boolean
+  isComplete?: boolean
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded ?? false)
+
+  const teamLevel = extractLevelFromTeam(teamName)
+  const teamIdx = teamLevel ? LEVEL_ORDER.indexOf(teamLevel) : 0
+
+  // Rank by origin relative to this team: U15 same level, U15 one below, U13 one above, etc.
+  function originRank(sp: ScenarioPlayer): number {
+    const ag = getAgeGroup(sp.player.birth_year)
+    const prevLevel = extractLevelFromTeam(sp.player.previous_team)
+    const pi = prevLevel ? LEVEL_ORDER.indexOf(prevLevel) : 99
+    if (ag === "U15") {
+      const offset = pi - teamIdx
+      if (offset <= 0) return offset // returning or from above — top
+      return 2 * offset - 1 // one below = 1, two below = 3, etc.
+    }
+    // U13
+    const offset = pi - teamIdx
+    return 2 * (offset + 1) // same level = 2, one below = 4, etc.
+  }
 
   const sorted = [...roster].sort((a, b) => {
     const ga = POS_ORDER[positionGroup(a.player.position)] ?? 1
     const gb = POS_ORDER[positionGroup(b.player.position)] ?? 1
     if (ga !== gb) return ga - gb
+    // Locks always at top within position group
     if (a.locked !== b.locked) return a.locked ? -1 : 1
+    const ra = originRank(a)
+    const rb = originRank(b)
+    if (ra !== rb) return ra - rb
     const ta = a.player.previous_team || ""
     const tb = b.player.previous_team || ""
     return ta.localeCompare(tb)
@@ -52,14 +79,22 @@ export function ScenarioTeamCard({
     posCounts[g] = (posCounts[g] || 0) + 1
   }
 
-  const groups: Array<{ label: string; key: string; target: number; count: number; players: ScenarioPlayer[] }> = []
+  const posLocked: Record<string, number> = { D: 0, F: 0, G: 0 }
+  for (const sp of roster) {
+    if (sp.locked) {
+      const g = positionGroup(sp.player.position)
+      posLocked[g] = (posLocked[g] || 0) + 1
+    }
+  }
+
+  const groups: Array<{ label: string; key: string; target: number; count: number; locked: number; players: ScenarioPlayer[] }> = []
   let currentGroup = ""
   for (const sp of sorted) {
     const g = positionGroup(sp.player.position)
     if (g !== currentGroup) {
       currentGroup = g
       const label = g === "D" ? "Defense" : g === "G" ? "Goalies" : "Forwards"
-      groups.push({ label, key: g, target: POS_TARGETS[g], count: posCounts[g], players: [] })
+      groups.push({ label, key: g, target: POS_TARGETS[g], count: posCounts[g], locked: posLocked[g], players: [] })
     }
     groups[groups.length - 1].players.push(sp)
   }
@@ -87,6 +122,30 @@ export function ScenarioTeamCard({
       </button>
       {expanded && (
         <div className="scenario-team-roster">
+          {!isComplete && (
+            <button
+              className="scenario-complete-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                onComplete()
+              }}
+            >
+              <CheckCircle className="scenario-complete-icon" />
+              Complete — send unlocked down
+            </button>
+          )}
+          {isComplete && (
+            <button
+              className="scenario-undo-complete-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                onComplete()
+              }}
+            >
+              <CheckCircle className="scenario-complete-icon" />
+              Team Complete — undo
+            </button>
+          )}
           {roster.length === 0 ? (
             <p className="team-card-empty">No players assigned</p>
           ) : (
@@ -94,8 +153,8 @@ export function ScenarioTeamCard({
               <div key={group.key} className={`roster-group roster-group-${group.key.toLowerCase()}`}>
                 <span className="roster-group-label">
                   {group.label}
-                  <span className={`scenario-pos-count${group.count >= group.target ? " full" : ""}`}>
-                    {group.count}/{group.target}
+                  <span className={`scenario-pos-count${group.locked >= group.target ? " full" : ""}`}>
+                    {group.count} Players with {group.locked} Locked
                   </span>
                 </span>
                 {group.players.map((sp, i) => (

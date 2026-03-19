@@ -88,6 +88,40 @@ export interface CrewMember {
   player?: Player
 }
 
+export type ScenarioSource = "returning" | "level_below" | "age_up" | "level_above" | "manual"
+
+export interface ScenarioPlayerData {
+  player_number: number
+  locked: boolean
+  source: ScenarioSource
+  bubble: boolean
+  priority: number
+}
+
+export interface ScenarioTeamData {
+  teamName: string
+  level: PlayerLevel
+  roster: ScenarioPlayerData[]
+}
+
+export interface ScenarioDataPayload {
+  version: 1
+  teams: ScenarioTeamData[]
+  unassigned: number[]
+  completedTeams: string[]
+}
+
+export interface UserScenario {
+  id: string
+  user_id: string
+  name: string
+  description: string | null
+  scenario_data: ScenarioDataPayload
+  is_shared: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Correction {
   id: string
   user_id: string

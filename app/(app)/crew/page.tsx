@@ -58,29 +58,18 @@ export default function CrewPage() {
     await fetchCrew()
   }
 
-  if (loading) {
-    return (
-      <div className="app-page">
-        <div className="app-page-header">
-          <h1 className="app-page-title">My Crew</h1>
-        </div>
-        <div className="app-empty-state">
-          <p className="app-empty-desc">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="app-page">
       <div className="app-page-header">
         <h1 className="app-page-title">My Crew</h1>
-        <button className="btn-primary" onClick={() => setAddOpen(true)}>
-          Add to Crew
-        </button>
+        {!loading && (
+          <button className="btn-primary" onClick={() => setAddOpen(true)}>
+            Add to Crew
+          </button>
+        )}
       </div>
 
-      {crew.length === 0 ? (
+      {!loading && crew.length === 0 ? (
         <div className="app-empty-state">
           <p className="app-empty-title">Your crew is empty</p>
           <p className="app-empty-desc">

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { ChevronDown, Heart } from "lucide-react"
 import { RosterRow } from "@/components/teams/roster-row"
-import { addToCrew } from "@/lib/actions/crew"
+import { addToCrew, removeFromCrew } from "@/lib/actions/crew"
 import { toast } from "sonner"
 import { playerName } from "@/lib/utils"
 import type { Player, CrewMember } from "@/lib/types"
@@ -89,6 +89,18 @@ export function TeamCard({
     }
   }
 
+  const handleRemoveOne = async (player: Player) => {
+    const member = crewMap.get(player.number)
+    if (!member) return
+    try {
+      await removeFromCrew(member.id)
+      toast.success(`Removed ${getPlayerName(player)} from your crew`)
+      onCrewChanged()
+    } catch {
+      toast.error("Failed to remove from crew")
+    }
+  }
+
   return (
     <div className="team-card">
       <button
@@ -97,7 +109,17 @@ export function TeamCard({
       >
         <div className="team-card-title-row">
           <span className="team-card-name">{teamName}</span>
-          <span className="team-card-count">{players.length}</span>
+          <span className="team-card-count">
+            {players.length} Players
+            <span className="team-card-pos-divider" />
+            <span className="team-card-pos-counts">
+              <span className="team-card-pos-item">{players.filter((p) => positionGroup(p.position) === "D").length} D</span>
+              <span className="team-card-pos-divider" />
+              <span className="team-card-pos-item">{players.filter((p) => positionGroup(p.position) === "F").length} F</span>
+              <span className="team-card-pos-divider" />
+              <span className="team-card-pos-item">{players.filter((p) => positionGroup(p.position) === "G").length} G</span>
+            </span>
+          </span>
         </div>
         <div className="team-card-actions">
           <span
@@ -126,6 +148,7 @@ export function TeamCard({
                       player={player}
                       isInCrew={isInCrew}
                       onAddToCrew={() => handleAddOne(player)}
+                      onRemoveFromCrew={() => handleRemoveOne(player)}
                     />
                   )
                 })}
