@@ -1,13 +1,14 @@
 "use client"
 
-import { Users, Activity, Calendar, Search } from "lucide-react"
+import { Home, Heart, Shield, UserSearch, Zap } from "lucide-react"
 import { useState } from "react"
 
 const TABS = [
-  { id: "crew", label: "Crew", icon: Users },
-  { id: "feed", label: "Feed", icon: Activity },
-  { id: "schedule", label: "Schedule", icon: Calendar },
-  { id: "explore", label: "Explore", icon: Search },
+  { id: "home", label: "Home", icon: Home },
+  { id: "tryouts", label: "Tryouts", icon: Zap },
+  { id: "crew", label: "My Crew", icon: Heart },
+  { id: "teams", label: "Teams", icon: Shield },
+  { id: "players", label: "Players", icon: UserSearch },
 ]
 
 export function BottomTabBar() {
