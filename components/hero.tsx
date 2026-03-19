@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 export function Hero() {
   return (
     <section className="hero">
@@ -13,9 +15,9 @@ export function Hero() {
           Track your BFFs, teammates, and friends as they move
           through every tryout level.
         </p>
-        <button className="hero-cta hero-enter hero-enter-4">
+        <Link href="/login" className="hero-cta hero-enter hero-enter-4">
           Start Tracking Your Crew
-        </button>
+        </Link>
       </div>
       <div className="hero-image-wrap hero-enter hero-enter-5">
         <div className="hero-placeholder">

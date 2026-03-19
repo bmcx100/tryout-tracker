@@ -13,8 +13,6 @@ export default function Home() {
   return (
     <>
       <NoiseOverlay />
-      <SidebarNav />
-      <AppHeader />
       <main className="main-content">
         <Hero />
         <div className="section-gap">
@@ -30,7 +28,6 @@ export default function Home() {
         </div>
         <CTASection />
       </main>
-      <BottomTabBar />
     </>
   )
 }

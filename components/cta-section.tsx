@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useScrollReveal } from "@/hooks/use-scroll-reveal"
 
 export function CTASection() {
@@ -12,7 +13,7 @@ export function CTASection() {
         <p className="cta-body">
           Track your BFFs, teammates, and friends through every round.
         </p>
-        <button className="cta-button">Start Tracking Your Crew</button>
+        <Link href="/login" className="cta-button">Start Tracking Your Crew</Link>
         <p className="cta-note">Free for all tryout families.</p>
       </div>
     </section>
