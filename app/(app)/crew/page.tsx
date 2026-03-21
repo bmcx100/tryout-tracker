@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { removeFromCrew } from "@/lib/actions/crew"
 import type { CrewMember } from "@/lib/types"
 import { CrewGroup } from "@/components/crew/crew-group"
@@ -12,6 +13,7 @@ import Link from "next/link"
 const TAG_ORDER = ["bff", "teammate", "old_teammate", "friend"]
 
 export default function CrewPage() {
+  const { loading: authLoading } = useAuth()
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMember, setSelectedMember] = useState<CrewMember | null>(null)
@@ -30,6 +32,7 @@ export default function CrewPage() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     const load = async () => {
       const supabase = createClient()
       const { data } = await supabase
@@ -41,7 +44,7 @@ export default function CrewPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [authLoading])
 
   const grouped = TAG_ORDER.map((tag) => ({
     tag,

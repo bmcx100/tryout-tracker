@@ -2314,6 +2314,37 @@
    HOME PAGE
    ======================================== */
 
+.home-loading {
+  @apply flex flex-col items-center justify-center;
+  padding: 64px 16px;
+}
+
+.home-loading-text {
+  @apply font-data text-steel;
+  font-size: 12px;
+  margin-top: 12px;
+}
+
+.loading-dots {
+  @apply flex gap-1;
+}
+
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-steel);
+  animation: dot-pulse 1s ease-in-out infinite;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
 .home-welcome {
   @apply flex flex-col items-center text-center;
   padding: 64px 16px;

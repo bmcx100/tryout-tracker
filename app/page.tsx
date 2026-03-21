@@ -1,13 +1,10 @@
 import { NoiseOverlay } from "@/components/noise-overlay"
-import { AppHeader } from "@/components/app-header"
-import { SidebarNav } from "@/components/sidebar-nav"
 import { Hero } from "@/components/hero"
 import { StatsBar } from "@/components/stats-bar"
 import { FeatureCards } from "@/components/feature-cards"
 import { Philosophy } from "@/components/philosophy"
 import { Steps } from "@/components/steps"
 import { CTASection } from "@/components/cta-section"
-import { BottomTabBar } from "@/components/bottom-tab-bar"
 
 export default function Home() {
   return (

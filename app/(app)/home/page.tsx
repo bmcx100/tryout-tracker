@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { FeedItem } from "@/components/feed/feed-item"
 import Link from "next/link"
 import type { CrewMember, Session } from "@/lib/types"
@@ -15,88 +16,130 @@ interface FeedEntry {
 }
 
 export default function HomePage() {
+  const { loading: authLoading } = useAuth()
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [recentUpdates, setRecentUpdates] = useState<FeedEntry[]>([])
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (authLoading) return
+
     const load = async () => {
-      const supabase = createClient()
+      try {
+        const supabase = createClient()
 
-      const { data: crewData } = await supabase
-        .from("user_crew")
-        .select("*, player:players(*)")
-        .order("tag")
+        const { data: crewData, error: crewError } = await supabase
+          .from("user_crew")
+          .select("*, player:players(*)")
+          .order("tag")
 
-      if (!crewData || crewData.length === 0) {
-        setCrew([])
+        if (crewError) {
+          console.error("Failed to load crew:", crewError)
+          setError(crewError.message)
+          setLoading(false)
+          return
+        }
+
+        if (!crewData || crewData.length === 0) {
+          setCrew([])
+          setLoading(false)
+          return
+        }
+
+        setCrew(crewData)
+
+        type CrewRow = { player_number: number; personal_name: string; tag: string }
+        const crewMap = new Map(
+          crewData.map((c: CrewRow) => [c.player_number, c])
+        )
+        const crewNumbers = crewData.map((c: CrewRow) => c.player_number)
+
+        // Get recent round results for crew (last 5)
+        const { data: results } = await supabase
+          .from("round_results")
+          .select("*, round:rounds(*)")
+          .in("player_number", crewNumbers)
+          .order("id", { ascending: false })
+          .limit(5)
+
+        if (results) {
+          const feed = results.map((r: Record<string, unknown>) => {
+            const crewMember = crewMap.get(r.player_number as number)
+            const round = r.round as { date: string; level: string; round_number: number } | null
+            return {
+              date: round?.date || "",
+              playerNumber: r.player_number as number,
+              personalName: crewMember?.personal_name || `#${r.player_number}`,
+              description: `${(r.result as string)?.replace(/_/g, " ") || "unknown"} — ${round?.level || ""} Round ${round?.round_number || ""}`,
+              tag: crewMember?.tag || "friend",
+            }
+          })
+          setRecentUpdates(feed)
+        }
+
+        // Get upcoming sessions
+        const today = new Date().toISOString().split("T")[0]
+        const crewLevels = new Set(
+          crewData
+            .map((c: CrewMember) => c.player?.current_level)
+            .filter(Boolean)
+        )
+
+        if (crewLevels.size > 0) {
+          const { data: sessionData } = await supabase
+            .from("sessions")
+            .select("*")
+            .gte("date", today)
+            .in("level", Array.from(crewLevels))
+            .order("date")
+            .order("start_time")
+            .limit(3)
+
+          if (sessionData) setUpcomingSessions(sessionData)
+        }
+
         setLoading(false)
-        return
+      } catch (err) {
+        console.error("Home page load error:", err)
+        setError(err instanceof Error ? err.message : "Failed to load")
+        setLoading(false)
       }
-
-      setCrew(crewData)
-
-      type CrewRow = { player_number: number; personal_name: string; tag: string }
-      const crewMap = new Map(
-        crewData.map((c: CrewRow) => [c.player_number, c])
-      )
-      const crewNumbers = crewData.map((c: CrewRow) => c.player_number)
-
-      // Get recent round results for crew (last 5)
-      const { data: results } = await supabase
-        .from("round_results")
-        .select("*, round:rounds(*)")
-        .in("player_number", crewNumbers)
-        .order("id", { ascending: false })
-        .limit(5)
-
-      if (results) {
-        const feed = results.map((r: Record<string, unknown>) => {
-          const crewMember = crewMap.get(r.player_number as number)
-          const round = r.round as { date: string; level: string; round_number: number } | null
-          return {
-            date: round?.date || "",
-            playerNumber: r.player_number as number,
-            personalName: crewMember?.personal_name || `#${r.player_number}`,
-            description: `${(r.result as string).replace(/_/g, " ")} — ${round?.level || ""} Round ${round?.round_number || ""}`,
-            tag: crewMember?.tag || "friend",
-          }
-        })
-        setRecentUpdates(feed)
-      }
-
-      // Get upcoming sessions
-      const today = new Date().toISOString().split("T")[0]
-      const crewLevels = new Set(
-        crewData
-          .map((c: CrewMember) => c.player?.current_level)
-          .filter(Boolean)
-      )
-
-      if (crewLevels.size > 0) {
-        const { data: sessionData } = await supabase
-          .from("sessions")
-          .select("*")
-          .gte("date", today)
-          .in("level", Array.from(crewLevels))
-          .order("date")
-          .order("start_time")
-          .limit(3)
-
-        if (sessionData) setUpcomingSessions(sessionData)
-      }
-
-      setLoading(false)
     }
     load()
-  }, [])
+  }, [authLoading])
 
   if (loading) {
     return (
       <div className="app-page">
         <div className="app-page-header">
           <h1 className="app-page-title">Home</h1>
+        </div>
+        <div className="home-loading">
+          <div className="loading-dots">
+            <span className="loading-dot" />
+            <span className="loading-dot" />
+            <span className="loading-dot" />
+          </div>
+          <p className="home-loading-text">Loading your crew...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="app-page">
+        <div className="app-page-header">
+          <h1 className="app-page-title">Home</h1>
+        </div>
+        <div className="app-empty-state">
+          <p className="app-empty-title">Something went wrong</p>
+          <p className="app-empty-desc">{error}</p>
+          <button className="btn-primary" onClick={() => window.location.reload()}>
+            Try Again
+          </button>
         </div>
       </div>
     )

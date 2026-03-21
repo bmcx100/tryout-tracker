@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { createPlayer, updatePlayer, deletePlayer, bulkCreatePlayers } from "@/lib/actions/players"
 import { getAgeGroup, playerName } from "@/lib/utils"
 import type { Player, PlayerLevel, PlayerStatus } from "@/lib/types"
@@ -46,6 +47,7 @@ type BulkRow = {
 }
 
 export default function AdminPlayersPage() {
+  const { loading: authLoading } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Player | null>(null)
@@ -69,6 +71,7 @@ export default function AdminPlayersPage() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     const load = async () => {
       const { data } = await supabase
         .from("players")
@@ -77,7 +80,7 @@ export default function AdminPlayersPage() {
       if (data) setPlayers(data)
     }
     load()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = players.filter((p) => {
     if (ageFilter !== "all") {

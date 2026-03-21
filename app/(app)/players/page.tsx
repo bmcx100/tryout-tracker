@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Heart } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { addToCrew } from "@/lib/actions/crew"
 import { toast } from "sonner"
 import { getAgeGroup, playerName } from "@/lib/utils"
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input"
 const LEVELS = ["AA", "A", "BB", "B", "C"]
 
 export default function PlayersPage() {
+  const { loading: authLoading } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [search, setSearch] = useState("")
@@ -31,6 +33,7 @@ export default function PlayersPage() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     const load = async () => {
       const supabase = createClient()
       const [{ data: playerData }, { data: crewData }] = await Promise.all([
@@ -42,7 +45,7 @@ export default function PlayersPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [authLoading])
 
   const crewMap = new Map(crew.map((c) => [c.player_number, c]))
 

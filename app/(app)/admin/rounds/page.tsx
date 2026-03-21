@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { createRound, recordRoundResults } from "@/lib/actions/rounds"
 import type { Round, Player, PlayerLevel, RoundResult } from "@/lib/types"
 import {
@@ -33,6 +34,7 @@ const LEVELS: PlayerLevel[] = ["AA", "A", "BB", "B", "C"]
 const RESULTS: RoundResult[] = ["advanced", "cut_down", "withdrawn", "placed"]
 
 export default function AdminRoundsPage() {
+  const { loading: authLoading } = useAuth()
   const [rounds, setRounds] = useState<Round[]>([])
   const [players, setPlayers] = useState<Player[]>([])
   const [addOpen, setAddOpen] = useState(false)
@@ -52,6 +54,7 @@ export default function AdminRoundsPage() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     const load = async () => {
       const [{ data: roundData }, { data: playerData }] = await Promise.all([
         supabase.from("rounds").select("*").order("date", { ascending: false }),
@@ -61,7 +64,7 @@ export default function AdminRoundsPage() {
       if (playerData) setPlayers(playerData)
     }
     load()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreateRound = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

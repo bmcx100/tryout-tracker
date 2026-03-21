@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { approveUser, updateUserRole } from "@/lib/actions/users"
 import type { Profile, UserRole } from "@/lib/types"
 import {
@@ -23,6 +24,7 @@ import { Badge } from "@/components/ui/badge"
 const ROLES: UserRole[] = ["pending", "lite", "full", "admin"]
 
 export default function AdminUsersPage() {
+  const { loading: authLoading } = useAuth()
   const [users, setUsers] = useState<Profile[]>([])
 
   const supabase = createClient()
@@ -36,6 +38,7 @@ export default function AdminUsersPage() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     const load = async () => {
       const { data } = await supabase
         .from("profiles")
@@ -44,7 +47,7 @@ export default function AdminUsersPage() {
       if (data) setUsers(data)
     }
     load()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleApprove = async (userId: string, role: "lite" | "full") => {
     await approveUser(userId, role)

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { RoundsTab } from "@/components/current/rounds-tab"
 import { ResultsTab } from "@/components/current/results-tab"
 import { ScenarioBuilder } from "@/components/current/scenario-builder"
@@ -18,6 +19,7 @@ interface RoundWithResults extends Round {
 type TryoutsTab = "results" | "rounds" | "scenario"
 
 export default function TryoutsPage() {
+  const { loading: authLoading } = useAuth()
   const [activeTab, setActiveTab] = useState<TryoutsTab>("scenario")
   const [rounds, setRounds] = useState<RoundWithResults[]>([])
   const [sessions, setSessions] = useState<SessionWithCrew[]>([])
@@ -84,6 +86,7 @@ export default function TryoutsPage() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     const load = async () => {
       const supabase = createClient()
       const [
@@ -136,7 +139,7 @@ export default function TryoutsPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [authLoading])
 
   const crewMap = new Map(crew.map((c) => [c.player_number, c]))
 
