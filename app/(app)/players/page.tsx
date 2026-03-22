@@ -55,7 +55,7 @@ export default function PlayersPage() {
       if (ag !== ageFilter) return false
     }
     if (levelFilter !== "all") {
-      let level: string | null = p.current_level || p.entry_level || p.previous_level
+      let level: string | null = p.current_level || p.entry_level
       if (!level && p.previous_team) {
         const match = p.previous_team.match(/^U\d+(.*)/i)
         if (match) level = match[1].toUpperCase()

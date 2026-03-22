@@ -1754,6 +1754,78 @@
   width: 100px;
 }
 
+/* Admin Teams Confirmation */
+
+.admin-teams-list {
+  @apply flex flex-col;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.admin-team-card {
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.admin-team-header {
+  @apply flex flex-col;
+  gap: 8px;
+  padding: 16px;
+  background: var(--color-ash);
+}
+
+.admin-team-title-row {
+  @apply flex items-center;
+  gap: 12px;
+}
+
+.admin-team-name {
+  @apply font-heading font-bold text-ink;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.admin-team-count {
+  @apply font-data text-steel;
+  font-size: 12px;
+}
+
+.admin-team-progress-row {
+  @apply flex;
+  gap: 16px;
+}
+
+.admin-team-progress {
+  @apply font-data uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--color-steel);
+}
+
+.admin-team-progress.complete {
+  color: var(--color-signal);
+  font-weight: 600;
+}
+
+.admin-team-bulk-actions {
+  @apply flex;
+  gap: 8px;
+}
+
+.admin-confirm-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--color-signal);
+}
+
+@media (min-width: 768px) {
+  .admin-team-header {
+    @apply flex-row items-center justify-between;
+  }
+}
+
 .admin-results-dialog {
   max-height: 80vh;
   overflow-y: auto;

@@ -8,13 +8,12 @@ export async function createPlayer(data: {
   number: number
   first_name?: string
   last_name?: string
-  previous_team?: string
+  previous_team?: string | null
   position?: string
   birth_year?: number
   notes?: string
-  previous_level?: PlayerLevel
-  entry_level?: PlayerLevel
-  current_level?: PlayerLevel
+  entry_level?: PlayerLevel | null
+  current_level?: PlayerLevel | null
 }) {
   const supabase = await createClient()
   const { error } = await supabase.from("players").insert({
@@ -36,7 +35,6 @@ export async function updatePlayer(
     position?: string | null
     birth_year?: number | null
     notes?: string | null
-    previous_level?: PlayerLevel | null
     entry_level?: PlayerLevel | null
     current_level?: PlayerLevel | null
     status?: PlayerStatus
@@ -70,7 +68,6 @@ export async function bulkCreatePlayers(
     position?: string
     birth_year?: number
     notes?: string
-    previous_level?: PlayerLevel
     entry_level?: PlayerLevel
     current_level?: PlayerLevel
   }[]

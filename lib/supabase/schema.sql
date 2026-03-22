@@ -43,9 +43,10 @@ create table public.players (
   position text,
   birth_year int,
   notes text,
-  previous_level text check (previous_level in ('AA', 'A', 'BB', 'B', 'C')),
   entry_level text check (entry_level in ('AA', 'A', 'BB', 'B', 'C')),
   current_level text check (current_level in ('AA', 'A', 'BB', 'B', 'C')),
+  info_confirmed boolean not null default false,
+  checked_in boolean not null default false,
   status text not null default 'active_tryout' check (status in ('active_tryout', 'cut_to_next_level', 'placed_on_team', 'withdrawn')),
   team_placed text,
   created_at timestamptz not null default now(),
@@ -205,7 +206,8 @@ create or replace view public.players_view as
     case when public.get_user_role() in ('full', 'admin') then first_name else null end as first_name,
     case when public.get_user_role() in ('full', 'admin') then last_name else null end as last_name,
     previous_team, position, birth_year, notes,
-    previous_level, entry_level, current_level,
+    entry_level, current_level,
+    info_confirmed, checked_in,
     status, team_placed, created_at, updated_at
   from public.players;
 

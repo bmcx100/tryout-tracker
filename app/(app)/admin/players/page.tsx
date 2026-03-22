@@ -34,6 +34,10 @@ import {
 } from "@/components/ui/table"
 
 const LEVELS: PlayerLevel[] = ["AA", "A", "BB", "B", "C"]
+const PREVIOUS_TEAM_OPTIONS = [
+  "U15AA", "U15A", "U15BB", "U15B", "U15C",
+  "U13AA", "U13A", "U13BB", "U13B", "U13C",
+]
 const STATUSES: PlayerStatus[] = ["active_tryout", "cut_to_next_level", "placed_on_team", "withdrawn"]
 
 type BulkRow = {
@@ -88,7 +92,7 @@ export default function AdminPlayersPage() {
       if (ag !== ageFilter) return false
     }
     if (filterLevel !== "all") {
-      let level: string | null = p.current_level || p.entry_level || p.previous_level
+      let level: string | null = p.current_level || p.entry_level
       if (!level && p.previous_team) {
         const match = p.previous_team.match(/^U\d+(.*)/i)
         if (match) level = match[1].toUpperCase()
@@ -161,13 +165,12 @@ export default function AdminPlayersPage() {
       number: Number(form.get("number")),
       first_name: form.get("first_name") as string || undefined,
       last_name: form.get("last_name") as string || undefined,
-      previous_team: form.get("previous_team") as string || undefined,
+      previous_team: (form.get("previous_team") as string) === "__none__" ? null : (form.get("previous_team") as string) || undefined,
       position: form.get("position") as string || undefined,
       birth_year: yr || undefined,
       notes: form.get("notes") as string || undefined,
-      previous_level: (form.get("previous_level") as PlayerLevel) || undefined,
-      entry_level: (form.get("entry_level") as PlayerLevel) || undefined,
-      current_level: (form.get("current_level") as PlayerLevel) || undefined,
+      entry_level: (form.get("entry_level") as string) === "__none__" ? null : (form.get("entry_level") as PlayerLevel) || undefined,
+      current_level: (form.get("current_level") as string) === "__none__" ? null : (form.get("current_level") as PlayerLevel) || undefined,
     }
 
     if (editing) {
@@ -231,7 +234,13 @@ export default function AdminPlayersPage() {
                 <div className="admin-form-row">
                   <div className="admin-form-field">
                     <Label htmlFor="previous_team">Previous Team</Label>
-                    <Input id="previous_team" name="previous_team" defaultValue={editing?.previous_team || ""} />
+                    <Select name="previous_team" defaultValue={editing?.previous_team || "__none__"}>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">N/A</SelectItem>
+                        {PREVIOUS_TEAM_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="admin-form-field">
                     <Label htmlFor="birth_year">Birth Year</Label>
@@ -244,28 +253,21 @@ export default function AdminPlayersPage() {
                 </div>
                 <div className="admin-form-row">
                   <div className="admin-form-field">
-                    <Label htmlFor="previous_level">Previous Level</Label>
-                    <Select name="previous_level" defaultValue={editing?.previous_level || ""}>
-                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        {LEVELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="admin-form-field">
                     <Label htmlFor="entry_level">Entry Level</Label>
-                    <Select name="entry_level" defaultValue={editing?.entry_level || ""}>
+                    <Select name="entry_level" defaultValue={editing?.entry_level || "__none__"}>
                       <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="__none__">N/A</SelectItem>
                         {LEVELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="admin-form-field">
                     <Label htmlFor="current_level">Current Level</Label>
-                    <Select name="current_level" defaultValue={editing?.current_level || ""}>
+                    <Select name="current_level" defaultValue={editing?.current_level || "__none__"}>
                       <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="__none__">N/A</SelectItem>
                         {LEVELS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                       </SelectContent>
                     </Select>

@@ -34,9 +34,10 @@ export interface Player {
   position: string | null
   birth_year: number | null
   notes: string | null
-  previous_level: PlayerLevel | null
   entry_level: PlayerLevel | null
   current_level: PlayerLevel | null
+  info_confirmed: boolean
+  checked_in: boolean
   status: PlayerStatus
   team_placed: string | null
   created_at: string

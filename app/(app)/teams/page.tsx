@@ -3,19 +3,19 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
-import { AgeGroupTabs } from "@/components/age-group-tabs"
 import { TeamCard } from "@/components/teams/team-card"
-import { getAgeGroup, PREVIOUS_TEAMS, type AgeGroup } from "@/lib/utils"
+import { getAgeGroup, PREVIOUS_TEAMS, AGE_GROUPS, type AgeGroup } from "@/lib/utils"
 import type { Player, CrewMember } from "@/lib/types"
 
 type TeamsView = "previous" | "new"
+type AgeFilter = AgeGroup | "all"
 
 export default function TeamsPage() {
   const { loading: authLoading } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [view, setView] = useState<TeamsView>("previous")
-  const [ageGroup, setAgeGroup] = useState<AgeGroup>("U13")
+  const [ageGroup, setAgeGroup] = useState<AgeFilter>("all")
   const [loading, setLoading] = useState(true)
 
   const fetchData = async () => {
@@ -47,8 +47,12 @@ export default function TeamsPage() {
   const crewMap = new Map(crew.map((c) => [c.player_number, c]))
 
   // Previous teams — filtered by age group
-  const agePlayers = players.filter((p) => getAgeGroup(p.birth_year) === ageGroup)
-  const previousTeams = PREVIOUS_TEAMS[ageGroup]
+  const agePlayers = ageGroup === "all"
+    ? players
+    : players.filter((p) => getAgeGroup(p.birth_year) === ageGroup)
+  const previousTeams = ageGroup === "all"
+    ? [...PREVIOUS_TEAMS.U15, ...PREVIOUS_TEAMS.U13]
+    : PREVIOUS_TEAMS[ageGroup]
   const previousTeamGroups = previousTeams.map((team) => ({
     name: team,
     players: agePlayers.filter((p) => p.previous_team === team),
@@ -90,7 +94,23 @@ export default function TeamsPage() {
 
       {loading ? null : view === "previous" ? (
         <>
-          <AgeGroupTabs active={ageGroup} onChange={setAgeGroup} />
+          <div className="feed-filters">
+            <button
+              className={`feed-filter-btn${ageGroup === "all" ? " active" : ""}`}
+              onClick={() => setAgeGroup("all")}
+            >
+              All
+            </button>
+            {AGE_GROUPS.map((g) => (
+              <button
+                key={g}
+                className={`feed-filter-btn${ageGroup === g ? " active" : ""}`}
+                onClick={() => setAgeGroup(g)}
+              >
+                {g}
+              </button>
+            ))}
+          </div>
           <div className="teams-grid">
             {previousTeamGroups.map((group) => (
               <TeamCard
