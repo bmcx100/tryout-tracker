@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVertical, Pin, ArrowRight } from "lucide-react"
+import { GripVertical, Pin, ArrowRight, Heart } from "lucide-react"
 import type { Player } from "@/lib/types"
 import { playerName } from "@/lib/utils"
 
@@ -10,6 +10,7 @@ interface PlayerCardProps {
   player: Player
   isPinned?: boolean
   isPinnedOut?: boolean
+  isCrew?: boolean
   pinnedToTeam?: string
   originTeam?: string
   onUnpin?: (playerNumber: number) => void
@@ -19,6 +20,7 @@ export function PlayerCard({
   player,
   isPinned,
   isPinnedOut,
+  isCrew,
   pinnedToTeam,
   originTeam,
   onUnpin,
@@ -48,6 +50,7 @@ export function PlayerCard({
           <span className="comp-player-pos">{player.position}</span>
         )}
         <span className="comp-player-name">{name}</span>
+        {isCrew && <Heart size={12} className="comp-player-heart" />}
         <span className="comp-player-moved">
           <ArrowRight size={12} />
           {pinnedToTeam}
@@ -70,6 +73,10 @@ export function PlayerCard({
         <span className="comp-player-pos">{player.position}</span>
       )}
       <span className="comp-player-name">{name}</span>
+      {isCrew && <Heart size={12} className="comp-player-heart" />}
+      {player.previous_team && (
+        <span className="comp-player-team">{player.previous_team}</span>
+      )}
       {isPinned && originTeam && (
         <span className="comp-player-origin">
           <Pin size={10} />

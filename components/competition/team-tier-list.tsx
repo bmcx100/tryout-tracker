@@ -26,6 +26,7 @@ interface TeamTierListProps {
   allPlayers: Player[]
   playerOrderMap: Record<string, number[]>
   pinnedPlayers: Record<string, PinnedPlayer>
+  crewNumbers: Set<number>
   onTeamReorder: (newOrder: string[]) => void
   onPlayerReorder: (team: string, playerNumbers: number[]) => void
   onPinToTeam: (playerNumber: number, targetTeam: string, position: number) => void
@@ -38,6 +39,7 @@ export function TeamTierList({
   allPlayers,
   playerOrderMap,
   pinnedPlayers,
+  crewNumbers,
   onTeamReorder,
   onPlayerReorder,
   onPinToTeam,
@@ -213,6 +215,7 @@ export function TeamTierList({
                 allPlayers={allPlayers}
                 playerOrder={playerOrderMap[teamCode]}
                 pinnedPlayers={pinnedPlayers}
+                crewNumbers={crewNumbers}
                 onUnpin={onUnpin}
               />
             )

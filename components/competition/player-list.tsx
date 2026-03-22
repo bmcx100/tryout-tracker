@@ -13,6 +13,7 @@ interface PlayerListProps {
   teamCode: string
   playerOrder?: number[]
   pinnedPlayers: Record<string, PinnedPlayer>
+  crewNumbers: Set<number>
   onUnpin?: (playerNumber: number) => void
 }
 
@@ -21,6 +22,7 @@ export function PlayerList({
   teamCode,
   playerOrder,
   pinnedPlayers,
+  crewNumbers,
   onUnpin,
 }: PlayerListProps) {
   const { setNodeRef } = useDroppable({ id: `drop-${teamCode}` })
@@ -76,6 +78,7 @@ export function PlayerList({
               key={player.number}
               player={player}
               isPinned={isPinned}
+              isCrew={crewNumbers.has(player.number)}
               originTeam={isPinned ? player.previous_team || undefined : undefined}
               onUnpin={isPinned ? onUnpin : undefined}
             />
@@ -87,6 +90,7 @@ export function PlayerList({
           key={`out-${player.number}`}
           player={player}
           isPinnedOut
+          isCrew={crewNumbers.has(player.number)}
           pinnedToTeam={pinnedToTeam}
         />
       ))}

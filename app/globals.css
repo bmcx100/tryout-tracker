@@ -3744,6 +3744,20 @@
   flex-shrink: 0;
 }
 
+.comp-player-heart {
+  color: #E63B2E;
+  flex-shrink: 0;
+}
+
+.comp-player-team {
+  font-family: var(--font-data);
+  font-size: 10px;
+  color: #6B6560;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
 .comp-player-origin {
   display: flex;
   align-items: center;
@@ -3999,6 +4013,10 @@
   font-size: 13px;
 }
 
+.comp-nt-player .comp-player-name {
+  flex: 1 1 0;
+}
+
 .comp-nt-player:hover {
   background: rgba(17, 17, 17, 0.03);
 }
@@ -4015,11 +4033,15 @@
   background: rgba(230, 59, 46, 0.04);
 }
 
-.comp-nt-origin {
+.comp-nt-prev-team {
   font-family: var(--font-data);
   font-size: 10px;
-  color: #E63B2E;
+  color: #6B6560;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-left: auto;
+}
+
+.comp-nt-crew {
+  background: rgba(230, 59, 46, 0.04);
 }

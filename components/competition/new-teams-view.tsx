@@ -1,5 +1,6 @@
 "use client"
 
+import { Heart } from "lucide-react"
 import type { Player, PinnedPlayer } from "@/lib/types"
 import type { Position } from "@/lib/utils"
 import { playerName } from "@/lib/utils"
@@ -13,6 +14,7 @@ interface NewTeamsViewProps {
   pinnedPlayers: Record<string, PinnedPlayer>
   playerOrderMap: Record<string, number[]>
   position: Position
+  crewNumbers: Set<number>
 }
 
 function formatTeamCode(code: string): string {
@@ -85,6 +87,7 @@ export function NewTeamsView({
   pinnedPlayers,
   playerOrderMap,
   position,
+  crewNumbers,
 }: NewTeamsViewProps) {
   // Build ranked lists per position
   const rankedF = buildRankedList(players, teamOrder, pinnedPlayers, playerOrderMap, "F")
@@ -143,10 +146,11 @@ export function NewTeamsView({
                     {group.map((player, idx) => {
                       const pin = pinnedPlayers[String(player.number)]
                       const isPinned = !!pin && player.previous_team !== pin.team
+                      const isCrew = crewNumbers.has(player.number)
                       return (
                         <div
                           key={player.number}
-                          className={`comp-nt-player${isPinned ? " comp-nt-pinned" : ""}`}
+                          className={`comp-nt-player${isPinned ? " comp-nt-pinned" : ""}${isCrew ? " comp-nt-crew" : ""}`}
                         >
                           <span className="comp-nt-rank">{idx + 1}</span>
                           <span className="comp-player-number">#{player.number}</span>
@@ -154,10 +158,9 @@ export function NewTeamsView({
                           <span className="comp-player-name">
                             {playerName(player.first_name, player.last_name, player.number)}
                           </span>
-                          {isPinned && (
-                            <span className="comp-nt-origin">
-                              from {player.previous_team}
-                            </span>
+                          {isCrew && <Heart size={12} className="comp-player-heart" />}
+                          {player.previous_team && (
+                            <span className="comp-nt-prev-team">{player.previous_team}</span>
                           )}
                         </div>
                       )

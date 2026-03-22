@@ -15,6 +15,7 @@ interface TeamRowProps {
   allPlayers: Player[]
   playerOrder?: number[]
   pinnedPlayers: Record<string, PinnedPlayer>
+  crewNumbers: Set<number>
   onUnpin?: (playerNumber: number) => void
 }
 
@@ -32,6 +33,7 @@ export function TeamRow({
   allPlayers,
   playerOrder,
   pinnedPlayers,
+  crewNumbers,
   onUnpin,
 }: TeamRowProps) {
   const [expanded, setExpanded] = useState(false)
@@ -88,6 +90,7 @@ export function TeamRow({
             teamCode={teamCode}
             playerOrder={playerOrder}
             pinnedPlayers={pinnedPlayers}
+            crewNumbers={crewNumbers}
             onUnpin={onUnpin}
           />
         </div>

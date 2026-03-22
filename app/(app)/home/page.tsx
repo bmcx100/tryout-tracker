@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { TeamTierList } from "@/components/competition/team-tier-list"
 import { NewTeamsView } from "@/components/competition/new-teams-view"
 import { RotateCcw, Info } from "lucide-react"
-import type { Player, UserCompetitionPrefs, PinnedPlayer } from "@/lib/types"
+import type { Player, UserCompetitionPrefs, PinnedPlayer, CrewMember } from "@/lib/types"
 import {
   DEFAULT_TEAM_ORDER,
   POSITIONS,
@@ -33,6 +33,7 @@ const defaultPrefs = {
 export default function HomePage() {
   const { loading: authLoading } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
+  const [crew, setCrew] = useState<CrewMember[]>([])
   const [prefs, setPrefs] = useState<UserCompetitionPrefs | null>(null)
   const [position, setPosition] = useState<Position>(() => {
     if (typeof window !== "undefined") {
@@ -52,7 +53,7 @@ export default function HomePage() {
       try {
         const supabase = createClient()
 
-        const [playersRes, prefsRes] = await Promise.all([
+        const [playersRes, prefsRes, crewRes] = await Promise.all([
           supabase
             .from("players_view")
             .select("*")
@@ -62,10 +63,14 @@ export default function HomePage() {
             .from("user_competition_prefs")
             .select("*")
             .single(),
+          supabase
+            .from("user_crew")
+            .select("*"),
         ])
 
         if (playersRes.error) throw new Error(playersRes.error.message)
         setPlayers(playersRes.data || [])
+        if (crewRes.data) setCrew(crewRes.data)
 
         if (prefsRes.data) {
           setPrefs(prefsRes.data)
@@ -90,6 +95,7 @@ export default function HomePage() {
     : DEFAULT_TEAM_ORDER
 
   const pinnedPlayers: Record<string, PinnedPlayer> = prefs?.pinned_players || {}
+  const crewNumbers = new Set(crew.map((c) => c.player_number))
 
   // Filter players by selected position
   const filtered = position === "ALL"
@@ -297,6 +303,7 @@ export default function HomePage() {
             allPlayers={filtered}
             playerOrderMap={prefs?.player_order || {}}
             pinnedPlayers={pinnedPlayers}
+            crewNumbers={crewNumbers}
             onTeamReorder={handleTeamReorder}
             onPlayerReorder={handlePlayerReorder}
             onPinToTeam={handlePinToTeam}
@@ -312,6 +319,7 @@ export default function HomePage() {
           pinnedPlayers={pinnedPlayers}
           playerOrderMap={prefs?.player_order || {}}
           position={position}
+          crewNumbers={crewNumbers}
         />
       </div>
       )}
