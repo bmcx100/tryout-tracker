@@ -313,6 +313,38 @@ create policy "Admins can update corrections"
   using (public.get_user_role() = 'admin');
 
 -- ========================================
+-- USER_COMPETITION_PREFS (per-user team/player sort order)
+-- ========================================
+
+create table public.user_competition_prefs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users on delete cascade not null unique,
+  team_order text[] not null default '{}',
+  player_order jsonb not null default '{}',
+  pinned_players jsonb not null default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.user_competition_prefs enable row level security;
+
+create policy "Users can read own competition prefs"
+  on public.user_competition_prefs for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own competition prefs"
+  on public.user_competition_prefs for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own competition prefs"
+  on public.user_competition_prefs for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete own competition prefs"
+  on public.user_competition_prefs for delete
+  using (auth.uid() = user_id);
+
+-- ========================================
 -- TABLE-LEVEL GRANTS (required for newer Supabase projects)
 -- RLS controls row access; GRANTs control table access
 -- ========================================
@@ -330,6 +362,7 @@ grant select, insert, update, delete on public.round_results to authenticated;
 grant select, insert, update, delete on public.user_crew to authenticated;
 grant select, insert, update, delete on public.user_scenarios to authenticated;
 grant select, insert, update on public.corrections to authenticated;
+grant select, insert, update, delete on public.user_competition_prefs to authenticated;
 
 grant select on public.players_view to authenticated;
 

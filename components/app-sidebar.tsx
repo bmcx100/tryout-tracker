@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Heart, Shield, UserSearch, Zap, Settings } from "lucide-react"
+import { Home, UserSearch, Zap, Settings } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/hooks/use-auth"
@@ -8,8 +8,6 @@ import { useAuth } from "@/hooks/use-auth"
 const NAV_ITEMS = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/current", label: "Tryouts", icon: Zap },
-  { href: "/crew", label: "My Crew", icon: Heart },
-  { href: "/teams", label: "Teams", icon: Shield },
   { href: "/players", label: "Players", icon: UserSearch },
 ]
 

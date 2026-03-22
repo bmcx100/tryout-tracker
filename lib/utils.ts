@@ -25,6 +25,21 @@ export type PlayerLevel = "AA" | "A" | "BB" | "B" | "C"
 
 export const LEVEL_ORDER: PlayerLevel[] = ["AA", "A", "BB", "B", "C"]
 
+// Default competition landscape sort: age-first (U15 above U13), then level within age
+export const DEFAULT_TEAM_ORDER: string[] = [
+  "U15AA", "U15A", "U15BB", "U15B", "U15C",
+  "U13AA", "U13A", "U13BB", "U13B", "U13C",
+]
+
+export type Position = "ALL" | "F" | "D" | "G"
+
+export const POSITIONS: { value: Position; label: string }[] = [
+  { value: "ALL", label: "All" },
+  { value: "F", label: "Forward" },
+  { value: "D", label: "Defense" },
+  { value: "G", label: "Goalie" },
+]
+
 function isKnown(val: string | null | undefined): string | null {
   if (!val) return null
   if (val.toLowerCase() === "unknown") return null

@@ -123,6 +123,21 @@ export interface UserScenario {
   updated_at: string
 }
 
+export interface PinnedPlayer {
+  team: string
+  position: number
+}
+
+export interface UserCompetitionPrefs {
+  id: string
+  user_id: string
+  team_order: string[]
+  player_order: Record<string, number[]>
+  pinned_players: Record<string, PinnedPlayer>
+  created_at: string
+  updated_at: string
+}
+
 export interface Correction {
   id: string
   user_id: string

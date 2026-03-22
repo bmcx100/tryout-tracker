@@ -1,27 +1,49 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
-import { FeedItem } from "@/components/feed/feed-item"
-import Link from "next/link"
-import type { CrewMember, Session } from "@/lib/types"
+import { TeamTierList } from "@/components/competition/team-tier-list"
+import { NewTeamsView } from "@/components/competition/new-teams-view"
+import { RotateCcw, Info } from "lucide-react"
+import type { Player, UserCompetitionPrefs, PinnedPlayer } from "@/lib/types"
+import {
+  DEFAULT_TEAM_ORDER,
+  POSITIONS,
+  type Position,
+} from "@/lib/utils"
+import {
+  updateTeamOrder,
+  updatePlayerOrder,
+  pinPlayer,
+  unpinPlayer,
+  resetAllPrefs,
+} from "@/lib/actions/competition-prefs"
 
-interface FeedEntry {
-  date: string
-  playerNumber: number
-  personalName: string
-  description: string
-  tag: string
+const defaultPrefs = {
+  id: "",
+  user_id: "",
+  team_order: [] as string[],
+  player_order: {} as Record<string, number[]>,
+  pinned_players: {} as Record<string, { team: string; position: number }>,
+  created_at: "",
+  updated_at: "",
 }
 
 export default function HomePage() {
   const { loading: authLoading } = useAuth()
-  const [crew, setCrew] = useState<CrewMember[]>([])
-  const [recentUpdates, setRecentUpdates] = useState<FeedEntry[]>([])
-  const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([])
+  const [players, setPlayers] = useState<Player[]>([])
+  const [prefs, setPrefs] = useState<UserCompetitionPrefs | null>(null)
+  const [position, setPosition] = useState<Position>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("comp-position") as Position) || "ALL"
+    }
+    return "ALL"
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [resetting, setResetting] = useState(false)
+  const [view, setView] = useState<"sort" | "teams">("sort")
 
   useEffect(() => {
     if (authLoading) return
@@ -30,79 +52,28 @@ export default function HomePage() {
       try {
         const supabase = createClient()
 
-        const { data: crewData, error: crewError } = await supabase
-          .from("user_crew")
-          .select("*, player:players(*)")
-          .order("tag")
-
-        if (crewError) {
-          console.error("Failed to load crew:", crewError)
-          setError(crewError.message)
-          setLoading(false)
-          return
-        }
-
-        if (!crewData || crewData.length === 0) {
-          setCrew([])
-          setLoading(false)
-          return
-        }
-
-        setCrew(crewData)
-
-        type CrewRow = { player_number: number; personal_name: string; tag: string }
-        const crewMap = new Map(
-          crewData.map((c: CrewRow) => [c.player_number, c])
-        )
-        const crewNumbers = crewData.map((c: CrewRow) => c.player_number)
-
-        // Get recent round results for crew (last 5)
-        const { data: results } = await supabase
-          .from("round_results")
-          .select("*, round:rounds(*)")
-          .in("player_number", crewNumbers)
-          .order("id", { ascending: false })
-          .limit(5)
-
-        if (results) {
-          const feed = results.map((r: Record<string, unknown>) => {
-            const crewMember = crewMap.get(r.player_number as number)
-            const round = r.round as { date: string; level: string; round_number: number } | null
-            return {
-              date: round?.date || "",
-              playerNumber: r.player_number as number,
-              personalName: crewMember?.personal_name || `#${r.player_number}`,
-              description: `${(r.result as string)?.replace(/_/g, " ") || "unknown"} — ${round?.level || ""} Round ${round?.round_number || ""}`,
-              tag: crewMember?.tag || "friend",
-            }
-          })
-          setRecentUpdates(feed)
-        }
-
-        // Get upcoming sessions
-        const today = new Date().toISOString().split("T")[0]
-        const crewLevels = new Set(
-          crewData
-            .map((c: CrewMember) => c.player?.current_level)
-            .filter(Boolean)
-        )
-
-        if (crewLevels.size > 0) {
-          const { data: sessionData } = await supabase
-            .from("sessions")
+        const [playersRes, prefsRes] = await Promise.all([
+          supabase
+            .from("players_view")
             .select("*")
-            .gte("date", today)
-            .in("level", Array.from(crewLevels))
-            .order("date")
-            .order("start_time")
-            .limit(3)
+            .not("position", "is", null)
+            .not("previous_team", "is", null),
+          supabase
+            .from("user_competition_prefs")
+            .select("*")
+            .single(),
+        ])
 
-          if (sessionData) setUpcomingSessions(sessionData)
+        if (playersRes.error) throw new Error(playersRes.error.message)
+        setPlayers(playersRes.data || [])
+
+        if (prefsRes.data) {
+          setPrefs(prefsRes.data)
         }
 
         setLoading(false)
       } catch (err) {
-        console.error("Home page load error:", err)
+        console.error("Home load error:", err)
         setError(err instanceof Error ? err.message : "Failed to load")
         setLoading(false)
       }
@@ -110,19 +81,141 @@ export default function HomePage() {
     load()
   }, [authLoading])
 
+  useEffect(() => {
+    localStorage.setItem("comp-position", position)
+  }, [position])
+
+  const teamOrder = prefs?.team_order?.length
+    ? prefs.team_order
+    : DEFAULT_TEAM_ORDER
+
+  const pinnedPlayers: Record<string, PinnedPlayer> = prefs?.pinned_players || {}
+
+  // Filter players by selected position
+  const filtered = position === "ALL"
+    ? players
+    : players.filter((p) => p.position === position)
+
+  // Group by previous_team
+  const playersByTeam: Record<string, Player[]> = {}
+  for (const p of filtered) {
+    const team = p.previous_team || "Unknown"
+    if (!playersByTeam[team]) playersByTeam[team] = []
+    playersByTeam[team].push(p)
+  }
+
+  // Sort players within each team by user pref or by number
+  for (const team of Object.keys(playersByTeam)) {
+    const customOrder = prefs?.player_order?.[team]
+    if (customOrder?.length) {
+      playersByTeam[team].sort((a, b) => {
+        const ai = customOrder.indexOf(a.number)
+        const bi = customOrder.indexOf(b.number)
+        if (ai === -1 && bi === -1) return a.number - b.number
+        if (ai === -1) return 1
+        if (bi === -1) return -1
+        return ai - bi
+      })
+    } else {
+      playersByTeam[team].sort((a, b) => a.number - b.number)
+    }
+  }
+
+  const handleTeamReorder = useCallback(
+    async (newOrder: string[]) => {
+      setPrefs((prev) => {
+        if (!prev) return { ...defaultPrefs, team_order: newOrder }
+        return { ...prev, team_order: newOrder }
+      })
+      try {
+        await updateTeamOrder(newOrder)
+      } catch (err) {
+        console.error("Failed to save team order:", err)
+      }
+    },
+    []
+  )
+
+  const handlePlayerReorder = useCallback(
+    async (team: string, playerNumbers: number[]) => {
+      setPrefs((prev) => {
+        const base = prev || defaultPrefs
+        return {
+          ...base,
+          player_order: { ...base.player_order, [team]: playerNumbers },
+        }
+      })
+      try {
+        await updatePlayerOrder(team, playerNumbers)
+      } catch (err) {
+        console.error("Failed to save player order:", err)
+      }
+    },
+    []
+  )
+
+  const handlePinToTeam = useCallback(
+    async (playerNumber: number, targetTeam: string, pos: number) => {
+      setPrefs((prev) => {
+        const base = prev || defaultPrefs
+        return {
+          ...base,
+          pinned_players: {
+            ...base.pinned_players,
+            [String(playerNumber)]: { team: targetTeam, position: pos },
+          },
+        }
+      })
+      try {
+        await pinPlayer(playerNumber, targetTeam, pos)
+      } catch (err) {
+        console.error("Failed to pin player:", err)
+      }
+    },
+    []
+  )
+
+  const handleUnpin = useCallback(
+    async (playerNumber: number) => {
+      setPrefs((prev) => {
+        if (!prev) return prev
+        const pp = { ...prev.pinned_players }
+        delete pp[String(playerNumber)]
+        return { ...prev, pinned_players: pp }
+      })
+      try {
+        await unpinPlayer(playerNumber)
+      } catch (err) {
+        console.error("Failed to unpin player:", err)
+      }
+    },
+    []
+  )
+
+  const handleReset = useCallback(async () => {
+    if (!confirm("Reset to default order? This clears all your customizations.")) return
+    setResetting(true)
+    setPrefs(null)
+    try {
+      await resetAllPrefs()
+    } catch (err) {
+      console.error("Failed to reset:", err)
+    }
+    setResetting(false)
+  }, [])
+
+  const totalCount = filtered.length
+
   if (loading) {
     return (
       <div className="app-page">
-        <div className="app-page-header">
-          <h1 className="app-page-title">Home</h1>
-        </div>
         <div className="home-loading">
           <div className="loading-dots">
             <span className="loading-dot" />
             <span className="loading-dot" />
             <span className="loading-dot" />
           </div>
-          <p className="home-loading-text">Loading your crew...</p>
+          <p className="home-loading-text">Loading players...</p>
         </div>
       </div>
     )
@@ -131,9 +224,6 @@ export default function HomePage() {
   if (error) {
     return (
       <div className="app-page">
-        <div className="app-page-header">
-          <h1 className="app-page-title">Home</h1>
-        </div>
         <div className="app-empty-state">
           <p className="app-empty-title">Something went wrong</p>
           <p className="app-empty-desc">{error}</p>
@@ -145,103 +235,86 @@ export default function HomePage() {
     )
   }
 
-  // Empty crew — onboarding
-  if (crew.length === 0) {
-    return (
-      <div className="app-page">
-        <div className="app-page-header">
-          <h1 className="app-page-title">Home</h1>
-        </div>
-        <div className="home-welcome">
-          <h2 className="home-welcome-title">Welcome to Tryout Tracker</h2>
-          <p className="home-welcome-desc">
-            Track your kid&apos;s BFFs, teammates, and friends through tryouts.
-            Start by finding your kid&apos;s team.
-          </p>
-          <div className="home-welcome-links">
-            <Link href="/teams" className="btn-primary">
-              Browse Teams
-            </Link>
-            <Link href="/players" className="btn-secondary">
-              Find Players
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="app-page">
-      <div className="app-page-header">
-        <h1 className="app-page-title">Home</h1>
+      <div className="comp-instructions">
+        <Info size={16} />
+        <p>Pick your position, sort teams and players, then click Resulting Teams.</p>
       </div>
 
-      <div className="home-dashboard">
-        <div className="home-quick-links">
-          <Link href="/current" className="home-quick-link">
-            <span className="home-quick-link-title">Tryouts</span>
-            <span className="home-quick-link-desc">Live rounds, results, and scenario builder</span>
-          </Link>
-          <Link href="/teams" className="home-quick-link">
-            <span className="home-quick-link-title">Browse Teams</span>
-            <span className="home-quick-link-desc">See last year&apos;s rosters and newly formed teams</span>
-          </Link>
-          <Link href="/players" className="home-quick-link">
-            <span className="home-quick-link-title">Find Players</span>
-            <span className="home-quick-link-desc">Search by name, number, age group, or level</span>
-          </Link>
-          <Link href="/crew" className="home-quick-link">
-            <span className="home-quick-link-top">
-              <span className="home-quick-link-title">My Crew</span>
-              {crew.length > 0 && (
-                <span className="home-quick-link-count">{crew.length} friends</span>
-              )}
-            </span>
-            <span className="home-quick-link-desc">
-              Favorite your current teammates, BFFs, and former teammates
-            </span>
-          </Link>
+      <div className="comp-position-tabs">
+        {POSITIONS.map((pos) => (
+          <button
+            key={pos.value}
+            className={`comp-position-tab${position === pos.value ? " comp-position-tab-active" : ""}`}
+            onClick={() => setPosition(pos.value)}
+          >
+            {pos.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="comp-view-tabs">
+        <button
+          className={`comp-view-tab${view === "sort" ? " comp-view-tab-active" : ""}`}
+          onClick={() => setView("sort")}
+        >
+          Sort Order
+        </button>
+        <button
+          className={`comp-view-tab${view === "teams" ? " comp-view-tab-active" : ""}`}
+          onClick={() => setView("teams")}
+        >
+          Resulting Teams
+        </button>
+      </div>
+
+      {view === "sort" ? (
+      <div className="comp-content">
+        <div className="comp-sort-toolbar">
+          <button
+            className="comp-reset-btn"
+            onClick={handleReset}
+            disabled={resetting}
+            title="Reset to defaults"
+          >
+            <RotateCcw size={16} />
+            <span className="comp-reset-label">Reset</span>
+          </button>
         </div>
 
-        {recentUpdates.length > 0 && (
-          <div className="home-recent">
-            <h2 className="home-section-title">Recent Updates</h2>
-            <div className="feed-list">
-              {recentUpdates.map((entry, i) => (
-                <FeedItem key={i} item={entry} />
-              ))}
-            </div>
-            <Link href="/current" className="home-see-all">
-              See all rounds
-            </Link>
+        {totalCount === 0 ? (
+          <div className="app-empty-state">
+            <p className="app-empty-title">No players</p>
+            <p className="app-empty-desc">
+              No {POSITIONS.find((p) => p.value === position)?.label?.toLowerCase()} players with a previous team on record.
+            </p>
           </div>
-        )}
-
-        {upcomingSessions.length > 0 && (
-          <div className="home-upcoming">
-            <h2 className="home-section-title">Upcoming Sessions</h2>
-            <div className="home-sessions-list">
-              {upcomingSessions.map((s) => (
-                <div key={s.id} className="home-session-item">
-                  <span className={`level-badge${s.level === "AA" ? " level-badge-aa" : ""}`}>
-                    {s.level}
-                  </span>
-                  <div className="home-session-info">
-                    <span className="home-session-time">
-                      {s.date} · {s.start_time} — {s.end_time}
-                    </span>
-                    <span className="home-session-rink">{s.rink}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Link href="/current" className="home-see-all">
-              See full schedule
-            </Link>
-          </div>
+        ) : (
+          <TeamTierList
+            teamOrder={teamOrder}
+            playersByTeam={playersByTeam}
+            allPlayers={filtered}
+            playerOrderMap={prefs?.player_order || {}}
+            pinnedPlayers={pinnedPlayers}
+            onTeamReorder={handleTeamReorder}
+            onPlayerReorder={handlePlayerReorder}
+            onPinToTeam={handlePinToTeam}
+            onUnpin={handleUnpin}
+          />
         )}
       </div>
+      ) : (
+      <div className="comp-content">
+        <NewTeamsView
+          teamOrder={teamOrder}
+          players={players}
+          pinnedPlayers={pinnedPlayers}
+          playerOrderMap={prefs?.player_order || {}}
+          position={position}
+        />
+      </div>
+      )}
     </div>
   )
 }
