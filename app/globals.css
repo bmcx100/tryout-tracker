@@ -4030,7 +4030,7 @@
 }
 
 .comp-nt-pinned {
-  background: rgba(230, 59, 46, 0.04);
+  background: rgba(230, 160, 46, 0.08);
 }
 
 .comp-nt-prev-team {
@@ -4043,5 +4043,5 @@
 }
 
 .comp-nt-crew {
-  background: rgba(230, 59, 46, 0.04);
+  background: rgba(230, 59, 46, 0.06);
 }
