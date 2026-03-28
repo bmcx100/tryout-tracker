@@ -22,6 +22,7 @@ const POSITION_BUTTONS: { group: PositionGroup; label: string }[] = [
   { group: "forwards", label: "Forwards" },
   { group: "defense", label: "Defense" },
   { group: "goalies", label: "Goalies" },
+  { group: "all", label: "All" },
 ]
 
 interface ResultsViewProps {

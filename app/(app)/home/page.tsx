@@ -242,6 +242,10 @@ export default function HomePage() {
       if (existing) {
         setActiveGroup(group)
         setCurrentPrefs(existing)
+      } else if (group === "all" && allPrefs.length > 0) {
+        // "All" view uses most recent prefs' team order
+        setActiveGroup(group)
+        setCurrentPrefs({ ...allPrefs[0], position_group: "all" })
       } else {
         // No saved prefs for this position — start the wizard for it
         setActiveGroup(group)
