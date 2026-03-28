@@ -219,15 +219,17 @@ export default function HomePage() {
   )
 
   const handleWizardDone = useCallback(async () => {
+    const now = new Date().toISOString()
     try {
       await markLastViewed(activeGroup)
     } catch (err) {
       console.error("Failed to mark last viewed:", err)
     }
-    // Update allPrefs so results view shows current data
+    const updatedPrefs = { ...currentPrefs, last_viewed: now }
+    setCurrentPrefs(updatedPrefs)
     setAllPrefs((prev) => {
       const updated = prev.filter((p) => p.position_group !== activeGroup)
-      return [currentPrefs, ...updated]
+      return [updatedPrefs, ...updated]
     })
     setStep("done")
   }, [activeGroup, currentPrefs])
