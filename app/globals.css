@@ -3463,7 +3463,8 @@
   padding: 20px 24px;
   border: 2px solid rgba(17, 17, 17, 0.12);
   border-radius: 0.5rem;
-  background: var(--color-concrete);
+  background: rgba(230, 59, 46, 0.06);
+  border-color: rgba(230, 59, 46, 0.15);
   cursor: pointer;
   transition: border-color 150ms, background 150ms;
   font-family: var(--font-heading);
@@ -3473,8 +3474,8 @@
 }
 
 .wizard-card:hover {
-  border-color: rgba(17, 17, 17, 0.3);
-  background: var(--color-ash);
+  border-color: rgba(230, 59, 46, 0.3);
+  background: rgba(230, 59, 46, 0.1);
 }
 
 .wizard-card-arrow {

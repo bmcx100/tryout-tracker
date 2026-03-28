@@ -9,10 +9,10 @@ interface StepPositionProps {
 }
 
 const POSITION_OPTIONS: { value: PositionGroup; label: string }[] = [
-  { value: "all", label: "All Players" },
   { value: "forwards", label: "Forwards" },
   { value: "defense", label: "Defense" },
   { value: "goalies", label: "Goalies" },
+  { value: "all", label: "All Players" },
 ]
 
 export function StepPosition({ onSelect }: StepPositionProps) {
@@ -20,7 +20,7 @@ export function StepPosition({ onSelect }: StepPositionProps) {
     <div className="wizard-container">
       <h1 className="wizard-headline">Pick a position</h1>
       <p className="wizard-subtext">
-        Next, you'll rank the existing teams from strongest to weakest.
+        Next, you'll rank the existing teams.
       </p>
 
       <div className="wizard-cards">
