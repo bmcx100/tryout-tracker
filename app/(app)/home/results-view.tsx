@@ -1,11 +1,10 @@
 "use client"
 
 import { RotateCcw } from "lucide-react"
-import { NewTeamsView } from "@/components/competition/new-teams-view"
+import { ResultingTeamsDnd } from "@/components/competition/resulting-teams-dnd"
 import type { Player, PinnedPlayer, PositionGroup } from "@/lib/types"
-import type { Position } from "@/lib/utils"
 
-const GROUP_TO_POSITION: Record<PositionGroup, Position> = {
+const GROUP_TO_POSITION: Record<PositionGroup, "F" | "D" | "G"> = {
   forwards: "F",
   defense: "D",
   goalies: "G",
@@ -24,6 +23,7 @@ interface ResultsViewProps {
   pinnedPlayers: Record<string, PinnedPlayer>
   playerOrderMap: Record<string, number[]>
   crewNumbers: Set<number>
+  onPinToTeam: (playerNumber: number, targetTeam: string, pos: number) => void
   onRunSorter: () => void
 }
 
@@ -34,6 +34,7 @@ export function ResultsView({
   pinnedPlayers,
   playerOrderMap,
   crewNumbers,
+  onPinToTeam,
   onRunSorter,
 }: ResultsViewProps) {
   const position = GROUP_TO_POSITION[positionGroup]
@@ -51,13 +52,14 @@ export function ResultsView({
       </div>
 
       <div className="results-content">
-        <NewTeamsView
+        <ResultingTeamsDnd
           teamOrder={teamOrder}
           players={players}
           pinnedPlayers={pinnedPlayers}
           playerOrderMap={playerOrderMap}
           position={position}
           crewNumbers={crewNumbers}
+          onPinToTeam={onPinToTeam}
         />
       </div>
     </div>

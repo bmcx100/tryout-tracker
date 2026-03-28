@@ -309,6 +309,7 @@ export default function HomePage() {
           pinnedPlayers={pinnedPlayers}
           playerOrderMap={currentPrefs.player_order || {}}
           crewNumbers={crewNumbers}
+          onPinToTeam={handlePinToTeam}
           onDone={handleWizardDone}
           onBack={() => setStep("rank")}
         />
@@ -325,6 +326,7 @@ export default function HomePage() {
       pinnedPlayers={pinnedPlayers}
       playerOrderMap={currentPrefs.player_order || {}}
       crewNumbers={crewNumbers}
+      onPinToTeam={handlePinToTeam}
       onRunSorter={handleRunSorter}
     />
   )
