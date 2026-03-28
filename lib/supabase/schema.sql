@@ -323,6 +323,7 @@ create table public.user_competition_prefs (
   team_order text[] not null default '{}',
   player_order jsonb not null default '{}',
   pinned_players jsonb not null default '{}',
+  team_slots jsonb not null default '{}',
   last_viewed timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

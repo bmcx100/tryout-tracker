@@ -3777,6 +3777,9 @@
   color: #6B6560;
   text-align: left;
   box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 
 .comp-nt-code {
@@ -3795,6 +3798,24 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+.comp-nt-count-custom {
+  color: var(--color-signal);
+  font-weight: 700;
+}
+
+.comp-nt-warning {
+  @apply inline-flex items-center;
+  gap: 3px;
+  margin-left: auto;
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-signal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 
 .comp-nt-roster {
   padding: 8px 0;
@@ -3854,6 +3875,165 @@
   margin-left: auto;
 }
 
+.comp-nt-defense {
+  background: rgba(17, 17, 17, 0.04);
+}
+
 .comp-nt-crew {
   background: rgba(230, 59, 46, 0.06);
+}
+
+.comp-nt-crew.comp-nt-defense {
+  background: rgba(230, 59, 46, 0.08);
+}
+
+/* Slot Editor Modal */
+
+.slot-modal-overlay {
+  @apply fixed inset-0 flex items-center justify-center;
+  background: rgba(17, 17, 17, 0.5);
+  z-index: 50;
+}
+
+.slot-modal {
+  background: var(--color-paper);
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0.5rem;
+  width: 320px;
+  max-width: 90vw;
+}
+
+.slot-modal-header {
+  @apply flex items-center justify-between;
+  padding: 16px 16px 12px;
+  border-bottom: 2px solid rgba(17, 17, 17, 0.08);
+}
+
+.slot-modal-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  color: #111111;
+}
+
+.slot-modal-close {
+  @apply flex items-center justify-center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #6B6560;
+  border-radius: 0.25rem;
+}
+
+.slot-modal-close:hover {
+  background: rgba(17, 17, 17, 0.06);
+}
+
+.slot-modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.slot-row {
+  @apply flex items-center justify-between;
+}
+
+.slot-label {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 500;
+  color: #111111;
+}
+
+.slot-controls {
+  @apply inline-flex items-center;
+  gap: 8px;
+}
+
+.slot-btn {
+  @apply flex items-center justify-center;
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0.25rem;
+  background: var(--color-concrete);
+  cursor: pointer;
+  color: #111111;
+}
+
+.slot-btn:hover {
+  background: var(--color-ash);
+}
+
+.slot-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.slot-value {
+  font-family: var(--font-data);
+  font-size: 16px;
+  font-weight: 700;
+  color: #111111;
+  min-width: 24px;
+  text-align: center;
+}
+
+.slot-total {
+  @apply inline-flex items-center justify-end;
+  gap: 3px;
+  width: 100%;
+  font-family: var(--font-data);
+  font-size: 12px;
+  color: #6B6560;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 4px;
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.slot-total-warning {
+  color: var(--color-signal);
+  font-weight: 700;
+}
+
+.slot-modal-footer {
+  @apply flex items-center justify-end;
+  gap: 8px;
+  padding: 12px 16px 16px;
+}
+
+.slot-reset-btn {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 500;
+  color: #6B6560;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+}
+
+.slot-reset-btn:hover {
+  color: #111111;
+}
+
+.slot-save-btn {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-paper);
+  background: #111111;
+  border: none;
+  cursor: pointer;
+  padding: 8px 20px;
+  border-radius: 0.25rem;
+}
+
+.slot-save-btn:hover {
+  background: #333333;
 }

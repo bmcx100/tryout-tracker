@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   DndContext,
   closestCenter,
@@ -21,7 +21,7 @@ import {
 } from "@dnd-kit/sortable"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ChevronDown, ChevronRight, GripVertical, Heart } from "lucide-react"
+import { AlertTriangle, ChevronDown, ChevronRight, GripVertical, Heart, Minus, Plus, X } from "lucide-react"
 import type { Player, PinnedPlayer } from "@/lib/types"
 import { playerName } from "@/lib/utils"
 
@@ -34,16 +34,34 @@ function findLastIndex<T>(arr: T[], predicate: (item: T) => boolean): number {
   return -1
 }
 
-const SLOTS_PER_TEAM: Record<string, number> = { F: 9, D: 6, G: 2 }
+const DEFAULT_SLOTS: Record<string, number> = { F: 9, D: 6, G: 2 }
+
+function getTeamSlots(
+  teamCode: string,
+  teamSlots: Record<string, Record<string, number>>
+): Record<string, number> {
+  return teamSlots[teamCode] || DEFAULT_SLOTS
+}
+
+function isCustomSlots(
+  teamCode: string,
+  teamSlots: Record<string, Record<string, number>>
+): boolean {
+  const custom = teamSlots[teamCode]
+  if (!custom) return false
+  return custom.F !== DEFAULT_SLOTS.F || custom.D !== DEFAULT_SLOTS.D || custom.G !== DEFAULT_SLOTS.G
+}
 
 interface ResultingTeamsDndProps {
   teamOrder: string[]
   players: Player[]
   pinnedPlayers: Record<string, PinnedPlayer>
   playerOrderMap: Record<string, number[]>
+  teamSlots: Record<string, Record<string, number>>
   position: "F" | "D" | "G" | "ALL"
   crewNumbers: Set<number>
   onReorder: (team: string, playerNumbers: number[]) => void
+  onUpdateTeamSlots: (teamCode: string, slots: Record<string, number> | null) => void
 }
 
 function formatTeamCode(code: string): string {
@@ -130,7 +148,7 @@ function DraggablePlayerRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`comp-nt-player${isPinned ? " comp-nt-pinned" : ""}${isCrew ? " comp-nt-crew" : ""}${isDragging ? " comp-player-dragging" : ""}`}
+      className={`comp-nt-player${player.position === "D" ? " comp-nt-defense" : ""}${isPinned ? " comp-nt-pinned" : ""}${isCrew ? " comp-nt-crew" : ""}${isDragging ? " comp-player-dragging" : ""}`}
       {...attributes}
       {...listeners}
     >
@@ -151,32 +169,191 @@ function DraggablePlayerRow({
   )
 }
 
+function SlotEditorModal({
+  teamCode,
+  slots,
+  onSave,
+  onClose,
+}: {
+  teamCode: string
+  slots: Record<string, number>
+  onSave: (slots: Record<string, number> | null) => void
+  onClose: () => void
+}) {
+  const [f, setF] = useState(slots.F ?? DEFAULT_SLOTS.F)
+  const [d, setD] = useState(slots.D ?? DEFAULT_SLOTS.D)
+  const [g, setG] = useState(slots.G ?? DEFAULT_SLOTS.G)
+
+  const isDefault = f === DEFAULT_SLOTS.F && d === DEFAULT_SLOTS.D && g === DEFAULT_SLOTS.G
+
+  const handleSave = () => {
+    if (isDefault) {
+      onSave(null)
+    } else {
+      onSave({ F: f, D: d, G: g })
+    }
+    onClose()
+  }
+
+  const handleReset = () => {
+    setF(DEFAULT_SLOTS.F)
+    setD(DEFAULT_SLOTS.D)
+    setG(DEFAULT_SLOTS.G)
+  }
+
+  return (
+    <div className="slot-modal-overlay" onClick={onClose}>
+      <div className="slot-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="slot-modal-header">
+          <span className="slot-modal-title">{formatTeamCode(teamCode)} Roster Size</span>
+          <button className="slot-modal-close" onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
+        <div className="slot-modal-body">
+          <div className="slot-row">
+            <span className="slot-label">Forwards</span>
+            <div className="slot-controls">
+              <button className="slot-btn" onClick={() => setF(Math.max(0, f - 1))} disabled={f <= 0}>
+                <Minus size={14} />
+              </button>
+              <span className="slot-value">{f}</span>
+              <button className="slot-btn" onClick={() => setF(f + 1)}>
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+          <div className="slot-row">
+            <span className="slot-label">Defense</span>
+            <div className="slot-controls">
+              <button className="slot-btn" onClick={() => setD(Math.max(0, d - 1))} disabled={d <= 0}>
+                <Minus size={14} />
+              </button>
+              <span className="slot-value">{d}</span>
+              <button className="slot-btn" onClick={() => setD(d + 1)}>
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+          <div className="slot-row">
+            <span className="slot-label">Goalies</span>
+            <div className="slot-controls">
+              <button className="slot-btn" onClick={() => setG(Math.max(0, g - 1))} disabled={g <= 0}>
+                <Minus size={14} />
+              </button>
+              <span className="slot-value">{g}</span>
+              <button className="slot-btn" onClick={() => setG(g + 1)}>
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+          <div className={`slot-total${(f + d + g < 16 || f + d + g > 17) ? " slot-total-warning" : ""}`}>
+            {(f + d + g < 16 || f + d + g > 17) && <AlertTriangle size={12} />}
+            Total: {f + d + g} players
+          </div>
+        </div>
+        <div className="slot-modal-footer">
+          {!isDefault && (
+            <button className="slot-reset-btn" onClick={handleReset}>
+              Reset to Default
+            </button>
+          )}
+          <button className="slot-save-btn" onClick={handleSave}>
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function DroppableTeam({
   teamCode,
   players,
   pinnedPlayers,
   crewNumbers,
   defaultCollapsed,
+  isCustom,
+  position,
+  totalPlayers,
+  onOpenSlotEditor,
 }: {
   teamCode: string
   players: Player[]
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
   defaultCollapsed: boolean
+  isCustom: boolean
+  position: "F" | "D" | "G" | "ALL"
+  totalPlayers: number
+  onOpenSlotEditor: (teamCode: string) => void
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const { setNodeRef } = useDroppable({ id: `rt-${teamCode}` })
   const sortIds = players.map((p) => `rp-${p.number}`)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const didLongPress = useRef(false)
+
+  const fCount = players.filter((p) => p.position === "F").length
+  const dCount = players.filter((p) => p.position === "D").length
+  const gCount = players.filter((p) => p.position === "G").length
+
+  const handlePointerDown = () => {
+    didLongPress.current = false
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true
+      onOpenSlotEditor(teamCode)
+    }, 500)
+  }
+
+  const handlePointerUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+    if (!didLongPress.current) {
+      setCollapsed((c) => !c)
+    }
+  }
+
+  const handlePointerLeave = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
+
+  // Build count display based on active position tab
+  const countLabel = position === "ALL"
+    ? `${fCount}F · ${dCount}D · ${gCount}G`
+    : position === "F"
+      ? `${fCount} Forwards`
+      : position === "D"
+        ? `${dCount} Defense`
+        : `${gCount} Goalies`
+
+  const hasWarning = totalPlayers < 16 || totalPlayers > 17
 
   return (
     <div className="comp-nt-team" ref={setNodeRef}>
-      <button className="comp-nt-header comp-nt-toggle" onClick={() => setCollapsed((c) => !c)}>
+      <div
+        className="comp-nt-header comp-nt-toggle"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+      >
         {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
         <span className="comp-nt-code">{formatTeamCode(teamCode)}</span>
-        <span className="comp-nt-count">
-          {players.length} player{players.length !== 1 ? "s" : ""}
+        <span className={`comp-nt-count${isCustom ? " comp-nt-count-custom" : ""}`}>
+          {countLabel}
         </span>
-      </button>
+        {hasWarning && (
+          <span className="comp-nt-warning">
+            <AlertTriangle size={12} />
+            {totalPlayers} total
+          </span>
+        )}
+      </div>
       {!collapsed && (
         <div className="comp-nt-roster">
           <SortableContext items={sortIds} strategy={verticalListSortingStrategy}>
@@ -205,14 +382,18 @@ export function ResultingTeamsDnd({
   players,
   pinnedPlayers,
   playerOrderMap,
+  teamSlots,
   position,
   crewNumbers,
   onReorder,
+  onUpdateTeamSlots,
 }: ResultingTeamsDndProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
+
+  const [slotEditorTeam, setSlotEditorTeam] = useState<string | null>(null)
 
   const assignments = useMemo(() => {
     const positions: ("F" | "D" | "G")[] = position === "ALL"
@@ -227,11 +408,12 @@ export function ResultingTeamsDnd({
 
     for (const pos of positions) {
       const ranked = buildRankedList(players, teamOrder, pinnedPlayers, playerOrderMap, pos)
-      const slotsPerTeam = SLOTS_PER_TEAM[pos]
       let idx = 0
       for (const team of U15_TEAMS) {
-        computed[team].push(...ranked.slice(idx, idx + slotsPerTeam))
-        idx += slotsPerTeam
+        const slots = getTeamSlots(team, teamSlots)
+        const slotsForPos = slots[pos] ?? DEFAULT_SLOTS[pos]
+        computed[team].push(...ranked.slice(idx, idx + slotsForPos))
+        idx += slotsForPos
       }
     }
 
@@ -263,7 +445,17 @@ export function ResultingTeamsDnd({
     }
 
     return result
-  }, [players, teamOrder, pinnedPlayers, playerOrderMap, position])
+  }, [players, teamOrder, pinnedPlayers, playerOrderMap, teamSlots, position])
+
+  // Compute full team totals (all positions) for the warning indicator
+  const fullTeamTotals = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const team of U15_TEAMS) {
+      const slots = getTeamSlots(team, teamSlots)
+      totals[team] = (slots.F ?? DEFAULT_SLOTS.F) + (slots.D ?? DEFAULT_SLOTS.D) + (slots.G ?? DEFAULT_SLOTS.G)
+    }
+    return totals
+  }, [teamSlots])
 
   // Local roster state for immediate visual feedback during drags
   const [localRosters, setLocalRosters] = useState<Record<string, Player[]> | null>(null)
@@ -403,23 +595,37 @@ export function ResultingTeamsDnd({
   const visibleTeams = U15_TEAMS.filter((t) => (displayRosters[t]?.length || 0) > 0)
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={collisionDetection}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="comp-new-teams">
-        {visibleTeams.map((teamCode) => (
-          <DroppableTeam
-            key={teamCode}
-            teamCode={teamCode}
-            players={displayRosters[teamCode]}
-            pinnedPlayers={pinnedPlayers}
-            crewNumbers={crewNumbers}
-            defaultCollapsed
-          />
-        ))}
-      </div>
-    </DndContext>
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisionDetection}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="comp-new-teams">
+          {visibleTeams.map((teamCode) => (
+            <DroppableTeam
+              key={teamCode}
+              teamCode={teamCode}
+              players={displayRosters[teamCode]}
+              pinnedPlayers={pinnedPlayers}
+              crewNumbers={crewNumbers}
+              defaultCollapsed
+              isCustom={isCustomSlots(teamCode, teamSlots)}
+              position={position}
+              totalPlayers={fullTeamTotals[teamCode] ?? 17}
+              onOpenSlotEditor={setSlotEditorTeam}
+            />
+          ))}
+        </div>
+      </DndContext>
+      {slotEditorTeam && (
+        <SlotEditorModal
+          teamCode={slotEditorTeam}
+          slots={getTeamSlots(slotEditorTeam, teamSlots)}
+          onSave={(slots) => onUpdateTeamSlots(slotEditorTeam, slots)}
+          onClose={() => setSlotEditorTeam(null)}
+        />
+      )}
+    </>
   )
 }

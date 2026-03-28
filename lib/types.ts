@@ -103,6 +103,7 @@ export interface UserCompetitionPrefs {
   team_order: string[]
   player_order: Record<string, number[]>
   pinned_players: Record<string, PinnedPlayer>
+  team_slots: Record<string, Record<string, number>>
   last_viewed: string
   created_at: string
   updated_at: string

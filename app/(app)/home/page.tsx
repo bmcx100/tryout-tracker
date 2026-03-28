@@ -15,6 +15,7 @@ import { DEFAULT_TEAM_ORDER } from "@/lib/utils"
 import {
   updateTeamOrder,
   updatePlayerOrder,
+  updateTeamSlots,
   pinPlayer,
   markLastViewed,
   resetPrefs,
@@ -29,6 +30,7 @@ const defaultPrefs: UserCompetitionPrefs = {
   team_order: [],
   player_order: {},
   pinned_players: {},
+  team_slots: {},
   last_viewed: "",
   created_at: "",
   updated_at: "",
@@ -184,6 +186,26 @@ export default function HomePage() {
     setStep("done")
   }, [activeGroup, currentPrefs])
 
+  const handleUpdateTeamSlots = useCallback(
+    async (teamCode: string, slots: Record<string, number> | null) => {
+      setCurrentPrefs((prev) => {
+        const teamSlots = { ...prev.team_slots }
+        if (slots) {
+          teamSlots[teamCode] = slots
+        } else {
+          delete teamSlots[teamCode]
+        }
+        return { ...prev, team_slots: teamSlots }
+      })
+      try {
+        await updateTeamSlots(activeGroup, teamCode, slots)
+      } catch (err) {
+        console.error("Failed to save team slots:", err)
+      }
+    },
+    [activeGroup]
+  )
+
   const handleReset = useCallback(async () => {
     if (!confirm("Reset to default order? This clears your customizations for this position.")) return
     setCurrentPrefs((prev) => ({
@@ -191,6 +213,7 @@ export default function HomePage() {
       team_order: [],
       player_order: {},
       pinned_players: {},
+      team_slots: {},
     }))
     try {
       await resetPrefs(activeGroup)
@@ -285,8 +308,10 @@ export default function HomePage() {
       players={players}
       pinnedPlayers={pinnedPlayers}
       playerOrderMap={currentPrefs.player_order || {}}
+      teamSlots={currentPrefs.team_slots || {}}
       crewNumbers={crewNumbers}
       onReorder={handlePlayerReorder}
+      onUpdateTeamSlots={handleUpdateTeamSlots}
       onReset={handleReset}
       onRunSorter={handleRunSorter}
       onSwitchPosition={handleSwitchPosition}

@@ -133,6 +133,35 @@ export async function unpinPlayer(
   if (error) throw new Error(error.message)
 }
 
+export async function updateTeamSlots(
+  positionGroup: PositionGroup,
+  teamCode: string,
+  slots: Record<string, number> | null
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Not authenticated")
+
+  const existing = await getCompetitionPrefs(positionGroup)
+  const teamSlots = existing?.team_slots || {}
+  if (slots) {
+    teamSlots[teamCode] = slots
+  } else {
+    delete teamSlots[teamCode]
+  }
+
+  const { error } = await supabase
+    .from("user_competition_prefs")
+    .upsert({
+      user_id: user.id,
+      position_group: positionGroup,
+      team_slots: teamSlots,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,position_group" })
+
+  if (error) throw new Error(error.message)
+}
+
 export async function markLastViewed(positionGroup: PositionGroup) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

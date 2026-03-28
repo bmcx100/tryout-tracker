@@ -31,8 +31,10 @@ interface ResultsViewProps {
   players: Player[]
   pinnedPlayers: Record<string, PinnedPlayer>
   playerOrderMap: Record<string, number[]>
+  teamSlots: Record<string, Record<string, number>>
   crewNumbers: Set<number>
   onReorder: (team: string, playerNumbers: number[]) => void
+  onUpdateTeamSlots: (teamCode: string, slots: Record<string, number> | null) => void
   onReset: () => void
   onRunSorter: () => void
   onSwitchPosition: (group: PositionGroup) => void
@@ -44,8 +46,10 @@ export function ResultsView({
   players,
   pinnedPlayers,
   playerOrderMap,
+  teamSlots,
   crewNumbers,
   onReorder,
+  onUpdateTeamSlots,
   onReset,
   onRunSorter,
   onSwitchPosition,
@@ -90,9 +94,11 @@ export function ResultsView({
           players={players}
           pinnedPlayers={pinnedPlayers}
           playerOrderMap={playerOrderMap}
+          teamSlots={teamSlots}
           position={position}
           crewNumbers={crewNumbers}
           onReorder={onReorder}
+          onUpdateTeamSlots={onUpdateTeamSlots}
         />
       </div>
     </div>
