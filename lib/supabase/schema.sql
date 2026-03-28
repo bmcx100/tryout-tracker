@@ -318,12 +318,15 @@ create policy "Admins can update corrections"
 
 create table public.user_competition_prefs (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users on delete cascade not null unique,
+  user_id uuid references auth.users on delete cascade not null,
+  position_group text not null default 'forwards',
   team_order text[] not null default '{}',
   player_order jsonb not null default '{}',
   pinned_players jsonb not null default '{}',
+  last_viewed timestamptz not null default now(),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  unique (user_id, position_group)
 );
 
 alter table public.user_competition_prefs enable row level security;
