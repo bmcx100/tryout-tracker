@@ -16,6 +16,8 @@ export type CorrectionStatus = "pending" | "approved" | "rejected"
 
 export type CorrectionEntityType = "player" | "session" | "round"
 
+export type PositionGroup = "forwards" | "defense" | "goalies"
+
 export interface Profile {
   id: string
   email: string
@@ -131,9 +133,11 @@ export interface PinnedPlayer {
 export interface UserCompetitionPrefs {
   id: string
   user_id: string
+  position_group: PositionGroup
   team_order: string[]
   player_order: Record<string, number[]>
   pinned_players: Record<string, PinnedPlayer>
+  last_viewed: string
   created_at: string
   updated_at: string
 }
