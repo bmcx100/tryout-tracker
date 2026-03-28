@@ -55,7 +55,7 @@ export function ResultsView({
       <div className="results-toolbar">
         <button className="btn-primary-icon" onClick={onRunSorter}>
           <RotateCcw size={14} />
-          Sort Wizard
+          Rerun Sort Wizard
         </button>
         <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
           <RotateCcw size={14} />

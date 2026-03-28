@@ -3175,7 +3175,7 @@
 }
 
 .results-toolbar {
-  @apply flex flex-col items-end gap-2;
+  @apply flex flex-row items-center justify-between;
   margin-bottom: 24px;
   max-width: 480px;
 }
