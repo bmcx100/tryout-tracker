@@ -3,29 +3,42 @@
 import { useEffect, useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
-import { TeamTierList } from "@/components/competition/team-tier-list"
-import { NewTeamsView } from "@/components/competition/new-teams-view"
-import { RotateCcw, Info } from "lucide-react"
-import type { Player, UserCompetitionPrefs, PinnedPlayer, CrewMember } from "@/lib/types"
-import {
-  DEFAULT_TEAM_ORDER,
-  POSITIONS,
-  type Position,
-} from "@/lib/utils"
+import { StepPosition } from "./step-position"
+import { StepRankTeams } from "./step-rank-teams"
+import { StepResults } from "./step-results"
+import { ResultsView } from "./results-view"
+import type {
+  Player,
+  UserCompetitionPrefs,
+  PinnedPlayer,
+  CrewMember,
+  PositionGroup,
+} from "@/lib/types"
+import { DEFAULT_TEAM_ORDER } from "@/lib/utils"
 import {
   updateTeamOrder,
   updatePlayerOrder,
   pinPlayer,
   unpinPlayer,
-  resetAllPrefs,
+  markLastViewed,
 } from "@/lib/actions/competition-prefs"
 
-const defaultPrefs = {
+type WizardStep = "position" | "rank" | "results" | "done"
+
+const POSITION_FILTER: Record<PositionGroup, string> = {
+  forwards: "F",
+  defense: "D",
+  goalies: "G",
+}
+
+const defaultPrefs: UserCompetitionPrefs = {
   id: "",
   user_id: "",
-  team_order: [] as string[],
-  player_order: {} as Record<string, number[]>,
-  pinned_players: {} as Record<string, { team: string; position: number }>,
+  position_group: "forwards",
+  team_order: [],
+  player_order: {},
+  pinned_players: {},
+  last_viewed: "",
   created_at: "",
   updated_at: "",
 }
@@ -34,17 +47,14 @@ export default function HomePage() {
   const { loading: authLoading } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
-  const [prefs, setPrefs] = useState<UserCompetitionPrefs | null>(null)
-  const [position, setPosition] = useState<Position>(() => {
-    if (typeof window !== "undefined") {
-      return (localStorage.getItem("comp-position") as Position) || "ALL"
-    }
-    return "ALL"
-  })
+  const [allPrefs, setAllPrefs] = useState<UserCompetitionPrefs[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [resetting, setResetting] = useState(false)
-  const [view, setView] = useState<"sort" | "teams">("sort")
+
+  // Wizard state
+  const [step, setStep] = useState<WizardStep>("position")
+  const [activeGroup, setActiveGroup] = useState<PositionGroup>("forwards")
+  const [currentPrefs, setCurrentPrefs] = useState<UserCompetitionPrefs>(defaultPrefs)
 
   useEffect(() => {
     if (authLoading) return
@@ -62,7 +72,7 @@ export default function HomePage() {
           supabase
             .from("user_competition_prefs")
             .select("*")
-            .single(),
+            .order("last_viewed", { ascending: false }),
           supabase
             .from("user_crew")
             .select("*"),
@@ -72,8 +82,15 @@ export default function HomePage() {
         setPlayers(playersRes.data || [])
         if (crewRes.data) setCrew(crewRes.data)
 
-        if (prefsRes.data) {
-          setPrefs(prefsRes.data)
+        const prefs = prefsRes.data || []
+        setAllPrefs(prefs)
+
+        // If user has existing sorts, show results view of most recent
+        if (prefs.length > 0) {
+          const mostRecent = prefs[0]
+          setCurrentPrefs(mostRecent)
+          setActiveGroup(mostRecent.position_group)
+          setStep("done")
         }
 
         setLoading(false)
@@ -86,33 +103,27 @@ export default function HomePage() {
     load()
   }, [authLoading])
 
-  useEffect(() => {
-    localStorage.setItem("comp-position", position)
-  }, [position])
-
-  const teamOrder = prefs?.team_order?.length
-    ? prefs.team_order
-    : DEFAULT_TEAM_ORDER
-
-  const pinnedPlayers: Record<string, PinnedPlayer> = prefs?.pinned_players || {}
   const crewNumbers = new Set(crew.map((c) => c.player_number))
 
-  // Filter players by selected position
-  const filtered = position === "ALL"
-    ? players
-    : players.filter((p) => p.position === position)
+  // Filter players by the active position group
+  const positionFilter = POSITION_FILTER[activeGroup]
+  const filtered = players.filter((p) => p.position === positionFilter)
 
-  // Group by previous_team
+  const teamOrder = currentPrefs.team_order?.length
+    ? currentPrefs.team_order
+    : DEFAULT_TEAM_ORDER
+
+  const pinnedPlayers: Record<string, PinnedPlayer> = currentPrefs.pinned_players || {}
+
+  // Group players by previous_team for the rank step
   const playersByTeam: Record<string, Player[]> = {}
   for (const p of filtered) {
     const team = p.previous_team || "Unknown"
     if (!playersByTeam[team]) playersByTeam[team] = []
     playersByTeam[team].push(p)
   }
-
-  // Sort players within each team by user pref or by number
   for (const team of Object.keys(playersByTeam)) {
-    const customOrder = prefs?.player_order?.[team]
+    const customOrder = currentPrefs.player_order?.[team]
     if (customOrder?.length) {
       playersByTeam[team].sort((a, b) => {
         const ai = customOrder.indexOf(a.number)
@@ -127,90 +138,103 @@ export default function HomePage() {
     }
   }
 
+  // Wizard handlers
+  const handleSelectPosition = useCallback(
+    (group: PositionGroup, reuseTeamOrder: string[] | null) => {
+      setActiveGroup(group)
+      const existing = allPrefs.find((p) => p.position_group === group)
+      if (existing) {
+        setCurrentPrefs(existing)
+      } else {
+        setCurrentPrefs({
+          ...defaultPrefs,
+          position_group: group,
+          team_order: reuseTeamOrder || [],
+        })
+      }
+      setStep("rank")
+    },
+    [allPrefs]
+  )
+
   const handleTeamReorder = useCallback(
     async (newOrder: string[]) => {
-      setPrefs((prev) => {
-        if (!prev) return { ...defaultPrefs, team_order: newOrder }
-        return { ...prev, team_order: newOrder }
-      })
+      setCurrentPrefs((prev) => ({ ...prev, team_order: newOrder }))
       try {
-        await updateTeamOrder(newOrder)
+        await updateTeamOrder(activeGroup, newOrder)
       } catch (err) {
         console.error("Failed to save team order:", err)
       }
     },
-    []
+    [activeGroup]
   )
 
   const handlePlayerReorder = useCallback(
     async (team: string, playerNumbers: number[]) => {
-      setPrefs((prev) => {
-        const base = prev || defaultPrefs
-        return {
-          ...base,
-          player_order: { ...base.player_order, [team]: playerNumbers },
-        }
-      })
+      setCurrentPrefs((prev) => ({
+        ...prev,
+        player_order: { ...prev.player_order, [team]: playerNumbers },
+      }))
       try {
-        await updatePlayerOrder(team, playerNumbers)
+        await updatePlayerOrder(activeGroup, team, playerNumbers)
       } catch (err) {
         console.error("Failed to save player order:", err)
       }
     },
-    []
+    [activeGroup]
   )
 
   const handlePinToTeam = useCallback(
     async (playerNumber: number, targetTeam: string, pos: number) => {
-      setPrefs((prev) => {
-        const base = prev || defaultPrefs
-        return {
-          ...base,
-          pinned_players: {
-            ...base.pinned_players,
-            [String(playerNumber)]: { team: targetTeam, position: pos },
-          },
-        }
-      })
+      setCurrentPrefs((prev) => ({
+        ...prev,
+        pinned_players: {
+          ...prev.pinned_players,
+          [String(playerNumber)]: { team: targetTeam, position: pos },
+        },
+      }))
       try {
-        await pinPlayer(playerNumber, targetTeam, pos)
+        await pinPlayer(activeGroup, playerNumber, targetTeam, pos)
       } catch (err) {
         console.error("Failed to pin player:", err)
       }
     },
-    []
+    [activeGroup]
   )
 
   const handleUnpin = useCallback(
     async (playerNumber: number) => {
-      setPrefs((prev) => {
-        if (!prev) return prev
+      setCurrentPrefs((prev) => {
         const pp = { ...prev.pinned_players }
         delete pp[String(playerNumber)]
         return { ...prev, pinned_players: pp }
       })
       try {
-        await unpinPlayer(playerNumber)
+        await unpinPlayer(activeGroup, playerNumber)
       } catch (err) {
         console.error("Failed to unpin player:", err)
       }
     },
-    []
+    [activeGroup]
   )
 
-  const handleReset = useCallback(async () => {
-    if (!confirm("Reset to default order? This clears all your customizations.")) return
-    setResetting(true)
-    setPrefs(null)
+  const handleWizardDone = useCallback(async () => {
     try {
-      await resetAllPrefs()
+      await markLastViewed(activeGroup)
     } catch (err) {
-      console.error("Failed to reset:", err)
+      console.error("Failed to mark last viewed:", err)
     }
-    setResetting(false)
-  }, [])
+    // Update allPrefs so results view shows current data
+    setAllPrefs((prev) => {
+      const updated = prev.filter((p) => p.position_group !== activeGroup)
+      return [currentPrefs, ...updated]
+    })
+    setStep("done")
+  }, [activeGroup, currentPrefs])
 
-  const totalCount = filtered.length
+  const handleRunSorter = useCallback(() => {
+    setStep("position")
+  }, [])
 
   if (loading) {
     return (
@@ -241,88 +265,65 @@ export default function HomePage() {
     )
   }
 
-  return (
-    <div className="app-page">
-      <div className="comp-instructions">
-        <Info size={16} />
-        <p>Pick your position, sort teams and players, then click Resulting Teams.</p>
+  if (step === "position") {
+    return (
+      <div className="app-page">
+        <StepPosition
+          existingPrefs={allPrefs}
+          onSelect={handleSelectPosition}
+        />
       </div>
+    )
+  }
 
-      <div className="comp-position-tabs">
-        {POSITIONS.map((pos) => (
-          <button
-            key={pos.value}
-            className={`comp-position-tab${position === pos.value ? " comp-position-tab-active" : ""}`}
-            onClick={() => setPosition(pos.value)}
-          >
-            {pos.label}
-          </button>
-        ))}
+  if (step === "rank") {
+    return (
+      <div className="app-page">
+        <StepRankTeams
+          teamOrder={teamOrder}
+          playersByTeam={playersByTeam}
+          allPlayers={filtered}
+          playerOrderMap={currentPrefs.player_order || {}}
+          pinnedPlayers={pinnedPlayers}
+          crewNumbers={crewNumbers}
+          onTeamReorder={handleTeamReorder}
+          onPlayerReorder={handlePlayerReorder}
+          onPinToTeam={handlePinToTeam}
+          onUnpin={handleUnpin}
+          onNext={() => setStep("results")}
+          onBack={() => setStep("position")}
+        />
       </div>
+    )
+  }
 
-      <div className="comp-view-tabs">
-        <button
-          className={`comp-view-tab${view === "sort" ? " comp-view-tab-active" : ""}`}
-          onClick={() => setView("sort")}
-        >
-          Sort Order
-        </button>
-        <button
-          className={`comp-view-tab${view === "teams" ? " comp-view-tab-active" : ""}`}
-          onClick={() => setView("teams")}
-        >
-          Resulting Teams
-        </button>
-      </div>
-
-      {view === "sort" ? (
-      <div className="comp-content">
-        <div className="comp-sort-toolbar">
-          <button
-            className="comp-reset-btn"
-            onClick={handleReset}
-            disabled={resetting}
-            title="Reset to defaults"
-          >
-            <RotateCcw size={16} />
-            <span className="comp-reset-label">Reset</span>
-          </button>
-        </div>
-
-        {totalCount === 0 ? (
-          <div className="app-empty-state">
-            <p className="app-empty-title">No players</p>
-            <p className="app-empty-desc">
-              No {POSITIONS.find((p) => p.value === position)?.label?.toLowerCase()} players with a previous team on record.
-            </p>
-          </div>
-        ) : (
-          <TeamTierList
-            teamOrder={teamOrder}
-            playersByTeam={playersByTeam}
-            allPlayers={filtered}
-            playerOrderMap={prefs?.player_order || {}}
-            pinnedPlayers={pinnedPlayers}
-            crewNumbers={crewNumbers}
-            onTeamReorder={handleTeamReorder}
-            onPlayerReorder={handlePlayerReorder}
-            onPinToTeam={handlePinToTeam}
-            onUnpin={handleUnpin}
-          />
-        )}
-      </div>
-      ) : (
-      <div className="comp-content">
-        <NewTeamsView
+  if (step === "results") {
+    return (
+      <div className="app-page">
+        <StepResults
+          positionGroup={activeGroup}
           teamOrder={teamOrder}
           players={players}
           pinnedPlayers={pinnedPlayers}
-          playerOrderMap={prefs?.player_order || {}}
-          position={position}
+          playerOrderMap={currentPrefs.player_order || {}}
           crewNumbers={crewNumbers}
+          onDone={handleWizardDone}
+          onBack={() => setStep("rank")}
         />
       </div>
-      )}
-    </div>
+    )
+  }
+
+  // step === "done" — results view (return visit)
+  return (
+    <ResultsView
+      positionGroup={activeGroup}
+      teamOrder={teamOrder}
+      players={players}
+      pinnedPlayers={pinnedPlayers}
+      playerOrderMap={currentPrefs.player_order || {}}
+      crewNumbers={crewNumbers}
+      onRunSorter={handleRunSorter}
+    />
   )
 }
