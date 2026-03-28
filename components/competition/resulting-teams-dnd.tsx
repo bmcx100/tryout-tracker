@@ -26,6 +26,14 @@ import type { Player, PinnedPlayer } from "@/lib/types"
 import { playerName } from "@/lib/utils"
 
 const U15_TEAMS = ["U15AA", "U15A", "U15BB", "U15B", "U15C"]
+
+function findLastIndex<T>(arr: T[], predicate: (item: T) => boolean): number {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (predicate(arr[i])) return i
+  }
+  return -1
+}
+
 const SLOTS_PER_TEAM: Record<string, number> = { F: 9, D: 6, G: 2 }
 
 interface ResultingTeamsDndProps {
@@ -342,12 +350,44 @@ export function ResultingTeamsDnd({
         newRosters[sourceTeam] = arrayMove(roster, oldIndex, overIndex)
         onReorder(`rt:${sourceTeam}`, newRosters[sourceTeam].map((p) => p.number))
       } else {
-        // Cross-team move — save ALL teams so rt: data is the complete source of truth
+        // Cross-team move with cascading to maintain roster counts
         const sourceRoster = newRosters[sourceTeam]
         const oldIndex = sourceRoster.findIndex((p) => p.number === activeNum)
         if (oldIndex === -1) return
         const [moved] = sourceRoster.splice(oldIndex, 1)
         newRosters[targetTeam].splice(overIndex, 0, moved)
+
+        // Cascade: rebalance teams between source and target (same position only)
+        const sourceIdx = U15_TEAMS.indexOf(sourceTeam)
+        const targetIdx = U15_TEAMS.indexOf(targetTeam)
+        const movedPos = moved.position
+
+        if (sourceIdx < targetIdx) {
+          // Player moved DOWN — source team is short, pull top same-position player up from below
+          for (let i = sourceIdx; i < targetIdx; i++) {
+            const currentTeam = U15_TEAMS[i]
+            const nextTeam = U15_TEAMS[i + 1]
+            const nextRoster = newRosters[nextTeam]
+            const promoteIdx = nextRoster.findIndex((p) => p.position === movedPos)
+            if (promoteIdx !== -1) {
+              const [promoted] = nextRoster.splice(promoteIdx, 1)
+              newRosters[currentTeam].push(promoted)
+            }
+          }
+        } else {
+          // Player moved UP — source team has extra, push bottom same-position player down from above
+          for (let i = sourceIdx; i > targetIdx; i--) {
+            const currentTeam = U15_TEAMS[i]
+            const prevTeam = U15_TEAMS[i - 1]
+            const prevRoster = newRosters[prevTeam]
+            const lastIdx = findLastIndex(prevRoster, (p) => p.position === movedPos)
+            if (lastIdx !== -1) {
+              const [demoted] = prevRoster.splice(lastIdx, 1)
+              newRosters[currentTeam].unshift(demoted)
+            }
+          }
+        }
+
         for (const team of U15_TEAMS) {
           onReorder(`rt:${team}`, (newRosters[team] || []).map((p) => p.number))
         }
