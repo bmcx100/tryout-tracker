@@ -56,8 +56,10 @@ export function TeamRow({
       <button
         className="comp-team-header"
         onClick={() => setExpanded(!expanded)}
+        {...attributes}
+        {...listeners}
       >
-        <span className="comp-team-grip" {...attributes} {...listeners}>
+        <span className="comp-team-grip">
           <GripVertical size={16} />
         </span>
         <span className="comp-team-rank">{rank}</span>
