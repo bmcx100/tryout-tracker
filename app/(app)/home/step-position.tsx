@@ -1,6 +1,5 @@
 "use client"
 
-import { ChevronRight } from "lucide-react"
 import type { PositionGroup, UserCompetitionPrefs } from "@/lib/types"
 
 interface StepPositionProps {
@@ -31,7 +30,6 @@ export function StepPosition({ onSelect }: StepPositionProps) {
             onClick={() => onSelect(opt.value, null)}
           >
             {opt.label}
-            <ChevronRight size={20} className="wizard-card-arrow" />
           </button>
         ))}
       </div>

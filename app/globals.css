@@ -3458,34 +3458,24 @@
 }
 
 .wizard-card {
-  @apply flex items-center justify-between;
+  @apply flex items-center justify-center gap-2;
   width: 100%;
-  padding: 20px 24px;
-  border: 2px solid rgba(17, 17, 17, 0.12);
+  padding: 10px 20px;
+  border: none;
   border-radius: 0.5rem;
   background: #E63B2E;
-  border-color: #E63B2E;
   cursor: pointer;
-  transition: border-color 150ms, background 150ms;
-  font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: 600;
+  transition: background 150ms;
+  font-family: var(--font-data);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: white;
 }
 
 .wizard-card:hover {
-  border-color: #d4342a;
   background: #d4342a;
-}
-
-.wizard-card-arrow {
-  color: rgba(255, 255, 255, 0.7);
-  transition: transform 150ms, color 150ms;
-}
-
-.wizard-card:hover .wizard-card-arrow {
-  color: white;
-  transform: translateX(4px);
 }
 
 .wizard-reuse-option {
