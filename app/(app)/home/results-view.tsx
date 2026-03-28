@@ -18,6 +18,12 @@ const GROUP_LABELS: Record<PositionGroup, string> = {
   goalies: "Goalies",
 }
 
+const POSITION_BUTTONS: { group: PositionGroup; label: string }[] = [
+  { group: "forwards", label: "Forwards" },
+  { group: "defense", label: "Defense" },
+  { group: "goalies", label: "Goalies" },
+]
+
 interface ResultsViewProps {
   positionGroup: PositionGroup
   teamOrder: string[]
@@ -28,6 +34,7 @@ interface ResultsViewProps {
   onReorder: (team: string, playerNumbers: number[]) => void
   onReset: () => void
   onRunSorter: () => void
+  onSwitchPosition: (group: PositionGroup) => void
 }
 
 export function ResultsView({
@@ -40,6 +47,7 @@ export function ResultsView({
   onReorder,
   onReset,
   onRunSorter,
+  onSwitchPosition,
 }: ResultsViewProps) {
   const position = GROUP_TO_POSITION[positionGroup]
 
@@ -61,6 +69,18 @@ export function ResultsView({
           <RotateCcw size={14} />
           <span className="comp-reset-label">Reset</span>
         </button>
+      </div>
+
+      <div className="results-position-tabs">
+        {POSITION_BUTTONS.map(({ group, label }) => (
+          <button
+            key={group}
+            className={`results-position-tab${positionGroup === group ? " active" : ""}`}
+            onClick={() => onSwitchPosition(group)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <div className="results-content">

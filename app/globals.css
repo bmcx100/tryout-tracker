@@ -3176,8 +3176,38 @@
 
 .results-toolbar {
   @apply flex flex-row items-center justify-between;
+  margin-bottom: 12px;
+  max-width: 480px;
+}
+
+.results-position-tabs {
+  @apply flex flex-row gap-2;
   margin-bottom: 24px;
   max-width: 480px;
+}
+
+.results-position-tab {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 16px;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #6B6560;
+  cursor: pointer;
+  transition: all 100ms;
+}
+
+.results-position-tab:hover {
+  border-color: rgba(17, 17, 17, 0.25);
+  color: #111111;
+}
+
+.results-position-tab.active {
+  background: #E63B2E;
+  border-color: #E63B2E;
+  color: white;
 }
 
 .results-label {

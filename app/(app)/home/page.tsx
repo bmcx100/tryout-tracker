@@ -236,6 +236,22 @@ export default function HomePage() {
     setStep("position")
   }, [])
 
+  const handleSwitchPosition = useCallback(
+    (group: PositionGroup) => {
+      const existing = allPrefs.find((p) => p.position_group === group)
+      if (existing) {
+        setActiveGroup(group)
+        setCurrentPrefs(existing)
+      } else {
+        // No saved prefs for this position — start the wizard for it
+        setActiveGroup(group)
+        setCurrentPrefs({ ...defaultPrefs, position_group: group })
+        setStep("rank")
+      }
+    },
+    [allPrefs]
+  )
+
   if (loading) {
     return (
       <div className="app-page">
@@ -309,6 +325,7 @@ export default function HomePage() {
       onReorder={handlePlayerReorder}
       onReset={handleReset}
       onRunSorter={handleRunSorter}
+      onSwitchPosition={handleSwitchPosition}
     />
   )
 }
