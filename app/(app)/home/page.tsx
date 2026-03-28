@@ -21,6 +21,7 @@ import {
   pinPlayer,
   unpinPlayer,
   markLastViewed,
+  resetPrefs,
 } from "@/lib/actions/competition-prefs"
 
 type WizardStep = "position" | "rank" | "results" | "done"
@@ -234,6 +235,22 @@ export default function HomePage() {
     setStep("done")
   }, [activeGroup, currentPrefs])
 
+  const handleReset = useCallback(async () => {
+    if (!confirm("Reset to default order? This clears your customizations for this position.")) return
+    setCurrentPrefs((prev) => ({
+      ...prev,
+      team_order: [],
+      player_order: {},
+      pinned_players: {},
+    }))
+    try {
+      await resetPrefs(activeGroup)
+    } catch (err) {
+      console.error("Failed to reset:", err)
+    }
+    setAllPrefs((prev) => prev.filter((p) => p.position_group !== activeGroup))
+  }, [activeGroup])
+
   const handleRunSorter = useCallback(() => {
     setStep("position")
   }, [])
@@ -292,6 +309,7 @@ export default function HomePage() {
           onPlayerReorder={handlePlayerReorder}
           onPinToTeam={handlePinToTeam}
           onUnpin={handleUnpin}
+          onReset={handleReset}
           onNext={() => setStep("results")}
           onBack={() => setStep("position")}
         />
@@ -310,6 +328,7 @@ export default function HomePage() {
           playerOrderMap={currentPrefs.player_order || {}}
           crewNumbers={crewNumbers}
           onPinToTeam={handlePinToTeam}
+          onReset={handleReset}
           onDone={handleWizardDone}
           onBack={() => setStep("rank")}
         />
@@ -327,6 +346,7 @@ export default function HomePage() {
       playerOrderMap={currentPrefs.player_order || {}}
       crewNumbers={crewNumbers}
       onPinToTeam={handlePinToTeam}
+      onReset={handleReset}
       onRunSorter={handleRunSorter}
     />
   )

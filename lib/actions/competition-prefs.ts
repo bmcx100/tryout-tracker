@@ -149,3 +149,17 @@ export async function markLastViewed(positionGroup: PositionGroup) {
   if (error) throw new Error(error.message)
 }
 
+export async function resetPrefs(positionGroup: PositionGroup) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Not authenticated")
+
+  const { error } = await supabase
+    .from("user_competition_prefs")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("position_group", positionGroup)
+
+  if (error) throw new Error(error.message)
+}
+

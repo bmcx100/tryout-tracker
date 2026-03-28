@@ -1,5 +1,6 @@
 "use client"
 
+import { RotateCcw } from "lucide-react"
 import { ResultingTeamsDnd } from "@/components/competition/resulting-teams-dnd"
 import type { Player, PinnedPlayer, PositionGroup } from "@/lib/types"
 
@@ -23,6 +24,7 @@ interface StepResultsProps {
   playerOrderMap: Record<string, number[]>
   crewNumbers: Set<number>
   onPinToTeam: (playerNumber: number, targetTeam: string, pos: number) => void
+  onReset: () => void
   onDone: () => void
   onBack: () => void
 }
@@ -35,6 +37,7 @@ export function StepResults({
   playerOrderMap,
   crewNumbers,
   onPinToTeam,
+  onReset,
   onDone,
   onBack,
 }: StepResultsProps) {
@@ -48,6 +51,13 @@ export function StepResults({
       </p>
 
       <div className="comp-content">
+        <div className="comp-sort-toolbar">
+          <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
+            <RotateCcw size={16} />
+            <span className="comp-reset-label">Reset</span>
+          </button>
+        </div>
+
         <ResultingTeamsDnd
           teamOrder={teamOrder}
           players={players}

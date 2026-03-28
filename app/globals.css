@@ -3562,6 +3562,10 @@
   color: #111111;
 }
 
+.results-actions {
+  @apply flex items-center gap-2;
+}
+
 .results-run-btn {
   @apply flex items-center gap-2;
   padding: 10px 20px;

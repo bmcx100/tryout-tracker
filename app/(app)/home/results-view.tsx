@@ -24,6 +24,7 @@ interface ResultsViewProps {
   playerOrderMap: Record<string, number[]>
   crewNumbers: Set<number>
   onPinToTeam: (playerNumber: number, targetTeam: string, pos: number) => void
+  onReset: () => void
   onRunSorter: () => void
 }
 
@@ -35,6 +36,7 @@ export function ResultsView({
   playerOrderMap,
   crewNumbers,
   onPinToTeam,
+  onReset,
   onRunSorter,
 }: ResultsViewProps) {
   const position = GROUP_TO_POSITION[positionGroup]
@@ -45,10 +47,16 @@ export function ResultsView({
         <h1 className="results-label">
           Your {GROUP_LABELS[positionGroup]} Sort
         </h1>
-        <button className="results-run-btn" onClick={onRunSorter}>
-          <RotateCcw size={14} />
-          Run the Sorter
-        </button>
+        <div className="results-actions">
+          <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
+            <RotateCcw size={14} />
+            <span className="comp-reset-label">Reset</span>
+          </button>
+          <button className="results-run-btn" onClick={onRunSorter}>
+            <RotateCcw size={14} />
+            Run the Sorter
+          </button>
+        </div>
       </div>
 
       <div className="results-content">

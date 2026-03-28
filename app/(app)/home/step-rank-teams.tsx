@@ -1,5 +1,6 @@
 "use client"
 
+import { RotateCcw } from "lucide-react"
 import { TeamTierList } from "@/components/competition/team-tier-list"
 import type { Player, PinnedPlayer } from "@/lib/types"
 
@@ -14,6 +15,7 @@ interface StepRankTeamsProps {
   onPlayerReorder: (team: string, playerNumbers: number[]) => void
   onPinToTeam: (playerNumber: number, targetTeam: string, pos: number) => void
   onUnpin: (playerNumber: number) => void
+  onReset: () => void
   onNext: () => void
   onBack: () => void
 }
@@ -29,6 +31,7 @@ export function StepRankTeams({
   onPlayerReorder,
   onPinToTeam,
   onUnpin,
+  onReset,
   onNext,
   onBack,
 }: StepRankTeamsProps) {
@@ -40,6 +43,13 @@ export function StepRankTeams({
       </p>
 
       <div className="comp-content">
+        <div className="comp-sort-toolbar">
+          <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
+            <RotateCcw size={16} />
+            <span className="comp-reset-label">Reset</span>
+          </button>
+        </div>
+
         <TeamTierList
           teamOrder={teamOrder}
           playersByTeam={playersByTeam}
