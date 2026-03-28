@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { useAuth } from "@/hooks/use-auth"
 import type { Correction } from "@/lib/types"
 import {
   Table,
@@ -14,13 +13,11 @@ import {
 } from "@/components/ui/table"
 
 export default function AdminCorrectionsPage() {
-  const { loading: authLoading } = useAuth()
   const [corrections, setCorrections] = useState<Correction[]>([])
 
   const supabase = createClient()
 
   useEffect(() => {
-    if (authLoading) return
     const fetch = async () => {
       const { data } = await supabase
         .from("corrections")
@@ -29,7 +26,7 @@ export default function AdminCorrectionsPage() {
       if (data) setCorrections(data)
     }
     fetch()
-  }, [authLoading]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleResolve = async (id: string, status: "approved" | "rejected") => {
     await supabase

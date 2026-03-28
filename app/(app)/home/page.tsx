@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { useAuth } from "@/hooks/use-auth"
 import { StepPosition } from "./step-position"
 import { StepRankTeams } from "./step-rank-teams"
 import { ResultsView } from "./results-view"
@@ -44,7 +43,6 @@ const defaultPrefs: UserCompetitionPrefs = {
 }
 
 export default function HomePage() {
-  const { loading: authLoading } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [allPrefs, setAllPrefs] = useState<UserCompetitionPrefs[]>([])
@@ -57,8 +55,6 @@ export default function HomePage() {
   const [currentPrefs, setCurrentPrefs] = useState<UserCompetitionPrefs>(defaultPrefs)
 
   useEffect(() => {
-    if (authLoading) return
-
     const load = async () => {
       try {
         const supabase = createClient()
@@ -101,7 +97,7 @@ export default function HomePage() {
       }
     }
     load()
-  }, [authLoading])
+  }, [])
 
   const crewNumbers = new Set(crew.map((c) => c.player_number))
 

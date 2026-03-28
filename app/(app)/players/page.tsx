@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { Heart } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { useAuth } from "@/hooks/use-auth"
 import { addToCrew, removeFromCrew } from "@/lib/actions/crew"
 import { toast } from "sonner"
 import { getAgeGroup, playerName, AGE_GROUPS, PREVIOUS_TEAMS, type AgeGroup } from "@/lib/utils"
@@ -21,7 +20,6 @@ const TAG_ORDER = ["bff", "teammate", "old_teammate", "friend"]
 const LEVELS = ["AA", "A", "BB", "B", "C"]
 
 export default function PlayersPage() {
-  const { loading: authLoading } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [tab, setTab] = useState<Tab>("crew")
@@ -53,9 +51,8 @@ export default function PlayersPage() {
   }
 
   useEffect(() => {
-    if (authLoading) return
     fetchData()
-  }, [authLoading])
+  }, [])
 
   const crewMap = new Map(crew.map((c) => [c.player_number, c]))
 

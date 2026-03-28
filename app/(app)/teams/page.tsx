@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { useAuth } from "@/hooks/use-auth"
 import { TeamCard } from "@/components/teams/team-card"
 import { getAgeGroup, PREVIOUS_TEAMS, AGE_GROUPS, type AgeGroup } from "@/lib/utils"
 import type { Player, CrewMember } from "@/lib/types"
@@ -11,7 +10,6 @@ type TeamsView = "previous" | "new"
 type AgeFilter = AgeGroup | "all"
 
 export default function TeamsPage() {
-  const { loading: authLoading } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [view, setView] = useState<TeamsView>("previous")
@@ -30,7 +28,6 @@ export default function TeamsPage() {
   }
 
   useEffect(() => {
-    if (authLoading) return
     const load = async () => {
       const supabase = createClient()
       const [{ data: playerData }, { data: crewData }] = await Promise.all([
@@ -42,7 +39,7 @@ export default function TeamsPage() {
       setLoading(false)
     }
     load()
-  }, [authLoading])
+  }, [])
 
   const crewMap = new Map(crew.map((c) => [c.player_number, c]))
 

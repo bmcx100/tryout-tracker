@@ -25,7 +25,7 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}/pending`)
         }
 
-        return NextResponse.redirect(`${origin}/crew`)
+        return NextResponse.redirect(`${origin}/home`)
       }
     }
   }

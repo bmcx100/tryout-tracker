@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { useAuth } from "@/hooks/use-auth"
 import { createSession, updateSession, deleteSession } from "@/lib/actions/sessions"
 import type { Session, PlayerLevel } from "@/lib/types"
 import {
@@ -33,7 +32,6 @@ import {
 const LEVELS: PlayerLevel[] = ["AA", "A", "BB", "B", "C"]
 
 export default function AdminSessionsPage() {
-  const { loading: authLoading } = useAuth()
   const [sessions, setSessions] = useState<Session[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Session | null>(null)
@@ -50,7 +48,6 @@ export default function AdminSessionsPage() {
   }
 
   useEffect(() => {
-    if (authLoading) return
     const load = async () => {
       const { data } = await supabase
         .from("sessions")
@@ -59,7 +56,7 @@ export default function AdminSessionsPage() {
       if (data) setSessions(data)
     }
     load()
-  }, [authLoading]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const filtered = sessions.filter((s) => {
     if (filterLevel !== "all" && s.level !== filterLevel) return false
