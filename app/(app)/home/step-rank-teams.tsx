@@ -16,7 +16,6 @@ interface StepRankTeamsProps {
   onPinToTeam: (playerNumber: number, targetTeam: string, pos: number) => void
   onReset: () => void
   onNext: () => void
-  onBack: () => void
 }
 
 export function StepRankTeams({
@@ -31,7 +30,6 @@ export function StepRankTeams({
   onPinToTeam,
   onReset,
   onNext,
-  onBack,
 }: StepRankTeamsProps) {
   return (
     <div className="wizard-container">
@@ -63,9 +61,6 @@ export function StepRankTeams({
 
       <button className="wizard-next-btn" onClick={onNext}>
         Next
-      </button>
-      <button className="wizard-back-btn" onClick={onBack}>
-        Back
       </button>
     </div>
   )

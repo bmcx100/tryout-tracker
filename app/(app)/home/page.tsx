@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { StepPosition } from "./step-position"
 import { StepRankTeams } from "./step-rank-teams"
 import { ResultsView } from "./results-view"
 import type {
@@ -21,14 +20,7 @@ import {
   resetPrefs,
 } from "@/lib/actions/competition-prefs"
 
-type WizardStep = "position" | "rank" | "done"
-
-const POSITION_FILTER: Record<PositionGroup, string | null> = {
-  all: null,
-  forwards: "F",
-  defense: "D",
-  goalies: "G",
-}
+type WizardStep = "rank" | "done"
 
 const defaultPrefs: UserCompetitionPrefs = {
   id: "",
@@ -50,7 +42,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null)
 
   // Wizard state
-  const [step, setStep] = useState<WizardStep>("position")
+  const [step, setStep] = useState<WizardStep>("rank")
   const [activeGroup, setActiveGroup] = useState<PositionGroup>("forwards")
   const [currentPrefs, setCurrentPrefs] = useState<UserCompetitionPrefs>(defaultPrefs)
 
@@ -101,12 +93,6 @@ export default function HomePage() {
 
   const crewNumbers = new Set(crew.map((c) => c.player_number))
 
-  // Filter players by the active position group
-  const positionFilter = POSITION_FILTER[activeGroup]
-  const filtered = positionFilter
-    ? players.filter((p) => p.position === positionFilter)
-    : players
-
   const teamOrder = currentPrefs.team_order?.length
     ? currentPrefs.team_order
     : DEFAULT_TEAM_ORDER
@@ -115,7 +101,7 @@ export default function HomePage() {
 
   // Group players by previous_team for the rank step
   const playersByTeam: Record<string, Player[]> = {}
-  for (const p of filtered) {
+  for (const p of players) {
     const team = p.previous_team || "Unknown"
     if (!playersByTeam[team]) playersByTeam[team] = []
     playersByTeam[team].push(p)
@@ -137,24 +123,6 @@ export default function HomePage() {
   }
 
   // Wizard handlers
-  const handleSelectPosition = useCallback(
-    (group: PositionGroup, reuseTeamOrder: string[] | null) => {
-      setActiveGroup(group)
-      const existing = allPrefs.find((p) => p.position_group === group)
-      if (existing) {
-        setCurrentPrefs(existing)
-      } else {
-        setCurrentPrefs({
-          ...defaultPrefs,
-          position_group: group,
-          team_order: reuseTeamOrder || [],
-        })
-      }
-      setStep("rank")
-    },
-    [allPrefs]
-  )
-
   const handleTeamReorder = useCallback(
     async (newOrder: string[]) => {
       setCurrentPrefs((prev) => ({ ...prev, team_order: newOrder }))
@@ -233,7 +201,7 @@ export default function HomePage() {
   }, [activeGroup])
 
   const handleRunSorter = useCallback(() => {
-    setStep("position")
+    setStep("rank")
   }, [])
 
   const handleSwitchPosition = useCallback(
@@ -289,24 +257,13 @@ export default function HomePage() {
     )
   }
 
-  if (step === "position") {
-    return (
-      <div className="app-page">
-        <StepPosition
-          existingPrefs={allPrefs}
-          onSelect={handleSelectPosition}
-        />
-      </div>
-    )
-  }
-
   if (step === "rank") {
     return (
       <div className="app-page">
         <StepRankTeams
           teamOrder={teamOrder}
           playersByTeam={playersByTeam}
-          allPlayers={filtered}
+          allPlayers={players}
           playerOrderMap={currentPrefs.player_order || {}}
           pinnedPlayers={pinnedPlayers}
           crewNumbers={crewNumbers}
@@ -315,7 +272,6 @@ export default function HomePage() {
           onPinToTeam={handlePinToTeam}
           onReset={handleReset}
           onNext={handleWizardDone}
-          onBack={() => setStep("position")}
         />
       </div>
     )
