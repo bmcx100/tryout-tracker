@@ -4,13 +4,15 @@ import { RotateCcw } from "lucide-react"
 import { ResultingTeamsDnd } from "@/components/competition/resulting-teams-dnd"
 import type { Player, PinnedPlayer, PositionGroup } from "@/lib/types"
 
-const GROUP_TO_POSITION: Record<PositionGroup, "F" | "D" | "G"> = {
+const GROUP_TO_POSITION: Record<PositionGroup, "F" | "D" | "G" | "ALL"> = {
+  all: "ALL",
   forwards: "F",
   defense: "D",
   goalies: "G",
 }
 
 const GROUP_LABELS: Record<PositionGroup, string> = {
+  all: "All Players",
   forwards: "Forwards",
   defense: "Defense",
   goalies: "Goalies",

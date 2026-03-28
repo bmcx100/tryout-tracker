@@ -8,52 +8,33 @@ interface StepPositionProps {
   onSelect: (group: PositionGroup, reuseTeamOrder: string[] | null) => void
 }
 
-const POSITION_LABELS: Record<PositionGroup, string> = {
-  forwards: "Forwards",
-  defense: "Defense",
-  goalies: "Goalies",
-}
+const POSITION_OPTIONS: { value: PositionGroup; label: string }[] = [
+  { value: "all", label: "All Players" },
+  { value: "forwards", label: "Forwards" },
+  { value: "defense", label: "Defense" },
+  { value: "goalies", label: "Goalies" },
+]
 
-export function StepPosition({ existingPrefs, onSelect }: StepPositionProps) {
-  const mostRecent = existingPrefs.length > 0 ? existingPrefs[0] : null
-  const completedGroups = new Set(existingPrefs.map((p) => p.position_group))
-
+export function StepPosition({ onSelect }: StepPositionProps) {
   return (
     <div className="wizard-container">
       <h1 className="wizard-headline">Pick a position</h1>
       <p className="wizard-subtext">
-        You'll rank the teams, then see where everyone lands.
+        Next, you'll rank the existing teams from strongest to weakest.
       </p>
 
       <div className="wizard-cards">
-        {(["forwards", "defense", "goalies"] as PositionGroup[]).map((group) => (
+        {POSITION_OPTIONS.map((opt) => (
           <button
-            key={group}
+            key={opt.value}
             className="wizard-card"
-            onClick={() => onSelect(group, null)}
+            onClick={() => onSelect(opt.value, null)}
           >
-            {POSITION_LABELS[group]}
+            {opt.label}
             <ChevronRight size={20} className="wizard-card-arrow" />
           </button>
         ))}
       </div>
-
-      {mostRecent && (
-        <div>
-          {(["forwards", "defense", "goalies"] as PositionGroup[])
-            .filter((g) => !completedGroups.has(g))
-            .slice(0, 1)
-            .map((group) => (
-              <button
-                key={group}
-                className="wizard-reuse-option"
-                onClick={() => onSelect(group, mostRecent.team_order)}
-              >
-                Start {POSITION_LABELS[group]} with your {POSITION_LABELS[mostRecent.position_group]} team order
-              </button>
-            ))}
-        </div>
-      )}
     </div>
   )
 }

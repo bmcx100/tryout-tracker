@@ -31,7 +31,7 @@ interface ResultingTeamsDndProps {
   players: Player[]
   pinnedPlayers: Record<string, PinnedPlayer>
   playerOrderMap: Record<string, number[]>
-  position: "F" | "D" | "G"
+  position: "F" | "D" | "G" | "ALL"
   crewNumbers: Set<number>
   onPinToTeam: (playerNumber: number, targetTeam: string, position: number) => void
 }
@@ -197,14 +197,25 @@ export function ResultingTeamsDnd({
   )
 
   const assignments = useMemo(() => {
-    const ranked = buildRankedList(players, teamOrder, pinnedPlayers, playerOrderMap, position)
-    const slotsPerTeam = SLOTS_PER_TEAM[position]
+    const positions: ("F" | "D" | "G")[] = position === "ALL"
+      ? ["F", "D", "G"]
+      : [position]
+
     const result: Record<string, Player[]> = {}
-    let idx = 0
     for (const team of U15_TEAMS) {
-      result[team] = ranked.slice(idx, idx + slotsPerTeam)
-      idx += slotsPerTeam
+      result[team] = []
     }
+
+    for (const pos of positions) {
+      const ranked = buildRankedList(players, teamOrder, pinnedPlayers, playerOrderMap, pos)
+      const slotsPerTeam = SLOTS_PER_TEAM[pos]
+      let idx = 0
+      for (const team of U15_TEAMS) {
+        result[team].push(...ranked.slice(idx, idx + slotsPerTeam))
+        idx += slotsPerTeam
+      }
+    }
+
     return result
   }, [players, teamOrder, pinnedPlayers, playerOrderMap, position])
 

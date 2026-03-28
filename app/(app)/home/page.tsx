@@ -26,7 +26,8 @@ import {
 
 type WizardStep = "position" | "rank" | "results" | "done"
 
-const POSITION_FILTER: Record<PositionGroup, string> = {
+const POSITION_FILTER: Record<PositionGroup, string | null> = {
+  all: null,
   forwards: "F",
   defense: "D",
   goalies: "G",
@@ -108,7 +109,9 @@ export default function HomePage() {
 
   // Filter players by the active position group
   const positionFilter = POSITION_FILTER[activeGroup]
-  const filtered = players.filter((p) => p.position === positionFilter)
+  const filtered = positionFilter
+    ? players.filter((p) => p.position === positionFilter)
+    : players
 
   const teamOrder = currentPrefs.team_order?.length
     ? currentPrefs.team_order
