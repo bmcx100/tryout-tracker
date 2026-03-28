@@ -988,7 +988,7 @@
   background: #E63B2E;
   border: none;
   border-radius: 0.5rem;
-  padding: 12px 24px;
+  padding: 10px 20px;
   font-size: 13px;
   letter-spacing: 0.05em;
   cursor: pointer;
@@ -1000,6 +1000,30 @@
 }
 
 .btn-primary:active {
+  transform: scale(0.97);
+}
+
+.btn-primary-icon {
+  @apply flex items-center justify-center gap-2;
+  background: #E63B2E;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 10px 20px;
+  font-family: var(--font-data);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 150ms, transform 100ms;
+}
+
+.btn-primary-icon:hover {
+  background: #CC3427;
+}
+
+.btn-primary-icon:active {
   transform: scale(0.97);
 }
 
@@ -1020,6 +1044,27 @@
 }
 
 .btn-secondary:active {
+  transform: scale(0.97);
+}
+
+.btn-secondary-outline {
+  @apply font-data font-bold uppercase;
+  background: #f5f3ee;
+  color: #333333;
+  border: 2px solid #E63B2E;
+  border-radius: 0.5rem;
+  padding: 10px 20px;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 150ms, transform 100ms;
+}
+
+.btn-secondary-outline:hover {
+  background: #e8e4dd;
+}
+
+.btn-secondary-outline:active {
   transform: scale(0.97);
 }
 
@@ -2989,413 +3034,6 @@
   padding: 8px 0;
 }
 
-/* ========================================
-   SCENARIO BUILDER
-   ======================================== */
-
-.scenario-builder {
-  max-width: 480px;
-}
-
-.scenario-description-panel {
-  margin-bottom: 12px;
-  border: 2px solid rgba(17, 17, 17, 0.12);
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-.scenario-description-toggle {
-  @apply flex items-center justify-between w-full font-heading;
-  padding: 8px 12px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--steel);
-  background: var(--concrete);
-  border: none;
-  cursor: pointer;
-}
-
-.scenario-description-toggle-label {
-  @apply font-heading;
-}
-
-.scenario-description-chevron {
-  width: 14px;
-  height: 14px;
-  transition: transform 0.15s ease;
-}
-
-.scenario-description-chevron.expanded {
-  transform: rotate(180deg);
-}
-
-.scenario-description-input {
-  @apply w-full font-data;
-  padding: 10px 12px;
-  font-size: 13px;
-  color: var(--black);
-  background: var(--paper);
-  border: none;
-  border-top: 1px solid rgba(17, 17, 17, 0.08);
-  resize: vertical;
-  outline: none;
-  min-height: 60px;
-}
-
-.scenario-description-input::placeholder {
-  color: var(--steel);
-  opacity: 0.6;
-}
-
-.scenario-toolbar {
-  @apply flex items-center gap-2 flex-wrap;
-  margin-bottom: 16px;
-}
-
-.scenario-toolbar-select {
-  flex: 1;
-  min-width: 140px;
-}
-
-.scenario-toolbar-btn {
-  @apply flex items-center gap-1 font-data font-bold uppercase;
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  padding: 6px 12px;
-  border-radius: 0.25rem;
-  border: 2px solid rgba(17, 17, 17, 0.12);
-  background: none;
-  cursor: pointer;
-  color: #6B6560;
-  transition: color 150ms, border-color 150ms;
-}
-
-.scenario-toolbar-btn:hover {
-  color: #111111;
-  border-color: rgba(17, 17, 17, 0.24);
-}
-
-.scenario-toolbar-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.scenario-toolbar-btn.dirty {
-  color: #E63B2E;
-  border-color: #E63B2E;
-}
-
-.scenario-toolbar-btn.save {
-  background: #111111;
-  color: #E8E4DD;
-  border-color: #111111;
-}
-
-.scenario-toolbar-btn.save:hover {
-  opacity: 0.85;
-}
-
-.scenario-toolbar-btn.save:disabled {
-  opacity: 0.4;
-}
-
-.scenario-toolbar-btn.delete {
-  color: #6B6560;
-}
-
-.scenario-toolbar-btn.delete:hover {
-  color: #E63B2E;
-  border-color: #E63B2E;
-}
-
-.scenario-toolbar-btn.shared {
-  color: #2a7d3f;
-  border-color: #2a7d3f;
-}
-
-.scenario-toolbar-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.scenario-complete-btn {
-  @apply flex items-center gap-2 font-data font-bold;
-  font-size: 12px;
-  padding: 6px 12px;
-  border-radius: 0.25rem;
-  border: 2px solid rgba(17, 17, 17, 0.12);
-  background: none;
-  cursor: pointer;
-  color: #6B6560;
-  margin-bottom: 8px;
-  transition: color 150ms, border-color 150ms;
-}
-
-.scenario-complete-btn:hover {
-  color: #E63B2E;
-  border-color: #E63B2E;
-}
-
-.scenario-complete-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.scenario-undo-complete-btn {
-  @apply flex items-center gap-2 font-data font-bold;
-  font-size: 12px;
-  padding: 6px 12px;
-  border-radius: 0.25rem;
-  border: 2px solid #2a7d3f;
-  background: none;
-  cursor: pointer;
-  color: #2a7d3f;
-  margin-bottom: 8px;
-  transition: color 150ms, border-color 150ms;
-}
-
-.scenario-undo-complete-btn:hover {
-  color: #E63B2E;
-  border-color: #E63B2E;
-}
-
-.scenario-teams {
-  @apply flex flex-col gap-3;
-}
-
-.scenario-team-card {
-  @apply bg-ash;
-  border-radius: 0.5rem;
-  border: 2px solid rgba(17, 17, 17, 0.12);
-  overflow: hidden;
-}
-
-.scenario-team-header {
-  @apply flex items-center justify-between w-full;
-  padding: 10px 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background 150ms;
-}
-
-.scenario-team-header:hover {
-  background: rgba(17, 17, 17, 0.03);
-}
-
-.scenario-team-title-row {
-  @apply flex items-center gap-2;
-}
-
-.scenario-team-name {
-  @apply font-heading font-bold text-ink;
-  font-size: 14px;
-}
-
-.scenario-team-count {
-  @apply font-data font-bold text-steel;
-  font-size: 11px;
-}
-
-.scenario-team-count.full {
-  color: #16a34a;
-}
-
-.scenario-team-locked {
-  @apply font-data text-steel;
-  font-size: 10px;
-}
-
-.scenario-team-bubble {
-  @apply font-data;
-  font-size: 10px;
-  color: #E63B2E;
-}
-
-.scenario-team-roster {
-  @apply flex flex-col;
-  padding: 0 16px 8px;
-}
-
-/* Scenario Player Row */
-
-.scenario-player-row {
-  @apply flex items-center gap-3;
-  padding: 4px 0;
-}
-
-.scenario-player-row.crew {
-  background: rgba(230, 59, 46, 0.04);
-  margin: 0 -4px;
-  padding: 4px;
-  border-radius: 0.25rem;
-}
-
-.scenario-player-row.bubble {
-  border-left: 3px solid #E63B2E;
-  padding-left: 8px;
-}
-
-.scenario-player-row.team-divider {
-  border-top: 1px solid rgba(17, 17, 17, 0.08);
-  margin-top: 4px;
-  padding-top: 8px;
-}
-
-.scenario-player-number {
-  @apply font-data text-ink;
-  font-size: 13px;
-  min-width: 36px;
-}
-
-.scenario-player-name {
-  @apply font-data text-ink;
-  font-size: 13px;
-  flex: 1;
-  min-width: 0;
-}
-
-.scenario-player-pos {
-  @apply font-data text-steel;
-  font-size: 11px;
-  flex-shrink: 0;
-}
-
-.scenario-player-prev {
-  @apply font-data text-steel;
-  font-size: 10px;
-  flex-shrink: 0;
-}
-
-.scenario-bubble-badge {
-  @apply font-data font-bold uppercase;
-  font-size: 8px;
-  letter-spacing: 0.05em;
-  color: #fff;
-  background: #E63B2E;
-  padding: 2px 6px;
-  border-radius: 0.25rem;
-  flex-shrink: 0;
-}
-
-.scenario-pos-count {
-  @apply font-data;
-  font-size: 9px;
-  color: #6B6560;
-  margin-left: 6px;
-}
-
-.scenario-pos-count.full {
-  color: #16a34a;
-}
-
-.scenario-crew-icon {
-  color: #E63B2E;
-  flex-shrink: 0;
-}
-
-.scenario-crew-icon .crew-heart-icon {
-  width: 12px;
-  height: 12px;
-  fill: #E63B2E;
-}
-
-.scenario-lock-btn {
-  @apply flex items-center justify-center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: #6B6560;
-  transition: color 150ms;
-  flex-shrink: 0;
-}
-
-.scenario-lock-btn:hover {
-  color: #111111;
-}
-
-.scenario-lock-btn.locked {
-  color: #E63B2E;
-}
-
-.scenario-lock-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.scenario-move-btn {
-  @apply flex items-center justify-center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: #6B6560;
-  transition: color 150ms;
-  flex-shrink: 0;
-}
-
-.scenario-move-btn:hover {
-  color: #111111;
-}
-
-.scenario-move-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.scenario-move-popover {
-  @apply flex flex-col;
-  padding: 4px;
-  min-width: 120px;
-}
-
-.scenario-move-option {
-  @apply font-data text-ink;
-  font-size: 12px;
-  padding: 6px 10px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-  border-radius: 0.25rem;
-  transition: background 150ms;
-}
-
-.scenario-move-option:hover {
-  background: rgba(17, 17, 17, 0.06);
-}
-
-.scenario-move-unassign {
-  color: #6B6560;
-  border-top: 1px solid rgba(17, 17, 17, 0.08);
-  margin-top: 4px;
-  padding-top: 8px;
-}
-
-/* Unassigned Pool */
-
-.scenario-unassigned {
-  margin-top: 24px;
-  padding: 16px;
-  border-radius: 0.5rem;
-  border: 2px dashed rgba(17, 17, 17, 0.12);
-}
-
-.scenario-unassigned-title {
-  @apply font-data font-bold uppercase text-steel;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  margin-bottom: 8px;
-}
-
-.scenario-unassigned-list {
-  @apply flex flex-col;
-}
 
 /* ========================================
    COMPETITION LANDSCAPE
@@ -3458,24 +3096,7 @@
 }
 
 .wizard-card {
-  @apply flex items-center justify-center gap-2;
   width: 100%;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 0.5rem;
-  background: #E63B2E;
-  cursor: pointer;
-  transition: background 150ms;
-  font-family: var(--font-data);
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: white;
-}
-
-.wizard-card:hover {
-  background: #d4342a;
 }
 
 .wizard-reuse-option {
@@ -3566,27 +3187,8 @@
   color: #111111;
 }
 
-.results-run-btn {
-  @apply flex items-center gap-2;
-  padding: 10px 20px;
-  background: #E63B2E;
-  color: white;
-  border: none;
-  border-radius: 0.5rem;
-  font-family: var(--font-data);
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: background 150ms;
-}
-
-.results-run-btn:hover {
-  background: #d4342a;
-}
-
 .results-content {
+  width: 100%;
   max-width: 480px;
 }
 
@@ -3772,7 +3374,7 @@
 .comp-team-grip {
   display: flex;
   align-items: center;
-  color: #6B6560;
+  color: #E63B2E;
   cursor: grab;
   touch-action: none;
   flex-shrink: 0;
@@ -3864,7 +3466,7 @@
 .comp-player-grip {
   display: flex;
   align-items: center;
-  color: #6B6560;
+  color: #E8850C;
   cursor: grab;
   touch-action: none;
   background: none;
@@ -3917,7 +3519,7 @@
 
 .comp-player-team {
   font-family: var(--font-data);
-  font-size: 10px;
+  font-size: 14px;
   color: #6B6560;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -4135,6 +3737,15 @@
   border-bottom: 2px solid rgba(17, 17, 17, 0.08);
 }
 
+.comp-nt-toggle {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  color: #6B6560;
+  text-align: left;
+  box-sizing: border-box;
+}
+
 .comp-nt-code {
   font-family: var(--font-data);
   font-weight: 700;
@@ -4201,7 +3812,7 @@
 
 .comp-nt-prev-team {
   font-family: var(--font-data);
-  font-size: 10px;
+  font-size: 14px;
   color: #6B6560;
   text-transform: uppercase;
   letter-spacing: 0.05em;

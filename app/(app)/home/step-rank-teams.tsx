@@ -14,7 +14,6 @@ interface StepRankTeamsProps {
   onTeamReorder: (newOrder: string[]) => void
   onPlayerReorder: (team: string, playerNumbers: number[]) => void
   onPinToTeam: (playerNumber: number, targetTeam: string, pos: number) => void
-  onUnpin: (playerNumber: number) => void
   onReset: () => void
   onNext: () => void
   onBack: () => void
@@ -30,16 +29,15 @@ export function StepRankTeams({
   onTeamReorder,
   onPlayerReorder,
   onPinToTeam,
-  onUnpin,
   onReset,
   onNext,
   onBack,
 }: StepRankTeamsProps) {
   return (
     <div className="wizard-container">
-      <h1 className="wizard-headline">Rank the teams</h1>
+      <h1 className="wizard-headline">Rank existing teams</h1>
       <p className="wizard-subtext">
-        Drag teams from strongest to weakest. Players from higher-ranked teams will fill top spots first.
+        Drag the teams to rank top to bottom, then click 'Next'.
       </p>
 
       <div className="comp-content">
@@ -60,7 +58,6 @@ export function StepRankTeams({
           onTeamReorder={onTeamReorder}
           onPlayerReorder={onPlayerReorder}
           onPinToTeam={onPinToTeam}
-          onUnpin={onUnpin}
         />
       </div>
 

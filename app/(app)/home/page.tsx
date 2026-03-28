@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 import { StepPosition } from "./step-position"
 import { StepRankTeams } from "./step-rank-teams"
-import { StepResults } from "./step-results"
 import { ResultsView } from "./results-view"
 import type {
   Player,
@@ -19,12 +18,11 @@ import {
   updateTeamOrder,
   updatePlayerOrder,
   pinPlayer,
-  unpinPlayer,
   markLastViewed,
   resetPrefs,
 } from "@/lib/actions/competition-prefs"
 
-type WizardStep = "position" | "rank" | "results" | "done"
+type WizardStep = "position" | "rank" | "done"
 
 const POSITION_FILTER: Record<PositionGroup, string | null> = {
   all: null,
@@ -206,22 +204,6 @@ export default function HomePage() {
     [activeGroup]
   )
 
-  const handleUnpin = useCallback(
-    async (playerNumber: number) => {
-      setCurrentPrefs((prev) => {
-        const pp = { ...prev.pinned_players }
-        delete pp[String(playerNumber)]
-        return { ...prev, pinned_players: pp }
-      })
-      try {
-        await unpinPlayer(activeGroup, playerNumber)
-      } catch (err) {
-        console.error("Failed to unpin player:", err)
-      }
-    },
-    [activeGroup]
-  )
-
   const handleWizardDone = useCallback(async () => {
     const now = new Date().toISOString()
     try {
@@ -311,35 +293,15 @@ export default function HomePage() {
           onTeamReorder={handleTeamReorder}
           onPlayerReorder={handlePlayerReorder}
           onPinToTeam={handlePinToTeam}
-          onUnpin={handleUnpin}
           onReset={handleReset}
-          onNext={() => setStep("results")}
+          onNext={handleWizardDone}
           onBack={() => setStep("position")}
         />
       </div>
     )
   }
 
-  if (step === "results") {
-    return (
-      <div className="app-page">
-        <StepResults
-          positionGroup={activeGroup}
-          teamOrder={teamOrder}
-          players={players}
-          pinnedPlayers={pinnedPlayers}
-          playerOrderMap={currentPrefs.player_order || {}}
-          crewNumbers={crewNumbers}
-          onPinToTeam={handlePinToTeam}
-          onReset={handleReset}
-          onDone={handleWizardDone}
-          onBack={() => setStep("rank")}
-        />
-      </div>
-    )
-  }
-
-  // step === "done" — results view (return visit)
+  // step === "done" — results view
   return (
     <ResultsView
       positionGroup={activeGroup}
@@ -348,7 +310,7 @@ export default function HomePage() {
       pinnedPlayers={pinnedPlayers}
       playerOrderMap={currentPrefs.player_order || {}}
       crewNumbers={crewNumbers}
-      onPinToTeam={handlePinToTeam}
+      onReorder={handlePlayerReorder}
       onReset={handleReset}
       onRunSorter={handleRunSorter}
     />

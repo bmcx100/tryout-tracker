@@ -26,7 +26,7 @@ export function StepPosition({ onSelect }: StepPositionProps) {
         {POSITION_OPTIONS.map((opt) => (
           <button
             key={opt.value}
-            className="wizard-card"
+            className="btn-secondary-outline wizard-card"
             onClick={() => onSelect(opt.value, null)}
           >
             {opt.label}

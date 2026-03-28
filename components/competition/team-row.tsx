@@ -10,13 +10,11 @@ import type { Player, PinnedPlayer } from "@/lib/types"
 interface TeamRowProps {
   teamCode: string
   rank: number
-  players: Player[]
-  pinnedInCount: number
+  playerCount: number
   allPlayers: Player[]
   playerOrder?: number[]
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
-  onUnpin?: (playerNumber: number) => void
 }
 
 function formatTeamCode(code: string): string {
@@ -28,13 +26,11 @@ function formatTeamCode(code: string): string {
 export function TeamRow({
   teamCode,
   rank,
-  players,
-  pinnedInCount,
+  playerCount,
   allPlayers,
   playerOrder,
   pinnedPlayers,
   crewNumbers,
-  onUnpin,
 }: TeamRowProps) {
   const [expanded, setExpanded] = useState(false)
   const {
@@ -50,13 +46,6 @@ export function TeamRow({
     transform: CSS.Transform.toString(transform),
     transition,
   }
-
-  const nativeCount = players.filter((p) => {
-    const pin = pinnedPlayers[String(p.number)]
-    return !pin || pin.team === teamCode
-  }).length
-
-  const displayCount = nativeCount + pinnedInCount
 
   return (
     <div
@@ -74,10 +63,7 @@ export function TeamRow({
         <span className="comp-team-rank">{rank}</span>
         <span className="comp-team-code">{formatTeamCode(teamCode)}</span>
         <span className="comp-team-count">
-          {displayCount} player{displayCount !== 1 ? "s" : ""}
-          {pinnedInCount > 0 && (
-            <span className="comp-team-pinned-count"> (+{pinnedInCount})</span>
-          )}
+          {playerCount} player{playerCount !== 1 ? "s" : ""}
         </span>
         <span className={`comp-team-chevron${expanded ? " comp-team-chevron-open" : ""}`}>
           <ChevronDown size={16} />
@@ -91,7 +77,6 @@ export function TeamRow({
             playerOrder={playerOrder}
             pinnedPlayers={pinnedPlayers}
             crewNumbers={crewNumbers}
-            onUnpin={onUnpin}
           />
         </div>
       )}

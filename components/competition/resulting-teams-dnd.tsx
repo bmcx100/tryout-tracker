@@ -1,9 +1,10 @@
 "use client"
 
-import { useCallback, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   DndContext,
   closestCenter,
+  pointerWithin,
   PointerSensor,
   KeyboardSensor,
   useSensor,
@@ -16,10 +17,11 @@ import {
   SortableContext,
   verticalListSortingStrategy,
   sortableKeyboardCoordinates,
+  arrayMove,
 } from "@dnd-kit/sortable"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVertical, Heart } from "lucide-react"
+import { ChevronDown, ChevronRight, GripVertical, Heart } from "lucide-react"
 import type { Player, PinnedPlayer } from "@/lib/types"
 import { playerName } from "@/lib/utils"
 
@@ -33,7 +35,7 @@ interface ResultingTeamsDndProps {
   playerOrderMap: Record<string, number[]>
   position: "F" | "D" | "G" | "ALL"
   crewNumbers: Set<number>
-  onPinToTeam: (playerNumber: number, targetTeam: string, position: number) => void
+  onReorder: (team: string, playerNumbers: number[]) => void
 }
 
 function formatTeamCode(code: string): string {
@@ -144,40 +146,46 @@ function DroppableTeam({
   players,
   pinnedPlayers,
   crewNumbers,
+  defaultCollapsed,
 }: {
   teamCode: string
   players: Player[]
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
+  defaultCollapsed: boolean
 }) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const { setNodeRef } = useDroppable({ id: `rt-${teamCode}` })
   const sortIds = players.map((p) => `rp-${p.number}`)
 
   return (
-    <div className="comp-nt-team">
-      <div className="comp-nt-header">
+    <div className="comp-nt-team" ref={setNodeRef}>
+      <button className="comp-nt-header comp-nt-toggle" onClick={() => setCollapsed((c) => !c)}>
+        {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
         <span className="comp-nt-code">{formatTeamCode(teamCode)}</span>
         <span className="comp-nt-count">
           {players.length} player{players.length !== 1 ? "s" : ""}
         </span>
-      </div>
-      <div className="comp-nt-roster" ref={setNodeRef}>
-        <SortableContext items={sortIds} strategy={verticalListSortingStrategy}>
-          {players.map((player, idx) => {
-            const pin = pinnedPlayers[String(player.number)]
-            const isPinned = !!pin && player.previous_team !== pin.team
-            return (
-              <DraggablePlayerRow
-                key={player.number}
-                player={player}
-                rank={idx + 1}
-                isCrew={crewNumbers.has(player.number)}
-                isPinned={isPinned}
-              />
-            )
-          })}
-        </SortableContext>
-      </div>
+      </button>
+      {!collapsed && (
+        <div className="comp-nt-roster">
+          <SortableContext items={sortIds} strategy={verticalListSortingStrategy}>
+            {players.map((player, idx) => {
+              const pin = pinnedPlayers[String(player.number)]
+              const isPinned = !!pin && player.previous_team !== pin.team
+              return (
+                <DraggablePlayerRow
+                  key={player.number}
+                  player={player}
+                  rank={idx + 1}
+                  isCrew={crewNumbers.has(player.number)}
+                  isPinned={isPinned}
+                />
+              )
+            })}
+          </SortableContext>
+        </div>
+      )}
     </div>
   )
 }
@@ -189,7 +197,7 @@ export function ResultingTeamsDnd({
   playerOrderMap,
   position,
   crewNumbers,
-  onPinToTeam,
+  onReorder,
 }: ResultingTeamsDndProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -201,9 +209,10 @@ export function ResultingTeamsDnd({
       ? ["F", "D", "G"]
       : [position]
 
-    const result: Record<string, Player[]> = {}
+    // Compute initial assignments from ranking
+    const computed: Record<string, Player[]> = {}
     for (const team of U15_TEAMS) {
-      result[team] = []
+      computed[team] = []
     }
 
     for (const pos of positions) {
@@ -211,32 +220,81 @@ export function ResultingTeamsDnd({
       const slotsPerTeam = SLOTS_PER_TEAM[pos]
       let idx = 0
       for (const team of U15_TEAMS) {
-        result[team].push(...ranked.slice(idx, idx + slotsPerTeam))
+        computed[team].push(...ranked.slice(idx, idx + slotsPerTeam))
         idx += slotsPerTeam
+      }
+    }
+
+    // If rt: overrides exist, they are the source of truth for team membership
+    const hasOverrides = U15_TEAMS.some((t) => playerOrderMap[`rt:${t}`]?.length > 0)
+    if (!hasOverrides) return computed
+
+    const playerMap = new Map(players.map((p) => [p.number, p]))
+    const result: Record<string, Player[]> = {}
+    const assigned = new Set<number>()
+
+    // First pass: teams with rt: overrides
+    for (const team of U15_TEAMS) {
+      const order = playerOrderMap[`rt:${team}`]
+      if (order?.length) {
+        result[team] = order
+          .map((num) => playerMap.get(num))
+          .filter((p): p is Player => !!p)
+        for (const p of result[team]) assigned.add(p.number)
+      }
+    }
+
+    // Second pass: teams without overrides use computed, minus already-assigned players
+    for (const team of U15_TEAMS) {
+      if (!result[team]) {
+        result[team] = computed[team].filter((p) => !assigned.has(p.number))
+        for (const p of result[team]) assigned.add(p.number)
       }
     }
 
     return result
   }, [players, teamOrder, pinnedPlayers, playerOrderMap, position])
 
+  // Local roster state for immediate visual feedback during drags
+  const [localRosters, setLocalRosters] = useState<Record<string, Player[]> | null>(null)
+
+  useEffect(() => {
+    setLocalRosters(null)
+  }, [assignments])
+
+  const displayRosters = localRosters || assignments
+
   // Lookup: player number -> which resulting team they're in
   const playerTeamMap = useMemo(() => {
     const map: Record<number, string> = {}
     for (const team of U15_TEAMS) {
-      for (const p of assignments[team]) {
+      for (const p of (displayRosters[team] || [])) {
         map[p.number] = team
       }
     }
     return map
-  }, [assignments])
+  }, [displayRosters])
 
   const collisionDetection: CollisionDetection = useCallback((args) => {
-    const collisions = closestCenter(args)
-    const preferred = collisions.filter((c) => {
+    // Use pointerWithin for precise targeting (what's actually under the cursor)
+    const pointerHits = pointerWithin(args).filter((c) => {
       const id = String(c.id)
       return id.startsWith("rp-") || id.startsWith("rt-")
     })
-    return preferred.length > 0 ? preferred : collisions
+
+    // Prefer player targets over team containers (more specific)
+    const playerHits = pointerHits.filter((c) => String(c.id).startsWith("rp-"))
+    if (playerHits.length > 0) return playerHits
+
+    const teamHits = pointerHits.filter((c) => String(c.id).startsWith("rt-"))
+    if (teamHits.length > 0) return teamHits
+
+    // Fall back to closestCenter when pointer is between elements
+    const fallback = closestCenter(args).filter((c) => {
+      const id = String(c.id)
+      return id.startsWith("rp-") || id.startsWith("rt-")
+    })
+    return fallback
   }, [])
 
   const handleDragEnd = useCallback(
@@ -246,33 +304,61 @@ export function ResultingTeamsDnd({
 
       const activeId = String(active.id)
       const overId = String(over.id)
-
       if (!activeId.startsWith("rp-")) return
 
       const activeNum = Number(activeId.slice(3))
-      const activeTeam = playerTeamMap[activeNum]
-      if (!activeTeam) return
+      const currentRosters = localRosters || assignments
+      const sourceTeam = playerTeamMap[activeNum]
+      if (!sourceTeam) return
 
-      let targetTeam: string
+      // Determine target team and index
+      let targetTeam: string | undefined
+      let overIndex: number | undefined
 
       if (overId.startsWith("rp-")) {
         const overNum = Number(overId.slice(3))
         targetTeam = playerTeamMap[overNum]
+        if (targetTeam) {
+          overIndex = (currentRosters[targetTeam] || []).findIndex((p) => p.number === overNum)
+        }
       } else if (overId.startsWith("rt-")) {
         targetTeam = overId.slice(3)
-      } else {
-        return
+        overIndex = (currentRosters[targetTeam] || []).length
       }
 
-      if (activeTeam === targetTeam) return
+      if (!targetTeam || overIndex === undefined || overIndex < 0) return
 
-      const targetPlayers = assignments[targetTeam] || []
-      onPinToTeam(activeNum, targetTeam, targetPlayers.length)
+      // Build new rosters
+      const newRosters: Record<string, Player[]> = {}
+      for (const team of U15_TEAMS) {
+        newRosters[team] = [...(currentRosters[team] || [])]
+      }
+
+      if (sourceTeam === targetTeam) {
+        // Same-team reorder
+        const roster = newRosters[sourceTeam]
+        const oldIndex = roster.findIndex((p) => p.number === activeNum)
+        if (oldIndex === -1 || oldIndex === overIndex) return
+        newRosters[sourceTeam] = arrayMove(roster, oldIndex, overIndex)
+        onReorder(`rt:${sourceTeam}`, newRosters[sourceTeam].map((p) => p.number))
+      } else {
+        // Cross-team move — save ALL teams so rt: data is the complete source of truth
+        const sourceRoster = newRosters[sourceTeam]
+        const oldIndex = sourceRoster.findIndex((p) => p.number === activeNum)
+        if (oldIndex === -1) return
+        const [moved] = sourceRoster.splice(oldIndex, 1)
+        newRosters[targetTeam].splice(overIndex, 0, moved)
+        for (const team of U15_TEAMS) {
+          onReorder(`rt:${team}`, (newRosters[team] || []).map((p) => p.number))
+        }
+      }
+
+      setLocalRosters(newRosters)
     },
-    [playerTeamMap, assignments, onPinToTeam]
+    [localRosters, assignments, playerTeamMap, onReorder]
   )
 
-  const visibleTeams = U15_TEAMS.filter((t) => (assignments[t]?.length || 0) > 0)
+  const visibleTeams = U15_TEAMS.filter((t) => (displayRosters[t]?.length || 0) > 0)
 
   return (
     <DndContext
@@ -285,9 +371,10 @@ export function ResultingTeamsDnd({
           <DroppableTeam
             key={teamCode}
             teamCode={teamCode}
-            players={assignments[teamCode]}
+            players={displayRosters[teamCode]}
             pinnedPlayers={pinnedPlayers}
             crewNumbers={crewNumbers}
+            defaultCollapsed
           />
         ))}
       </div>

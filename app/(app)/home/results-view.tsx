@@ -25,7 +25,7 @@ interface ResultsViewProps {
   pinnedPlayers: Record<string, PinnedPlayer>
   playerOrderMap: Record<string, number[]>
   crewNumbers: Set<number>
-  onPinToTeam: (playerNumber: number, targetTeam: string, pos: number) => void
+  onReorder: (team: string, playerNumbers: number[]) => void
   onReset: () => void
   onRunSorter: () => void
 }
@@ -37,7 +37,7 @@ export function ResultsView({
   pinnedPlayers,
   playerOrderMap,
   crewNumbers,
-  onPinToTeam,
+  onReorder,
   onReset,
   onRunSorter,
 }: ResultsViewProps) {
@@ -47,15 +47,15 @@ export function ResultsView({
     <div className="app-page">
       <div className="results-header">
         <h1 className="results-label">
-          Here's how it shakes out
+          Fine-Tune Rosters
         </h1>
-        <p className="results-sublabel">Your {GROUP_LABELS[positionGroup]} Sort</p>
+        <p className="results-sublabel">Expand a team, then reorder players by dragging between teams.</p>
       </div>
 
       <div className="results-toolbar">
-        <button className="results-run-btn" onClick={onRunSorter}>
+        <button className="btn-primary-icon" onClick={onRunSorter}>
           <RotateCcw size={14} />
-          Run the Sorter
+          Sort Wizard
         </button>
         <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
           <RotateCcw size={14} />
@@ -71,7 +71,7 @@ export function ResultsView({
           playerOrderMap={playerOrderMap}
           position={position}
           crewNumbers={crewNumbers}
-          onPinToTeam={onPinToTeam}
+          onReorder={onReorder}
         />
       </div>
     </div>

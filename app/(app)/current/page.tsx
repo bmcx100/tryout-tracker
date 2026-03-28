@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 import { RoundsTab } from "@/components/current/rounds-tab"
 import { ResultsTab } from "@/components/current/results-tab"
-import { ScenarioBuilder } from "@/components/current/scenario-builder"
 import type { Player, Round, RoundResultRecord, Session, CrewMember } from "@/lib/types"
 
 interface SessionWithCrew extends Session {
@@ -16,11 +15,11 @@ interface RoundWithResults extends Round {
   results: RoundResultRecord[]
 }
 
-type TryoutsTab = "results" | "rounds" | "scenario"
+type TryoutsTab = "results" | "rounds"
 
 export default function TryoutsPage() {
   const { loading: authLoading } = useAuth()
-  const [activeTab, setActiveTab] = useState<TryoutsTab>("scenario")
+  const [activeTab, setActiveTab] = useState<TryoutsTab>("rounds")
   const [rounds, setRounds] = useState<RoundWithResults[]>([])
   const [sessions, setSessions] = useState<SessionWithCrew[]>([])
   const [players, setPlayers] = useState<Player[]>([])
@@ -155,12 +154,6 @@ export default function TryoutsPage() {
 
       <div className="tryouts-tab-toggle">
         <button
-          className={`tryouts-tab-btn${activeTab === "scenario" ? " active" : ""}`}
-          onClick={() => setActiveTab("scenario")}
-        >
-          Scenario Builder
-        </button>
-        <button
           className={`tryouts-tab-btn${activeTab === "rounds" ? " active" : ""}`}
           onClick={() => setActiveTab("rounds")}
         >
@@ -193,12 +186,6 @@ export default function TryoutsPage() {
             />
           </div>
 
-          <div className={activeTab !== "scenario" ? "tab-hidden" : ""}>
-            <ScenarioBuilder
-              players={players}
-              crewMap={crewMap}
-            />
-          </div>
         </>
       )}
     </div>

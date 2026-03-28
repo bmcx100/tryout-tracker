@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   DndContext,
   closestCenter,
@@ -30,7 +30,6 @@ interface TeamTierListProps {
   onTeamReorder: (newOrder: string[]) => void
   onPlayerReorder: (team: string, playerNumbers: number[]) => void
   onPinToTeam: (playerNumber: number, targetTeam: string, position: number) => void
-  onUnpin: (playerNumber: number) => void
 }
 
 export function TeamTierList({
@@ -43,22 +42,31 @@ export function TeamTierList({
   onTeamReorder,
   onPlayerReorder,
   onPinToTeam,
-  onUnpin,
 }: TeamTierListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  // Player number -> effective team (accounting for pins)
+  // Local state for immediate visual feedback on player drags
+  const [localPinned, setLocalPinned] = useState<Record<string, PinnedPlayer> | null>(null)
+  const [localPlayerOrder, setLocalPlayerOrder] = useState<Record<string, number[]> | null>(null)
+
+  useEffect(() => { setLocalPinned(null) }, [pinnedPlayers])
+  useEffect(() => { setLocalPlayerOrder(null) }, [playerOrderMap])
+
+  const effectivePinned = localPinned || pinnedPlayers
+  const effectivePlayerOrder = localPlayerOrder || playerOrderMap
+
+  // Player number -> effective team (accounting for moves)
   const playerTeamLookup = useMemo(() => {
     const map: Record<number, string> = {}
     for (const p of allPlayers) {
-      const pin = pinnedPlayers[String(p.number)]
+      const pin = effectivePinned[String(p.number)]
       map[p.number] = pin ? pin.team : (p.previous_team || "")
     }
     return map
-  }, [allPlayers, pinnedPlayers])
+  }, [allPlayers, effectivePinned])
 
   // Player number -> position (F/D/G)
   const playerPositionLookup = useMemo(() => {
@@ -69,7 +77,7 @@ export function TeamTierList({
     return map
   }, [allPlayers])
 
-  // Team -> ordered player numbers (effective, accounting for pins + custom order)
+  // Team -> ordered player numbers (effective, accounting for moves + custom order)
   const teamPlayerNumbers = useMemo(() => {
     const map: Record<string, number[]> = {}
     for (const team of teamOrder) {
@@ -82,7 +90,7 @@ export function TeamTierList({
       }
     }
     for (const team of teamOrder) {
-      const customOrder = playerOrderMap[team]
+      const customOrder = effectivePlayerOrder[team]
       if (customOrder?.length) {
         map[team].sort((a, b) => {
           const ai = customOrder.indexOf(a)
@@ -95,7 +103,7 @@ export function TeamTierList({
       }
     }
     return map
-  }, [allPlayers, teamOrder, playerTeamLookup, playerOrderMap])
+  }, [allPlayers, teamOrder, playerTeamLookup, effectivePlayerOrder])
 
   // Player drags prefer player/container targets; team drags prefer team targets
   const collisionDetection: CollisionDetection = useCallback((args) => {
@@ -180,18 +188,36 @@ export function TeamTierList({
             if (!confirmed) return
           }
 
-          onPlayerReorder(activeTeam, arrayMove(teamNums, oldIndex, newIndex))
+          const newOrder = arrayMove(teamNums, oldIndex, newIndex)
+          setLocalPlayerOrder((prev) => ({
+            ...(prev || playerOrderMap),
+            [activeTeam]: newOrder,
+          }))
+          onPlayerReorder(activeTeam, newOrder)
         } else {
-          // Cross-team pin
+          // Cross-team move — update local state immediately for visual feedback
+          setLocalPinned((prev) => ({
+            ...(prev || pinnedPlayers),
+            [String(activeNum)]: { team: targetTeam, position: targetPosition },
+          }))
           onPinToTeam(activeNum, targetTeam, targetPosition)
         }
       }
     },
-    [teamOrder, playerTeamLookup, teamPlayerNumbers, onTeamReorder, onPlayerReorder, onPinToTeam]
+    [teamOrder, playerTeamLookup, playerPositionLookup, teamPlayerNumbers, playerOrderMap, pinnedPlayers, onTeamReorder, onPlayerReorder, onPinToTeam]
   )
 
+  // Count players per team using effective assignments
+  const teamPlayerCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const team of teamOrder) {
+      counts[team] = (teamPlayerNumbers[team] || []).length
+    }
+    return counts
+  }, [teamOrder, teamPlayerNumbers])
+
   const visibleTeams = teamOrder.filter(
-    (t) => (playersByTeam[t]?.length || 0) > 0 || hasPinnedIn(t, pinnedPlayers)
+    (t) => teamPlayerCounts[t] > 0
   )
 
   return (
@@ -202,44 +228,20 @@ export function TeamTierList({
     >
       <SortableContext items={visibleTeams} strategy={verticalListSortingStrategy}>
         <div className="comp-tier-list">
-          {visibleTeams.map((teamCode, idx) => {
-            const teamPlayers = playersByTeam[teamCode] || []
-            const pinnedInCount = countPinnedIn(teamCode, pinnedPlayers, allPlayers)
-            return (
-              <TeamRow
-                key={teamCode}
-                teamCode={teamCode}
-                rank={idx + 1}
-                players={teamPlayers}
-                pinnedInCount={pinnedInCount}
-                allPlayers={allPlayers}
-                playerOrder={playerOrderMap[teamCode]}
-                pinnedPlayers={pinnedPlayers}
-                crewNumbers={crewNumbers}
-                onUnpin={onUnpin}
-              />
-            )
-          })}
+          {visibleTeams.map((teamCode, idx) => (
+            <TeamRow
+              key={teamCode}
+              teamCode={teamCode}
+              rank={idx + 1}
+              playerCount={teamPlayerCounts[teamCode]}
+              allPlayers={allPlayers}
+              playerOrder={effectivePlayerOrder[teamCode]}
+              pinnedPlayers={effectivePinned}
+              crewNumbers={crewNumbers}
+            />
+          ))}
         </div>
       </SortableContext>
     </DndContext>
   )
-}
-
-function hasPinnedIn(teamCode: string, pinnedPlayers: Record<string, PinnedPlayer>): boolean {
-  return Object.values(pinnedPlayers).some((p) => p.team === teamCode)
-}
-
-function countPinnedIn(
-  teamCode: string,
-  pinnedPlayers: Record<string, PinnedPlayer>,
-  allPlayers: Player[]
-): number {
-  let count = 0
-  for (const [numStr, pin] of Object.entries(pinnedPlayers)) {
-    if (pin.team !== teamCode) continue
-    const player = allPlayers.find((p) => p.number === Number(numStr))
-    if (player && player.previous_team !== teamCode) count++
-  }
-  return count
 }
