@@ -45,18 +45,20 @@ export function ResultsView({
     <div className="app-page">
       <div className="results-header">
         <h1 className="results-label">
-          Your {GROUP_LABELS[positionGroup]} Sort
+          Here's how it shakes out
         </h1>
-        <div className="results-actions">
-          <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
-            <RotateCcw size={14} />
-            <span className="comp-reset-label">Reset</span>
-          </button>
-          <button className="results-run-btn" onClick={onRunSorter}>
-            <RotateCcw size={14} />
-            Run the Sorter
-          </button>
-        </div>
+        <p className="results-sublabel">Your {GROUP_LABELS[positionGroup]} Sort</p>
+      </div>
+
+      <div className="results-toolbar">
+        <button className="results-run-btn" onClick={onRunSorter}>
+          <RotateCcw size={14} />
+          Run the Sorter
+        </button>
+        <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
+          <RotateCcw size={14} />
+          <span className="comp-reset-label">Reset</span>
+        </button>
       </div>
 
       <div className="results-content">

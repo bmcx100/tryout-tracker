@@ -45,9 +45,9 @@ export function StepResults({
 
   return (
     <div className="wizard-container">
-      <h1 className="wizard-headline">Here's how it shakes out</h1>
+      <h1 className="wizard-headline">Move players between teams</h1>
       <p className="wizard-subtext">
-        These are the projected {GROUP_LABELS[positionGroup].toLowerCase()} rosters based on your ranking. Drag players between teams to fine-tune.
+        Drag any player up, down, or to a different team to fine-tune your {GROUP_LABELS[positionGroup].toLowerCase()} rosters.
       </p>
 
       <div className="comp-content">
