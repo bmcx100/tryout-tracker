@@ -56,7 +56,7 @@ export function ResultsView({
     <div className="app-page">
       <div className="results-header">
         <h1 className="results-label">
-          Fine-Tune Rosters
+          Expected Teams
         </h1>
         <p className="results-sublabel">Expand a team, then reorder players by dragging between teams.</p>
       </div>
@@ -64,7 +64,7 @@ export function ResultsView({
       <div className="results-toolbar">
         <button className="btn-primary-icon" onClick={onRunSorter}>
           <RotateCcw size={14} />
-          Rerun Sort Wizard
+          Re-Sort Existing Teams
         </button>
         <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
           <RotateCcw size={14} />

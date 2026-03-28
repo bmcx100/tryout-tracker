@@ -242,12 +242,16 @@ export default function HomePage() {
       if (existing) {
         setActiveGroup(group)
         setCurrentPrefs(existing)
-      } else if (group === "all" && allPrefs.length > 0) {
-        // "All" view uses most recent prefs' team order
+      } else if (allPrefs.length > 0) {
+        // No saved prefs for this position — inherit team order from most recent sort
         setActiveGroup(group)
-        setCurrentPrefs({ ...allPrefs[0], position_group: "all" })
+        setCurrentPrefs({
+          ...defaultPrefs,
+          position_group: group,
+          team_order: allPrefs[0].team_order,
+        })
       } else {
-        // No saved prefs for this position — start the wizard for it
+        // No prefs at all — start the wizard
         setActiveGroup(group)
         setCurrentPrefs({ ...defaultPrefs, position_group: group })
         setStep("rank")
