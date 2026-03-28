@@ -131,10 +131,12 @@ function DraggablePlayerRow({
       ref={setNodeRef}
       style={style}
       className={`comp-nt-player${isPinned ? " comp-nt-pinned" : ""}${isCrew ? " comp-nt-crew" : ""}${isDragging ? " comp-player-dragging" : ""}`}
+      {...attributes}
+      {...listeners}
     >
-      <button className="comp-player-grip" {...attributes} {...listeners}>
+      <span className="comp-player-grip">
         <GripVertical size={14} />
-      </button>
+      </span>
       <span className="comp-nt-rank">{rank}</span>
       <span className="comp-player-number">#{player.number}</span>
       <span className="comp-player-pos">{player.position}</span>

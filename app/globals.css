@@ -3447,6 +3447,8 @@
   gap: 10px;
   border-bottom: 1px solid rgba(17, 17, 17, 0.06);
   transition: background 100ms;
+  user-select: none;
+  cursor: grab;
 }
 
 .comp-player-card:last-child {
@@ -3788,6 +3790,8 @@
   gap: 8px;
   padding: 6px 16px;
   font-size: 13px;
+  user-select: none;
+  cursor: grab;
 }
 
 .comp-nt-player .comp-player-name {
