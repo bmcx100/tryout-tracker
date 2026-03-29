@@ -52,6 +52,11 @@ export default function HomePage() {
     const load = async () => {
       try {
         const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          window.location.href = "/login"
+          return
+        }
 
         const [playersRes, prefsRes, crewRes] = await Promise.all([
           supabase

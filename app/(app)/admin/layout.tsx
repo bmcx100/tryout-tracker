@@ -1,45 +1,32 @@
-"use client"
+import { redirect } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
+import { AdminNav } from "@/components/admin-nav"
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-
-const ADMIN_NAV = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/players", label: "Players" },
-  { href: "/admin/teams", label: "Teams" },
-  { href: "/admin/sessions", label: "Sessions" },
-  { href: "/admin/rounds", label: "Rounds" },
-  { href: "/admin/import", label: "Import" },
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/corrections", label: "Corrections" },
-]
-
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect("/login")
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile || profile.role !== "admin") {
+    redirect("/home")
+  }
 
   return (
     <div className="admin-layout">
-      <nav className="admin-sub-nav">
-        {ADMIN_NAV.map((item) => {
-          const isActive =
-            item.href === "/admin"
-              ? pathname === "/admin"
-              : pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`admin-sub-nav-item${isActive ? " active" : ""}`}
-            >
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
+      <AdminNav />
       {children}
     </div>
   )

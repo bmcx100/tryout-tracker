@@ -1330,6 +1330,17 @@
   width: fit-content;
 }
 
+.app-header-login-btn {
+  @apply flex items-center gap-1.5 font-heading font-semibold text-ink;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.app-header-login-icon {
+  width: 16px;
+  height: 16px;
+}
+
 /* ========================================
    APP SHELL — Tab Bar (Mobile)
    ======================================== */

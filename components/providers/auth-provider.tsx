@@ -1,9 +1,12 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useRef, useState } from "react"
+import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
 import type { Profile } from "@/lib/types"
+
+const PUBLIC_ROUTES = ["/", "/login", "/pending", "/auth/callback"]
 
 interface AuthContext {
   user: User | null
@@ -23,12 +26,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const hadUser = useRef(false)
   const supabase = createClient()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const isPublicRoute = PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith("/auth/")
+  )
 
   useEffect(() => {
     const getInitialSession = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
+      if (user) hadUser.current = true
 
       if (user) {
         const { data } = await supabase
@@ -37,6 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq("id", user.id)
           .single()
         setProfile(data)
+      } else if (!isPublicRoute) {
+        router.push("/login")
+        return
       }
 
       setLoading(false)
@@ -45,11 +59,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getInitialSession()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         const currentUser = session?.user ?? null
         setUser(currentUser)
 
         if (currentUser) {
+          hadUser.current = true
           const { data } = await supabase
             .from("profiles")
             .select("*")
@@ -58,6 +73,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(data)
         } else {
           setProfile(null)
+          if (hadUser.current && !isPublicRoute) {
+            router.push("/login")
+            return
+          }
         }
 
         setLoading(false)
@@ -65,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [supabase, isPublicRoute, router])
 
   const signOut = async () => {
     await supabase.auth.signOut()

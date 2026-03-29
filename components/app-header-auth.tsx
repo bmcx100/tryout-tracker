@@ -1,6 +1,8 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { LogIn } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import {
   DropdownMenu,
@@ -14,8 +16,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 
 export function AppHeaderAuth() {
-  const { profile, signOut } = useAuth()
+  const { user, profile, loading, signOut } = useAuth()
   const router = useRouter()
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push("/login")
+  }
 
   const initials = profile?.display_name
     ? profile.display_name
@@ -26,33 +33,37 @@ export function AppHeaderAuth() {
         .slice(0, 2)
     : "?"
 
-  const handleSignOut = async () => {
-    await signOut()
-    router.push("/login")
-  }
-
   return (
     <header className="app-header-auth">
       <span className="app-header-auth-brand">TRYOUT TRACKER</span>
-      <DropdownMenu>
-        <DropdownMenuTrigger className="app-header-auth-trigger">
-          <Avatar className="app-header-auth-avatar">
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel className="app-header-auth-label">
-            <span>{profile?.display_name || profile?.email}</span>
-            <Badge variant="outline" className="app-header-auth-badge">
-              {profile?.role}
-            </Badge>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSignOut}>
-            Sign out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {!loading && !user ? (
+        <Link href="/login" className="app-header-login-btn">
+          <LogIn className="app-header-login-icon" />
+          <span>Sign In</span>
+        </Link>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger className="app-header-auth-trigger">
+            <Avatar className="app-header-auth-avatar">
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel className="app-header-auth-label">
+              <span>{profile?.display_name || user?.email || "Loading..."}</span>
+              {profile?.role && (
+                <Badge variant="outline" className="app-header-auth-badge">
+                  {profile.role}
+                </Badge>
+              )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </header>
   )
 }

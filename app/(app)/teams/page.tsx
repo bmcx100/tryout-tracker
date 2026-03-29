@@ -18,6 +18,11 @@ export default function TeamsPage() {
 
   const fetchData = async () => {
     const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      window.location.href = "/login"
+      return
+    }
     const [{ data: playerData }, { data: crewData }] = await Promise.all([
       supabase.from("players_view").select("*").order("number"),
       supabase.from("user_crew").select("*"),
