@@ -14,6 +14,7 @@ interface PlayerListProps {
   playerOrder?: number[]
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
+  positionFilter?: "F" | "D" | "G" | "ALL"
 }
 
 export function PlayerList({
@@ -22,6 +23,7 @@ export function PlayerList({
   playerOrder,
   pinnedPlayers,
   crewNumbers,
+  positionFilter,
 }: PlayerListProps) {
   const { setNodeRef } = useDroppable({ id: `drop-${teamCode}` })
 
@@ -61,18 +63,29 @@ export function PlayerList({
     })
   }
 
-  const sortIds = active.map((p) => `p-${p.number}`)
+  const displayed = positionFilter && positionFilter !== "ALL"
+    ? active.filter((p) => p.position === positionFilter)
+    : active
+
+  const sortIds = displayed.map((p) => `p-${p.number}`)
 
   return (
     <div className="comp-player-list" ref={setNodeRef}>
       <SortableContext items={sortIds} strategy={verticalListSortingStrategy}>
-        {active.map((player) => (
-          <PlayerCard
-            key={player.number}
-            player={player}
-            isCrew={crewNumbers.has(player.number)}
-          />
-        ))}
+        {displayed.map((player, idx) => {
+          const prevPos = idx > 0 ? displayed[idx - 1].position : null
+          const isPositionBreak = (!positionFilter || positionFilter === "ALL")
+            && prevPos !== null && prevPos !== player.position
+          return (
+            <PlayerCard
+              key={player.number}
+              player={player}
+              isCrew={crewNumbers.has(player.number)}
+              isDefense={player.position === "D"}
+              showDivider={isPositionBreak}
+            />
+          )
+        })}
       </SortableContext>
     </div>
   )

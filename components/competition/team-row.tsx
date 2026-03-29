@@ -15,6 +15,7 @@ interface TeamRowProps {
   playerOrder?: number[]
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
+  positionFilter?: "F" | "D" | "G" | "ALL"
 }
 
 function formatTeamCode(code: string): string {
@@ -31,6 +32,7 @@ export function TeamRow({
   playerOrder,
   pinnedPlayers,
   crewNumbers,
+  positionFilter,
 }: TeamRowProps) {
   const [expanded, setExpanded] = useState(false)
   const {
@@ -79,6 +81,7 @@ export function TeamRow({
             playerOrder={playerOrder}
             pinnedPlayers={pinnedPlayers}
             crewNumbers={crewNumbers}
+            positionFilter={positionFilter}
           />
         </div>
       )}

@@ -9,11 +9,15 @@ import { playerName } from "@/lib/utils"
 interface PlayerCardProps {
   player: Player
   isCrew?: boolean
+  isDefense?: boolean
+  showDivider?: boolean
 }
 
 export function PlayerCard({
   player,
   isCrew,
+  isDefense,
+  showDivider,
 }: PlayerCardProps) {
   const {
     attributes,
@@ -35,7 +39,7 @@ export function PlayerCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`comp-player-card${isDragging ? " comp-player-dragging" : ""}`}
+      className={`comp-player-card${isDragging ? " comp-player-dragging" : ""}${isDefense ? " comp-player-defense" : ""}${showDivider ? " comp-position-break" : ""}`}
       {...attributes}
       {...listeners}
     >

@@ -23,6 +23,13 @@ import {
 
 type WizardStep = "rank" | "done"
 
+const POSITION_MAP: Record<string, "F" | "D" | "G" | "ALL"> = {
+  all: "ALL",
+  forwards: "F",
+  defense: "D",
+  goalies: "G",
+}
+
 const defaultPrefs: UserCompetitionPrefs = {
   id: "",
   user_id: "",
@@ -39,14 +46,21 @@ const defaultPrefs: UserCompetitionPrefs = {
 export default function HomePage() {
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
-  const [allPrefs, setAllPrefs] = useState<UserCompetitionPrefs[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Global team order (shared across all positions)
+  const [globalTeamOrder, setGlobalTeamOrder] = useState<string[]>([])
+  const [globalPlayerOrder, setGlobalPlayerOrder] = useState<Record<string, number[]>>({})
+  const [globalPinnedPlayers, setGlobalPinnedPlayers] = useState<Record<string, PinnedPlayer>>({})
+
+  // Per-position prefs (player_order rt: keys, team_slots)
+  const [allPrefs, setAllPrefs] = useState<UserCompetitionPrefs[]>([])
+  const [currentPrefs, setCurrentPrefs] = useState<UserCompetitionPrefs>(defaultPrefs)
 
   // Wizard state
   const [step, setStep] = useState<WizardStep>("rank")
   const [activeGroup, setActiveGroup] = useState<PositionGroup>("forwards")
-  const [currentPrefs, setCurrentPrefs] = useState<UserCompetitionPrefs>(defaultPrefs)
 
   useEffect(() => {
     const load = async () => {
@@ -77,14 +91,45 @@ export default function HomePage() {
         setPlayers(playersRes.data || [])
         if (crewRes.data) setCrew(crewRes.data)
 
-        const prefs = prefsRes.data || []
-        setAllPrefs(prefs)
+        const prefs = (prefsRes.data || []) as UserCompetitionPrefs[]
+        const globalRow = prefs.find((p) => p.position_group === "global")
+        const positionPrefs = prefs.filter((p) => p.position_group !== "global")
 
-        // If user has existing sorts, show results view of most recent
-        if (prefs.length > 0) {
-          const mostRecent = prefs[0]
-          setCurrentPrefs(mostRecent)
-          setActiveGroup(mostRecent.position_group)
+        // Determine global team order
+        let initTeamOrder: string[] = []
+        if (globalRow?.team_order?.length) {
+          initTeamOrder = globalRow.team_order
+        } else if (positionPrefs.length > 0 && positionPrefs[0].team_order?.length) {
+          initTeamOrder = positionPrefs[0].team_order
+        }
+        setGlobalTeamOrder(initTeamOrder)
+
+        // Determine global player order and pinned players
+        if (globalRow) {
+          setGlobalPlayerOrder(globalRow.player_order || {})
+          setGlobalPinnedPlayers(globalRow.pinned_players || {})
+        } else if (positionPrefs.length > 0) {
+          const first = positionPrefs[0]
+          const nonRt: Record<string, number[]> = {}
+          for (const [key, val] of Object.entries(first.player_order || {})) {
+            if (!key.startsWith("rt:")) nonRt[key] = val
+          }
+          setGlobalPlayerOrder(nonRt)
+          setGlobalPinnedPlayers(first.pinned_players || {})
+        }
+
+        setAllPrefs(positionPrefs)
+
+        // If user has any sorting done, show results view
+        if (initTeamOrder.length > 0 || positionPrefs.length > 0) {
+          const mostRecent = positionPrefs[0]
+          if (mostRecent) {
+            setCurrentPrefs(mostRecent)
+            setActiveGroup(mostRecent.position_group as PositionGroup)
+          } else {
+            setActiveGroup("forwards")
+            setCurrentPrefs({ ...defaultPrefs, position_group: "forwards" })
+          }
           setStep("done")
         }
 
@@ -100,11 +145,11 @@ export default function HomePage() {
 
   const crewNumbers = new Set(crew.map((c) => c.player_number))
 
-  const teamOrder = currentPrefs.team_order?.length
-    ? currentPrefs.team_order
+  const teamOrder = globalTeamOrder.length
+    ? globalTeamOrder
     : DEFAULT_TEAM_ORDER
 
-  const pinnedPlayers: Record<string, PinnedPlayer> = currentPrefs.pinned_players || {}
+  const positionFilter = POSITION_MAP[activeGroup] || "ALL"
 
   // Group players by previous_team for the rank step
   const playersByTeam: Record<string, Player[]> = {}
@@ -114,7 +159,7 @@ export default function HomePage() {
     playersByTeam[team].push(p)
   }
   for (const team of Object.keys(playersByTeam)) {
-    const customOrder = currentPrefs.player_order?.[team]
+    const customOrder = globalPlayerOrder[team]
     if (customOrder?.length) {
       playersByTeam[team].sort((a, b) => {
         const ai = customOrder.indexOf(a.number)
@@ -129,20 +174,71 @@ export default function HomePage() {
     }
   }
 
-  // Wizard handlers
+  // --- Rank step handlers (save to "global") ---
+
   const handleTeamReorder = useCallback(
     async (newOrder: string[]) => {
-      setCurrentPrefs((prev) => ({ ...prev, team_order: newOrder }))
+      setGlobalTeamOrder(newOrder)
       try {
-        await updateTeamOrder(activeGroup, newOrder)
+        await updateTeamOrder(newOrder)
       } catch (err) {
         console.error("Failed to save team order:", err)
       }
     },
-    [activeGroup]
+    []
   )
 
-  const handlePlayerReorder = useCallback(
+  const handleRankPlayerReorder = useCallback(
+    async (team: string, playerNumbers: number[]) => {
+      setGlobalPlayerOrder((prev) => ({ ...prev, [team]: playerNumbers }))
+      try {
+        await updatePlayerOrder("global", team, playerNumbers)
+      } catch (err) {
+        console.error("Failed to save player order:", err)
+      }
+    },
+    []
+  )
+
+  const handleRankPinToTeam = useCallback(
+    async (playerNumber: number, targetTeam: string, pos: number) => {
+      setGlobalPinnedPlayers((prev) => ({
+        ...prev,
+        [String(playerNumber)]: { team: targetTeam, position: pos },
+      }))
+      try {
+        await pinPlayer("global", playerNumber, targetTeam, pos)
+      } catch (err) {
+        console.error("Failed to pin player:", err)
+      }
+    },
+    []
+  )
+
+  const handleRankReset = useCallback(async () => {
+    if (!confirm("Reset team rankings to default order?")) return
+    setGlobalTeamOrder([])
+    setGlobalPlayerOrder({})
+    setGlobalPinnedPlayers({})
+    try {
+      await resetPrefs("global")
+    } catch (err) {
+      console.error("Failed to reset global team order:", err)
+    }
+  }, [])
+
+  const handleRankPositionSwitch = useCallback((group: PositionGroup) => {
+    if (group === "global") return
+    setActiveGroup(group)
+  }, [])
+
+  const handleWizardDone = useCallback(async () => {
+    setStep("done")
+  }, [])
+
+  // --- Results step handlers (save per-position) ---
+
+  const handleResultsPlayerReorder = useCallback(
     async (team: string, playerNumbers: number[]) => {
       setCurrentPrefs((prev) => ({
         ...prev,
@@ -157,50 +253,16 @@ export default function HomePage() {
     [activeGroup]
   )
 
-  const handlePinToTeam = useCallback(
-    async (playerNumber: number, targetTeam: string, pos: number) => {
-      setCurrentPrefs((prev) => ({
-        ...prev,
-        pinned_players: {
-          ...prev.pinned_players,
-          [String(playerNumber)]: { team: targetTeam, position: pos },
-        },
-      }))
-      try {
-        await pinPlayer(activeGroup, playerNumber, targetTeam, pos)
-      } catch (err) {
-        console.error("Failed to pin player:", err)
-      }
-    },
-    [activeGroup]
-  )
-
-  const handleWizardDone = useCallback(async () => {
-    const now = new Date().toISOString()
-    try {
-      await markLastViewed(activeGroup)
-    } catch (err) {
-      console.error("Failed to mark last viewed:", err)
-    }
-    const updatedPrefs = { ...currentPrefs, last_viewed: now }
-    setCurrentPrefs(updatedPrefs)
-    setAllPrefs((prev) => {
-      const updated = prev.filter((p) => p.position_group !== activeGroup)
-      return [updatedPrefs, ...updated]
-    })
-    setStep("done")
-  }, [activeGroup, currentPrefs])
-
   const handleUpdateTeamSlots = useCallback(
     async (teamCode: string, slots: Record<string, number> | null) => {
       setCurrentPrefs((prev) => {
-        const teamSlots = { ...prev.team_slots }
+        const ts = { ...prev.team_slots }
         if (slots) {
-          teamSlots[teamCode] = slots
+          ts[teamCode] = slots
         } else {
-          delete teamSlots[teamCode]
+          delete ts[teamCode]
         }
-        return { ...prev, team_slots: teamSlots }
+        return { ...prev, team_slots: ts }
       })
       try {
         await updateTeamSlots(activeGroup, teamCode, slots)
@@ -211,11 +273,10 @@ export default function HomePage() {
     [activeGroup]
   )
 
-  const handleReset = useCallback(async () => {
-    if (!confirm("Reset to default order? This clears your customizations for this position.")) return
+  const handleResultsReset = useCallback(async () => {
+    if (!confirm("Reset your customizations for this position?")) return
     setCurrentPrefs((prev) => ({
       ...prev,
-      team_order: [],
       player_order: {},
       pinned_players: {},
       team_slots: {},
@@ -232,26 +293,17 @@ export default function HomePage() {
     setStep("rank")
   }, [])
 
-  const handleSwitchPosition = useCallback(
+  const handleResultsPositionSwitch = useCallback(
     (group: PositionGroup) => {
+      if (group === "global") return
+      setActiveGroup(group)
       const existing = allPrefs.find((p) => p.position_group === group)
       if (existing) {
-        setActiveGroup(group)
         setCurrentPrefs(existing)
-      } else if (allPrefs.length > 0) {
-        // No saved prefs for this position — inherit team order from most recent sort
-        setActiveGroup(group)
-        setCurrentPrefs({
-          ...defaultPrefs,
-          position_group: group,
-          team_order: allPrefs[0].team_order,
-        })
       } else {
-        // No prefs at all — start the wizard
-        setActiveGroup(group)
         setCurrentPrefs({ ...defaultPrefs, position_group: group })
-        setStep("rank")
       }
+      markLastViewed(group).catch((err) => console.error("Failed to mark last viewed:", err))
     },
     [allPrefs]
   )
@@ -285,6 +337,12 @@ export default function HomePage() {
     )
   }
 
+  // Merged player order for results view: global non-rt: keys + per-position rt: keys
+  const resultsPlayerOrderMap = {
+    ...globalPlayerOrder,
+    ...(currentPrefs.player_order || {}),
+  }
+
   if (step === "rank") {
     return (
       <div className="app-page">
@@ -292,14 +350,17 @@ export default function HomePage() {
           teamOrder={teamOrder}
           playersByTeam={playersByTeam}
           allPlayers={players}
-          playerOrderMap={currentPrefs.player_order || {}}
-          pinnedPlayers={pinnedPlayers}
+          playerOrderMap={globalPlayerOrder}
+          pinnedPlayers={globalPinnedPlayers}
           crewNumbers={crewNumbers}
+          positionFilter={positionFilter}
+          positionGroup={activeGroup}
           onTeamReorder={handleTeamReorder}
-          onPlayerReorder={handlePlayerReorder}
-          onPinToTeam={handlePinToTeam}
-          onReset={handleReset}
+          onPlayerReorder={handleRankPlayerReorder}
+          onPinToTeam={handleRankPinToTeam}
+          onReset={handleRankReset}
           onNext={handleWizardDone}
+          onSwitchPosition={handleRankPositionSwitch}
         />
       </div>
     )
@@ -311,15 +372,15 @@ export default function HomePage() {
       positionGroup={activeGroup}
       teamOrder={teamOrder}
       players={players}
-      pinnedPlayers={pinnedPlayers}
-      playerOrderMap={currentPrefs.player_order || {}}
+      pinnedPlayers={globalPinnedPlayers}
+      playerOrderMap={resultsPlayerOrderMap}
       teamSlots={currentPrefs.team_slots || {}}
       crewNumbers={crewNumbers}
-      onReorder={handlePlayerReorder}
+      onReorder={handleResultsPlayerReorder}
       onUpdateTeamSlots={handleUpdateTeamSlots}
-      onReset={handleReset}
+      onReset={handleResultsReset}
       onRunSorter={handleRunSorter}
-      onSwitchPosition={handleSwitchPosition}
+      onSwitchPosition={handleResultsPositionSwitch}
     />
   )
 }

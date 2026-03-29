@@ -3507,6 +3507,17 @@
   border-radius: 0.25rem;
 }
 
+.comp-player-defense {
+  background: rgba(17, 17, 17, 0.04);
+  border-left: 3px solid rgba(107, 101, 96, 0.18);
+}
+
+.comp-position-break {
+  border-top: 2px solid rgba(17, 17, 17, 0.12);
+  margin-top: 6px;
+  padding-top: 10px;
+}
+
 .comp-player-grip {
   display: flex;
   align-items: center;
@@ -3887,7 +3898,8 @@
 }
 
 .comp-nt-defense {
-  background: rgba(17, 17, 17, 0.04);
+  background: rgba(17, 17, 17, 0.06);
+  border-left: 3px solid rgba(107, 101, 96, 0.2);
 }
 
 .comp-nt-crew {

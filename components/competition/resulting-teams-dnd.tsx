@@ -124,11 +124,13 @@ function DraggablePlayerRow({
   rank,
   isCrew,
   isPinned,
+  showDivider,
 }: {
   player: Player
   rank: number
   isCrew: boolean
   isPinned: boolean
+  showDivider?: boolean
 }) {
   const {
     attributes,
@@ -148,7 +150,7 @@ function DraggablePlayerRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`comp-nt-player${player.position === "D" ? " comp-nt-defense" : ""}${isPinned ? " comp-nt-pinned" : ""}${isCrew ? " comp-nt-crew" : ""}${isDragging ? " comp-player-dragging" : ""}`}
+      className={`comp-nt-player${player.position === "D" ? " comp-nt-defense" : ""}${isPinned ? " comp-nt-pinned" : ""}${isCrew ? " comp-nt-crew" : ""}${isDragging ? " comp-player-dragging" : ""}${showDivider ? " comp-position-break" : ""}`}
       {...attributes}
       {...listeners}
     >
@@ -360,6 +362,9 @@ function DroppableTeam({
             {players.map((player, idx) => {
               const pin = pinnedPlayers[String(player.number)]
               const isPinned = !!pin && player.previous_team !== pin.team
+              const prevPos = idx > 0 ? players[idx - 1].position : null
+              const isPositionBreak = position === "ALL"
+                && prevPos !== null && prevPos !== player.position
               return (
                 <DraggablePlayerRow
                   key={player.number}
@@ -367,6 +372,7 @@ function DroppableTeam({
                   rank={idx + 1}
                   isCrew={crewNumbers.has(player.number)}
                   isPinned={isPinned}
+                  showDivider={isPositionBreak}
                 />
               )
             })}
