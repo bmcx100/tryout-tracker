@@ -84,5 +84,5 @@ export async function recordRoundResults(
   revalidatePath("/crew")
   revalidatePath("/home")
   revalidatePath("/current")
-  revalidatePath("/teams")
+  revalidatePath("/players")
 }

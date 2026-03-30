@@ -53,15 +53,23 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Block non-admin users from admin routes
-  if (user && pathname.startsWith("/admin")) {
+  // For all protected routes, check role-based access
+  if (user && !isPublicRoute) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single()
 
-    if (!profile || profile.role !== "admin") {
+    // Pending or missing profile — redirect to pending page
+    if (!profile || profile.role === "pending") {
+      const url = request.nextUrl.clone()
+      url.pathname = "/pending"
+      return NextResponse.redirect(url)
+    }
+
+    // Block non-admin users from admin routes
+    if (pathname.startsWith("/admin") && profile.role !== "admin") {
       const url = request.nextUrl.clone()
       url.pathname = "/home"
       return NextResponse.redirect(url)

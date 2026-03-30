@@ -93,7 +93,11 @@ export function ResultsView({
           />
         </div>
 
-        <div className="results-toolbar">
+        <div className="wizard-bottom-actions">
+          <button className="btn-primary-icon" onClick={onRunSorter}>
+            <RotateCcw size={14} />
+            Re-Rank Existing
+          </button>
           <div className="results-reset-group">
             <button className="comp-reset-btn" onClick={onReset} title="Reset this position">
               <RotateCcw size={14} />
@@ -104,10 +108,6 @@ export function ResultsView({
               <span className="comp-reset-label">Reset All</span>
             </button>
           </div>
-          <button className="btn-primary-icon" onClick={onRunSorter}>
-            <RotateCcw size={14} />
-            Re-Rank Existing
-          </button>
         </div>
       </div>
     </div>

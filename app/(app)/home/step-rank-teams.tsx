@@ -100,7 +100,10 @@ export function StepRankTeams({
         />
       </div>
 
-      <div className="wizard-bottom-bar">
+      <div className="wizard-bottom-actions">
+        <button className="btn-primary-icon" onClick={onNext}>
+          View Resulting Teams
+        </button>
         <div className="results-reset-group">
           <button className="comp-reset-btn" onClick={onReset} title="Reset this position">
             <RotateCcw size={16} />
@@ -111,9 +114,6 @@ export function StepRankTeams({
             <span className="comp-reset-label">Reset All</span>
           </button>
         </div>
-        <button className="btn-primary-icon" onClick={onNext}>
-          View Resulting Teams
-        </button>
       </div>
     </div>
   )

@@ -75,6 +75,21 @@ export function TeamCard({
     }
   }
 
+  const handleRemoveAll = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (players.length === 0) return
+    try {
+      for (const p of players) {
+        const member = crewMap.get(p.number)
+        if (member) await removeFromCrew(member.id)
+      }
+      toast.success(`Removed ${players.length} players from your crew`)
+      onCrewChanged()
+    } catch {
+      toast.error("Failed to remove players")
+    }
+  }
+
   const handleAddOne = async (player: Player) => {
     try {
       await addToCrew({
@@ -124,7 +139,7 @@ export function TeamCard({
         <div className="team-card-actions">
           <span
             className={`crew-heart crew-heart-team${allInCrew ? " active" : ""}`}
-            onClick={allInCrew ? undefined : handleAddAll}
+            onClick={allInCrew ? handleRemoveAll : handleAddAll}
             role="button"
           >
             <Heart className="crew-heart-icon" />

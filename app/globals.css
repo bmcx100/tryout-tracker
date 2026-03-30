@@ -3176,6 +3176,21 @@
   margin-top: 20px;
 }
 
+.wizard-bottom-actions {
+  @apply flex flex-col items-center;
+  align-self: stretch;
+  margin-top: 20px;
+  gap: 16px;
+}
+
+.wizard-bottom-actions .btn-primary-icon {
+  width: 100%;
+}
+
+.wizard-bottom-actions .results-reset-group {
+  justify-content: center;
+}
+
 .wizard-next-btn {
   @apply flex items-center justify-center gap-2;
   width: 100%;
@@ -3237,14 +3252,6 @@
   margin-top: 4px;
 }
 
-.results-toolbar {
-  @apply flex flex-row items-center;
-  justify-content: space-between;
-  margin-top: 20px;
-  margin-bottom: 12px;
-  width: 100%;
-}
-
 .results-reset-group {
   display: flex;
   gap: 12px;
@@ -3254,7 +3261,7 @@
   display: flex;
   flex-direction: row;
   gap: 8px;
-  justify-content: flex-start;
+  justify-content: center;
   margin-bottom: 8px;
   margin-top: -4px;
   width: 100%;

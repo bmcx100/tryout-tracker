@@ -24,7 +24,6 @@ export async function addToCrew(data: {
   revalidatePath("/home")
   revalidatePath("/current")
   revalidatePath("/players")
-  revalidatePath("/teams")
 }
 
 export async function updateCrewMember(
@@ -54,5 +53,4 @@ export async function removeFromCrew(id: string) {
   revalidatePath("/home")
   revalidatePath("/current")
   revalidatePath("/players")
-  revalidatePath("/teams")
 }
