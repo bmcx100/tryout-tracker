@@ -189,3 +189,32 @@ export async function resetPrefs(positionGroup: PositionGroup) {
   if (error) throw new Error(error.message)
 }
 
+export async function updatePositionOverrides(
+  positionGroup: PositionGroup,
+  playerNumber: number,
+  newPosition: string | null
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Not authenticated")
+
+  const existing = await getCompetitionPrefs(positionGroup)
+  const overrides = existing?.position_overrides || {}
+  if (newPosition) {
+    overrides[String(playerNumber)] = newPosition
+  } else {
+    delete overrides[String(playerNumber)]
+  }
+
+  const { error } = await supabase
+    .from("user_competition_prefs")
+    .upsert({
+      user_id: user.id,
+      position_group: positionGroup,
+      position_overrides: overrides,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,position_group" })
+
+  if (error) throw new Error(error.message)
+}
+

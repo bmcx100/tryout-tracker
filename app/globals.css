@@ -1324,6 +1324,11 @@
   @apply flex flex-col gap-1;
 }
 
+.app-header-auth-email {
+  @apply text-steel;
+  font-size: 12px;
+}
+
 .app-header-auth-badge {
   @apply font-data uppercase;
   font-size: 9px;
@@ -3101,6 +3106,15 @@
   max-width: 360px;
 }
 
+.wizard-steps {
+  @apply inline-block text-left;
+  font-family: var(--font-data);
+  font-size: 13px;
+  color: #6B6560;
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+
 .wizard-cards {
   @apply flex flex-col gap-3;
   width: 100%;
@@ -3173,9 +3187,15 @@
 
 /* Results View (return visit) */
 
+.results-container {
+  @apply flex flex-col items-center;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
 .results-header {
   margin-bottom: 16px;
-  max-width: 480px;
+  text-align: center;
 }
 
 .results-sublabel {
@@ -3188,13 +3208,16 @@
 .results-toolbar {
   @apply flex flex-row items-center justify-between;
   margin-bottom: 12px;
-  max-width: 480px;
+  width: 100%;
 }
 
 .results-position-tabs {
-  @apply flex flex-row gap-2;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
   margin-bottom: 24px;
-  max-width: 480px;
+  width: 100%;
 }
 
 .results-position-tab {
@@ -3223,14 +3246,14 @@
 
 .results-label {
   font-family: var(--font-heading);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   color: #111111;
+  text-align: center;
 }
 
 .results-content {
   width: 100%;
-  max-width: 480px;
 }
 
 .comp-view-tabs {
@@ -3565,6 +3588,11 @@
   background: rgba(17, 17, 17, 0.06);
   color: #6B6560;
   flex-shrink: 0;
+}
+
+.comp-player-pos-override {
+  background: var(--color-signal);
+  color: white;
 }
 
 .comp-player-heart {

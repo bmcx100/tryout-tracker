@@ -104,6 +104,7 @@ export interface UserCompetitionPrefs {
   player_order: Record<string, number[]>
   pinned_players: Record<string, PinnedPlayer>
   team_slots: Record<string, Record<string, number>>
+  position_overrides: Record<string, string>
   last_viewed: string
   created_at: string
   updated_at: string
