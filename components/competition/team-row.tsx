@@ -16,6 +16,8 @@ interface TeamRowProps {
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
   positionFilter?: "F" | "D" | "G" | "ALL"
+  positionOverrides?: Record<string, string>
+  onLongPressPosition?: (player: Player) => void
 }
 
 function formatTeamCode(code: string): string {
@@ -33,6 +35,8 @@ export function TeamRow({
   pinnedPlayers,
   crewNumbers,
   positionFilter,
+  positionOverrides,
+  onLongPressPosition,
 }: TeamRowProps) {
   const [expanded, setExpanded] = useState(false)
   const {
@@ -82,6 +86,8 @@ export function TeamRow({
             pinnedPlayers={pinnedPlayers}
             crewNumbers={crewNumbers}
             positionFilter={positionFilter}
+            positionOverrides={positionOverrides}
+            onLongPressPosition={onLongPressPosition}
           />
         </div>
       )}

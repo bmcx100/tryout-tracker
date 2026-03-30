@@ -20,12 +20,14 @@ interface StepRankTeamsProps {
   crewNumbers: Set<number>
   positionFilter: "F" | "D" | "G" | "ALL"
   positionGroup: PositionGroup
+  positionOverrides: Record<string, string>
   onTeamReorder: (newOrder: string[]) => void
   onPlayerReorder: (team: string, playerNumbers: number[]) => void
   onPinToTeam: (playerNumber: number, targetTeam: string, pos: number) => void
   onReset: () => void
   onNext: () => void
   onSwitchPosition: (group: PositionGroup) => void
+  onPositionOverride: (playerNumber: number, newPosition: string | null) => void
 }
 
 export function StepRankTeams({
@@ -37,19 +39,23 @@ export function StepRankTeams({
   crewNumbers,
   positionFilter,
   positionGroup,
+  positionOverrides,
   onTeamReorder,
   onPlayerReorder,
   onPinToTeam,
   onReset,
   onNext,
   onSwitchPosition,
+  onPositionOverride,
 }: StepRankTeamsProps) {
   return (
     <div className="wizard-container">
-      <h1 className="wizard-headline">Rank existing teams</h1>
-      <p className="wizard-subtext">
-        Drag the teams to rank top to bottom, then click &apos;Next&apos;.
-      </p>
+      <h1 className="wizard-headline">Rank Existing Teams</h1>
+      <div className="wizard-steps">
+        <p>1. Drag the teams to rank top to bottom.</p>
+        <p>2. Rank players in the teams for each of the positions.</p>
+        <p>3. Click &apos;Next&apos; at bottom of the page.</p>
+      </div>
 
       <div className="results-position-tabs">
         {POSITION_BUTTONS.map(({ group, label }) => (
@@ -79,9 +85,11 @@ export function StepRankTeams({
           pinnedPlayers={pinnedPlayers}
           crewNumbers={crewNumbers}
           positionFilter={positionFilter}
+          positionOverrides={positionOverrides}
           onTeamReorder={onTeamReorder}
           onPlayerReorder={onPlayerReorder}
           onPinToTeam={onPinToTeam}
+          onPositionOverride={onPositionOverride}
         />
       </div>
 

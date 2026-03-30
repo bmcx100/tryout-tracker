@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, Heart } from "lucide-react"
@@ -11,6 +12,8 @@ interface PlayerCardProps {
   isCrew?: boolean
   isDefense?: boolean
   showDivider?: boolean
+  isOverridden?: boolean
+  onLongPressPosition?: (player: Player) => void
 }
 
 export function PlayerCard({
@@ -18,6 +21,8 @@ export function PlayerCard({
   isCrew,
   isDefense,
   showDivider,
+  isOverridden,
+  onLongPressPosition,
 }: PlayerCardProps) {
   const {
     attributes,
@@ -35,6 +40,36 @@ export function PlayerCard({
 
   const name = playerName(player.first_name, player.last_name, player.number)
 
+  const posLongPress = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const didPosLongPress = useRef(false)
+
+  const canSwitch = player.position === "F" || player.position === "D"
+
+  const handlePosPointerDown = (e: React.PointerEvent) => {
+    if (!canSwitch || !onLongPressPosition) return
+    e.stopPropagation()
+    didPosLongPress.current = false
+    posLongPress.current = setTimeout(() => {
+      didPosLongPress.current = true
+      onLongPressPosition(player)
+    }, 500)
+  }
+
+  const handlePosPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation()
+    if (posLongPress.current) {
+      clearTimeout(posLongPress.current)
+      posLongPress.current = null
+    }
+  }
+
+  const handlePosPointerLeave = () => {
+    if (posLongPress.current) {
+      clearTimeout(posLongPress.current)
+      posLongPress.current = null
+    }
+  }
+
   return (
     <div
       ref={setNodeRef}
@@ -48,7 +83,14 @@ export function PlayerCard({
       </span>
       <span className="comp-player-number">#{player.number}</span>
       {player.position && (
-        <span className="comp-player-pos">{player.position}</span>
+        <span
+          className={`comp-player-pos${isOverridden ? " comp-player-pos-override" : ""}`}
+          onPointerDown={canSwitch ? handlePosPointerDown : undefined}
+          onPointerUp={canSwitch ? handlePosPointerUp : undefined}
+          onPointerLeave={canSwitch ? handlePosPointerLeave : undefined}
+        >
+          {player.position}
+        </span>
       )}
       <span className="comp-player-name">{name}</span>
       {isCrew && <Heart size={12} className="comp-player-heart" />}

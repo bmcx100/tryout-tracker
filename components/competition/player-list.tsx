@@ -15,6 +15,8 @@ interface PlayerListProps {
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
   positionFilter?: "F" | "D" | "G" | "ALL"
+  positionOverrides?: Record<string, string>
+  onLongPressPosition?: (player: Player) => void
 }
 
 export function PlayerList({
@@ -24,6 +26,8 @@ export function PlayerList({
   pinnedPlayers,
   crewNumbers,
   positionFilter,
+  positionOverrides,
+  onLongPressPosition,
 }: PlayerListProps) {
   const { setNodeRef } = useDroppable({ id: `drop-${teamCode}` })
 
@@ -39,6 +43,16 @@ export function PlayerList({
     } else if (p.previous_team === teamCode) {
       // Native player, no move
       active.push(p)
+    }
+  }
+
+  // Apply position overrides
+  if (positionOverrides && Object.keys(positionOverrides).length > 0) {
+    for (let i = 0; i < active.length; i++) {
+      const override = positionOverrides[String(active[i].number)]
+      if (override && override !== active[i].position) {
+        active[i] = { ...active[i], position: override }
+      }
     }
   }
 
@@ -83,6 +97,8 @@ export function PlayerList({
               isCrew={crewNumbers.has(player.number)}
               isDefense={player.position === "D"}
               showDivider={isPositionBreak}
+              isOverridden={!!(positionOverrides && positionOverrides[String(player.number)])}
+              onLongPressPosition={onLongPressPosition}
             />
           )
         })}

@@ -18,6 +18,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable"
 import { TeamRow } from "./team-row"
+import { PositionSwitchModal } from "./position-switch-modal"
 import type { Player, PinnedPlayer } from "@/lib/types"
 
 interface TeamTierListProps {
@@ -28,9 +29,11 @@ interface TeamTierListProps {
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
   positionFilter?: "F" | "D" | "G" | "ALL"
+  positionOverrides?: Record<string, string>
   onTeamReorder: (newOrder: string[]) => void
   onPlayerReorder: (team: string, playerNumbers: number[]) => void
   onPinToTeam: (playerNumber: number, targetTeam: string, position: number) => void
+  onPositionOverride?: (playerNumber: number, newPosition: string | null) => void
 }
 
 export function TeamTierList({
@@ -41,9 +44,11 @@ export function TeamTierList({
   pinnedPlayers,
   crewNumbers,
   positionFilter,
+  positionOverrides,
   onTeamReorder,
   onPlayerReorder,
   onPinToTeam,
+  onPositionOverride,
 }: TeamTierListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -70,14 +75,36 @@ export function TeamTierList({
     return map
   }, [allPlayers, effectivePinned])
 
-  // Player number -> position (F/D/G)
+  // Player number -> position (F/D/G), with overrides applied
   const playerPositionLookup = useMemo(() => {
     const map: Record<number, string> = {}
     for (const p of allPlayers) {
       if (p.position) map[p.number] = p.position
     }
+    if (positionOverrides) {
+      for (const [numStr, pos] of Object.entries(positionOverrides)) {
+        map[Number(numStr)] = pos
+      }
+    }
     return map
-  }, [allPlayers])
+  }, [allPlayers, positionOverrides])
+
+  const [switchTarget, setSwitchTarget] = useState<Player | null>(null)
+
+  const handleConfirmSwitch = useCallback(() => {
+    if (!switchTarget || !onPositionOverride) return
+    const currentPos = switchTarget.position
+    const originalPos = allPlayers.find((p) => p.number === switchTarget.number)?.position
+    const isReverting = currentPos !== originalPos
+
+    if (isReverting) {
+      onPositionOverride(switchTarget.number, null)
+    } else {
+      const newPos = currentPos === "F" ? "D" : "F"
+      onPositionOverride(switchTarget.number, newPos)
+    }
+    setSwitchTarget(null)
+  }, [switchTarget, allPlayers, onPositionOverride])
 
   // Team -> ordered player numbers (effective, accounting for moves + custom order)
   const teamPlayerNumbers = useMemo(() => {
@@ -234,28 +261,40 @@ export function TeamTierList({
   )
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={collisionDetection}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext items={visibleTeams} strategy={verticalListSortingStrategy}>
-        <div className="comp-tier-list">
-          {visibleTeams.map((teamCode, idx) => (
-            <TeamRow
-              key={teamCode}
-              teamCode={teamCode}
-              rank={idx + 1}
-              playerCount={filteredPlayerCounts[teamCode]}
-              allPlayers={allPlayers}
-              playerOrder={effectivePlayerOrder[teamCode]}
-              pinnedPlayers={effectivePinned}
-              crewNumbers={crewNumbers}
-              positionFilter={positionFilter}
-            />
-          ))}
-        </div>
-      </SortableContext>
-    </DndContext>
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisionDetection}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={visibleTeams} strategy={verticalListSortingStrategy}>
+          <div className="comp-tier-list">
+            {visibleTeams.map((teamCode, idx) => (
+              <TeamRow
+                key={teamCode}
+                teamCode={teamCode}
+                rank={idx + 1}
+                playerCount={filteredPlayerCounts[teamCode]}
+                allPlayers={allPlayers}
+                playerOrder={effectivePlayerOrder[teamCode]}
+                pinnedPlayers={effectivePinned}
+                crewNumbers={crewNumbers}
+                positionFilter={positionFilter}
+                positionOverrides={positionOverrides}
+                onLongPressPosition={setSwitchTarget}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+      {switchTarget && onPositionOverride && (
+        <PositionSwitchModal
+          player={switchTarget}
+          originalPosition={allPlayers.find((p) => p.number === switchTarget.number)?.position ?? switchTarget.position ?? "F"}
+          onConfirm={handleConfirmSwitch}
+          onClose={() => setSwitchTarget(null)}
+        />
+      )}
+    </>
   )
 }
