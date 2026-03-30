@@ -13,6 +13,7 @@ interface PlayerCardProps {
   isDefense?: boolean
   showDivider?: boolean
   isOverridden?: boolean
+  isGhost?: boolean
   onLongPressPosition?: (player: Player) => void
 }
 
@@ -22,6 +23,7 @@ export function PlayerCard({
   isDefense,
   showDivider,
   isOverridden,
+  isGhost,
   onLongPressPosition,
 }: PlayerCardProps) {
   const {
@@ -31,7 +33,7 @@ export function PlayerCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: `p-${player.number}` })
+  } = useSortable({ id: isGhost ? `ghost-${player.number}` : `p-${player.number}`, disabled: isGhost })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -74,9 +76,9 @@ export function PlayerCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`comp-player-card${isDragging ? " comp-player-dragging" : ""}${isDefense ? " comp-player-defense" : ""}${showDivider ? " comp-position-break" : ""}`}
-      {...attributes}
-      {...listeners}
+      className={`comp-player-card${isDragging ? " comp-player-dragging" : ""}${isDefense ? " comp-player-defense" : ""}${showDivider ? " comp-position-break" : ""}${isGhost ? " comp-player-ghost" : ""}`}
+      {...(isGhost ? {} : attributes)}
+      {...(isGhost ? {} : listeners)}
     >
       <span className="comp-player-grip">
         <GripVertical size={14} />

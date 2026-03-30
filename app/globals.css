@@ -3092,7 +3092,7 @@
   font-size: 28px;
   font-weight: 700;
   color: #111111;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
   text-align: center;
 }
 
@@ -3106,13 +3106,37 @@
   max-width: 360px;
 }
 
+.wizard-instructions-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.wizard-instructions-btn {
+  font-family: var(--font-data);
+  font-size: 13px;
+  color: #6B6560;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 4px 0;
+}
+
+.wizard-instructions-btn:hover {
+  color: var(--color-signal);
+}
+
 .wizard-steps {
   @apply inline-block text-left;
   font-family: var(--font-data);
   font-size: 13px;
   color: #6B6560;
   line-height: 1.8;
-  margin-bottom: 16px;
+  margin-top: 8px;
 }
 
 .wizard-cards {
@@ -3142,6 +3166,14 @@
 .wizard-reuse-option:hover {
   border-color: rgba(17, 17, 17, 0.3);
   color: #111111;
+}
+
+.wizard-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  align-self: stretch;
+  margin-top: 20px;
 }
 
 .wizard-next-btn {
@@ -3206,17 +3238,25 @@
 }
 
 .results-toolbar {
-  @apply flex flex-row items-center justify-between;
+  @apply flex flex-row items-center;
+  justify-content: space-between;
+  margin-top: 20px;
   margin-bottom: 12px;
   width: 100%;
+}
+
+.results-reset-group {
+  display: flex;
+  gap: 12px;
 }
 
 .results-position-tabs {
   display: flex;
   flex-direction: row;
   gap: 8px;
-  justify-content: center;
-  margin-bottom: 24px;
+  justify-content: flex-start;
+  margin-bottom: 8px;
+  margin-top: -4px;
   width: 100%;
 }
 
@@ -3290,7 +3330,7 @@
 }
 
 .comp-content {
-  max-width: 480px;
+  width: 100%;
 }
 
 .comp-title-row {
@@ -3361,6 +3401,7 @@
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -3593,6 +3634,11 @@
 .comp-player-pos-override {
   background: var(--color-signal);
   color: white;
+}
+
+.comp-player-ghost {
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .pos-switch-player {

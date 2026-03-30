@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { RotateCcw } from "lucide-react"
 import { TeamTierList } from "@/components/competition/team-tier-list"
 import type { Player, PinnedPlayer, PositionGroup } from "@/lib/types"
@@ -8,7 +9,6 @@ const POSITION_BUTTONS: { group: PositionGroup; label: string }[] = [
   { group: "forwards", label: "Forwards" },
   { group: "defense", label: "Defense" },
   { group: "goalies", label: "Goalies" },
-  { group: "all", label: "All" },
 ]
 
 interface StepRankTeamsProps {
@@ -25,6 +25,7 @@ interface StepRankTeamsProps {
   onPlayerReorder: (team: string, playerNumbers: number[]) => void
   onPinToTeam: (playerNumber: number, targetTeam: string, pos: number) => void
   onReset: () => void
+  onResetAll: () => void
   onNext: () => void
   onSwitchPosition: (group: PositionGroup) => void
   onPositionOverride: (playerNumber: number, newPosition: string | null) => void
@@ -44,17 +45,30 @@ export function StepRankTeams({
   onPlayerReorder,
   onPinToTeam,
   onReset,
+  onResetAll,
   onNext,
   onSwitchPosition,
   onPositionOverride,
 }: StepRankTeamsProps) {
+  const [showInstructions, setShowInstructions] = useState(false)
+
   return (
     <div className="wizard-container">
       <h1 className="wizard-headline">Rank Existing Teams</h1>
-      <div className="wizard-steps">
-        <p>1. Drag the teams to rank top to bottom.</p>
-        <p>2. Rank players in the teams for each of the positions.</p>
-        <p>3. Click &apos;Next&apos; at bottom of the page.</p>
+      <div className="wizard-instructions-toggle">
+        <button
+          className="wizard-instructions-btn"
+          onClick={() => setShowInstructions((s) => !s)}
+        >
+          {showInstructions ? "Hide instructions" : "Click here for instructions"}
+        </button>
+        {showInstructions && (
+          <div className="wizard-steps">
+            <p>1. Drag the teams to rank top to bottom.</p>
+            <p>2. Rank players in the teams for each of the positions.</p>
+            <p>3. Click &apos;View Resulting Teams&apos; at bottom of the page.</p>
+          </div>
+        )}
       </div>
 
       <div className="results-position-tabs">
@@ -70,13 +84,6 @@ export function StepRankTeams({
       </div>
 
       <div className="comp-content">
-        <div className="comp-sort-toolbar">
-          <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
-            <RotateCcw size={16} />
-            <span className="comp-reset-label">Reset</span>
-          </button>
-        </div>
-
         <TeamTierList
           teamOrder={teamOrder}
           playersByTeam={playersByTeam}
@@ -93,9 +100,21 @@ export function StepRankTeams({
         />
       </div>
 
-      <button className="wizard-next-btn" onClick={onNext}>
-        Next
-      </button>
+      <div className="wizard-bottom-bar">
+        <div className="results-reset-group">
+          <button className="comp-reset-btn" onClick={onReset} title="Reset this position">
+            <RotateCcw size={16} />
+            <span className="comp-reset-label">Reset</span>
+          </button>
+          <button className="comp-reset-btn" onClick={onResetAll} title="Reset all positions">
+            <RotateCcw size={16} />
+            <span className="comp-reset-label">Reset All</span>
+          </button>
+        </div>
+        <button className="btn-primary-icon" onClick={onNext}>
+          View Resulting Teams
+        </button>
+      </div>
     </div>
   )
 }

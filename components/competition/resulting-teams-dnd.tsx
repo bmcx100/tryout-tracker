@@ -143,6 +143,7 @@ function DraggablePlayerRow({
   isPinned,
   showDivider,
   isOverridden,
+  isGhost,
   onLongPressPosition,
 }: {
   player: Player
@@ -151,6 +152,7 @@ function DraggablePlayerRow({
   isPinned: boolean
   showDivider?: boolean
   isOverridden: boolean
+  isGhost?: boolean
   onLongPressPosition?: (player: Player) => void
 }) {
   const {
@@ -160,7 +162,7 @@ function DraggablePlayerRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: `rp-${player.number}` })
+  } = useSortable({ id: isGhost ? `ghost-${player.number}` : `rp-${player.number}`, disabled: isGhost })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -201,14 +203,14 @@ function DraggablePlayerRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`comp-nt-player${player.position === "D" ? " comp-nt-defense" : ""}${isPinned ? " comp-nt-pinned" : ""}${isCrew ? " comp-nt-crew" : ""}${isDragging ? " comp-player-dragging" : ""}${showDivider ? " comp-position-break" : ""}`}
-      {...attributes}
-      {...listeners}
+      className={`comp-nt-player${player.position === "D" ? " comp-nt-defense" : ""}${isPinned ? " comp-nt-pinned" : ""}${isCrew ? " comp-nt-crew" : ""}${isDragging ? " comp-player-dragging" : ""}${showDivider ? " comp-position-break" : ""}${isGhost ? " comp-player-ghost" : ""}`}
+      {...(isGhost ? {} : attributes)}
+      {...(isGhost ? {} : listeners)}
     >
       <span className="comp-player-grip">
         <GripVertical size={14} />
       </span>
-      <span className="comp-nt-rank">{rank}</span>
+      <span className="comp-nt-rank">{isGhost ? "" : rank}</span>
       <span className="comp-player-number">#{player.number}</span>
       <span
         className={`comp-player-pos${isOverridden ? " comp-player-pos-override" : ""}`}
@@ -354,13 +356,56 @@ function DroppableTeam({
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const { setNodeRef } = useDroppable({ id: `rt-${teamCode}` })
-  const sortIds = players.map((p) => `rp-${p.number}`)
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const didLongPress = useRef(false)
 
+  // Counts use effective (overridden) positions
   const fCount = players.filter((p) => p.position === "F").length
   const dCount = players.filter((p) => p.position === "D").length
   const gCount = players.filter((p) => p.position === "G").length
+
+  // Build ghost entries for overridden players
+  // Ghost keeps effective (new) position for badge display, tracks original for section placement
+  const overriddenNumbers = new Set<number>()
+  const ghostData: { player: Player; originalPos: string }[] = []
+  for (const p of players) {
+    if (positionOverrides[String(p.number)]) {
+      overriddenNumbers.add(p.number)
+      const originalPos = p.position === "F" ? "D" : "F"
+      ghostData.push({ player: p, originalPos })
+    }
+  }
+
+  // Build display list: real players + ghosts in their original position sections
+  // sortPos tracks section placement (original pos for ghosts) for divider logic
+  const allEntries: { player: Player; isGhost: boolean; sortPos: string }[] = []
+  if (position === "ALL") {
+    const POS_ORDER: Record<string, number> = { F: 0, D: 1, G: 2 }
+    allEntries.push(
+      ...players.map((p) => ({ player: p, isGhost: false, sortPos: p.position || "" })),
+      ...ghostData.map((g) => ({ player: g.player, isGhost: true, sortPos: g.originalPos })),
+    )
+    allEntries.sort((a, b) => {
+      const posA = POS_ORDER[a.sortPos] ?? 99
+      const posB = POS_ORDER[b.sortPos] ?? 99
+      if (posA !== posB) return posA - posB
+      if (a.isGhost !== b.isGhost) return a.isGhost ? 1 : -1
+      return 0
+    })
+  } else {
+    for (const p of players) {
+      allEntries.push({ player: p, isGhost: false, sortPos: p.position || "" })
+    }
+    for (const g of ghostData) {
+      if (g.originalPos === position) {
+        allEntries.push({ player: g.player, isGhost: true, sortPos: g.originalPos })
+      }
+    }
+  }
+
+  const sortIds = allEntries
+    .filter((e) => !e.isGhost)
+    .map((e) => `rp-${e.player.number}`)
 
   const handlePointerDown = () => {
     didLongPress.current = false
@@ -421,22 +466,28 @@ function DroppableTeam({
       {!collapsed && (
         <div className="comp-nt-roster">
           <SortableContext items={sortIds} strategy={verticalListSortingStrategy}>
-            {players.map((player, idx) => {
+            {allEntries.map((entry, idx) => {
+              const { player, isGhost: entryIsGhost } = entry
               const pin = pinnedPlayers[String(player.number)]
               const isPinned = !!pin && player.previous_team !== pin.team
-              const prevPos = idx > 0 ? players[idx - 1].position : null
+              const prevSortPos = idx > 0 ? allEntries[idx - 1].sortPos : null
               const isPositionBreak = position === "ALL"
-                && prevPos !== null && prevPos !== player.position
+                && prevSortPos !== null && prevSortPos !== entry.sortPos
+              // Non-ghost rank: count only real entries
+              const realRank = entryIsGhost ? 0 : allEntries
+                .slice(0, idx + 1)
+                .filter((e) => !e.isGhost).length
               return (
                 <DraggablePlayerRow
-                  key={player.number}
+                  key={entryIsGhost ? `ghost-${player.number}` : player.number}
                   player={player}
-                  rank={idx + 1}
+                  rank={realRank}
                   isCrew={crewNumbers.has(player.number)}
                   isPinned={isPinned}
                   showDivider={isPositionBreak}
-                  isOverridden={!!positionOverrides[String(player.number)]}
-                  onLongPressPosition={onLongPressPosition}
+                  isOverridden={overriddenNumbers.has(player.number)}
+                  isGhost={entryIsGhost}
+                  onLongPressPosition={entryIsGhost ? undefined : onLongPressPosition}
                 />
               )
             })}

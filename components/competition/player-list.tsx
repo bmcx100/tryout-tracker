@@ -36,22 +36,33 @@ export function PlayerList({
   for (const p of players) {
     const pinData = pinnedPlayers[String(p.number)]
     if (pinData && pinData.team === teamCode) {
-      // Player moved into this team
       active.push(p)
     } else if (pinData && pinData.team !== teamCode && p.previous_team === teamCode) {
-      // Player moved away from this team — skip, they live elsewhere now
+      // Player moved away from this team — skip
     } else if (p.previous_team === teamCode) {
-      // Native player, no move
       active.push(p)
     }
   }
 
-  // Apply position overrides
-  if (positionOverrides && Object.keys(positionOverrides).length > 0) {
-    for (let i = 0; i < active.length; i++) {
-      const override = positionOverrides[String(active[i].number)]
-      if (override && override !== active[i].position) {
-        active[i] = { ...active[i], position: override }
+  // Build overridden version of active list (effective positions)
+  const hasOverrides = positionOverrides && Object.keys(positionOverrides).length > 0
+  const effectiveActive = hasOverrides
+    ? active.map((p) => {
+        const override = positionOverrides[String(p.number)]
+        if (override && override !== p.position) {
+          return { ...p, position: override }
+        }
+        return p
+      })
+    : active
+
+  // Track which players have overrides (for ghost + highlight logic)
+  const overriddenNumbers = new Set<number>()
+  if (hasOverrides) {
+    for (const p of active) {
+      const override = positionOverrides[String(p.number)]
+      if (override && override !== p.position) {
+        overriddenNumbers.add(p.number)
       }
     }
   }
@@ -60,7 +71,7 @@ export function PlayerList({
 
   // Sort: custom order if set, otherwise group by position then by number
   if (playerOrder?.length) {
-    active.sort((a, b) => {
+    effectiveActive.sort((a, b) => {
       const ai = playerOrder.indexOf(a.number)
       const bi = playerOrder.indexOf(b.number)
       if (ai === -1 && bi === -1) return a.number - b.number
@@ -69,7 +80,7 @@ export function PlayerList({
       return ai - bi
     })
   } else {
-    active.sort((a, b) => {
+    effectiveActive.sort((a, b) => {
       const posA = POS_ORDER[a.position || ""] ?? 99
       const posB = POS_ORDER[b.position || ""] ?? 99
       if (posA !== posB) return posA - posB
@@ -77,28 +88,78 @@ export function PlayerList({
     })
   }
 
+  // Filter by position
   const displayed = positionFilter && positionFilter !== "ALL"
-    ? active.filter((p) => p.position === positionFilter)
-    : active
+    ? effectiveActive.filter((p) => p.position === positionFilter)
+    : effectiveActive
 
-  const sortIds = displayed.map((p) => `p-${p.number}`)
+  // Build tagged entries: each entry has a player, isGhost flag, and sortPos
+  // Ghost badge shows NEW position; sortPos tracks ORIGINAL position for section placement
+  const taggedEntries: { player: Player; isGhost: boolean; sortPos: string }[] = []
+
+  if (positionFilter && positionFilter !== "ALL") {
+    // Filtered view: real entries matching filter + ghosts for players whose original pos matches
+    for (const p of displayed) {
+      taggedEntries.push({ player: p, isGhost: false, sortPos: p.position || "" })
+    }
+    if (hasOverrides) {
+      for (const p of active) {
+        if (overriddenNumbers.has(p.number) && p.position === positionFilter) {
+          taggedEntries.push({
+            player: { ...p, position: positionOverrides![String(p.number)] },
+            isGhost: true,
+            sortPos: positionFilter,
+          })
+        }
+      }
+    }
+  } else {
+    // ALL view: real entries + ghosts placed in original position sections
+    for (const p of effectiveActive) {
+      taggedEntries.push({ player: p, isGhost: false, sortPos: p.position || "" })
+    }
+    if (hasOverrides) {
+      for (const p of active) {
+        if (overriddenNumbers.has(p.number)) {
+          taggedEntries.push({
+            player: { ...p, position: positionOverrides![String(p.number)] },
+            isGhost: true,
+            sortPos: p.position || "",
+          })
+        }
+      }
+      taggedEntries.sort((a, b) => {
+        const posA = POS_ORDER[a.sortPos] ?? 99
+        const posB = POS_ORDER[b.sortPos] ?? 99
+        if (posA !== posB) return posA - posB
+        if (a.isGhost !== b.isGhost) return a.isGhost ? 1 : -1
+        return a.player.number - b.player.number
+      })
+    }
+  }
+
+  const sortIds = taggedEntries
+    .filter((e) => !e.isGhost)
+    .map((e) => `p-${e.player.number}`)
 
   return (
     <div className="comp-player-list" ref={setNodeRef}>
       <SortableContext items={sortIds} strategy={verticalListSortingStrategy}>
-        {displayed.map((player, idx) => {
-          const prevPos = idx > 0 ? displayed[idx - 1].position : null
+        {taggedEntries.map((entry, idx) => {
+          const { player, isGhost } = entry
+          const prevSortPos = idx > 0 ? taggedEntries[idx - 1].sortPos : null
           const isPositionBreak = (!positionFilter || positionFilter === "ALL")
-            && prevPos !== null && prevPos !== player.position
+            && prevSortPos !== null && prevSortPos !== entry.sortPos
           return (
             <PlayerCard
-              key={player.number}
+              key={isGhost ? `ghost-${player.number}` : player.number}
               player={player}
               isCrew={crewNumbers.has(player.number)}
               isDefense={player.position === "D"}
               showDivider={isPositionBreak}
-              isOverridden={!!(positionOverrides && positionOverrides[String(player.number)])}
-              onLongPressPosition={onLongPressPosition}
+              isOverridden={overriddenNumbers.has(player.number)}
+              isGhost={isGhost}
+              onLongPressPosition={isGhost ? undefined : onLongPressPosition}
             />
           )
         })}

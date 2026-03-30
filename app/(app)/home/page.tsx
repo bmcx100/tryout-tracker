@@ -251,6 +251,29 @@ export default function HomePage() {
     }
   }, [])
 
+  const handleRankResetAll = useCallback(async () => {
+    if (!confirm("Reset all rankings and position overrides?")) return
+    setGlobalTeamOrder([])
+    setGlobalPlayerOrder({})
+    setGlobalPinnedPlayers({})
+    setCurrentPrefs((prev) => ({ ...prev, position_overrides: {} }))
+    try {
+      await Promise.all([
+        resetPrefs("global"),
+        resetPrefs("forwards"),
+        resetPrefs("defense"),
+        resetPrefs("goalies"),
+      ])
+    } catch (err) {
+      console.error("Failed to reset all:", err)
+    }
+    setAllPrefs((prev) => prev.filter(
+      (p) => p.position_group !== "forwards"
+        && p.position_group !== "defense"
+        && p.position_group !== "goalies"
+    ))
+  }, [])
+
   const handleRankPositionSwitch = useCallback((group: PositionGroup) => {
     if (group === "global") return
     setActiveGroup(group)
@@ -497,9 +520,35 @@ export default function HomePage() {
     }
   }, [activeGroup])
 
-  const handleRunSorter = useCallback(() => {
-    setStep("rank")
+  const handleResultsResetAll = useCallback(async () => {
+    if (!confirm("Reset customizations for all positions?")) return
+    setCurrentPrefs((prev) => ({
+      ...prev,
+      player_order: {},
+      pinned_players: {},
+      team_slots: {},
+      position_overrides: {},
+    }))
+    try {
+      await Promise.all([
+        resetPrefs("forwards"),
+        resetPrefs("defense"),
+        resetPrefs("goalies"),
+      ])
+    } catch (err) {
+      console.error("Failed to reset all:", err)
+    }
+    setAllPrefs((prev) => prev.filter(
+      (p) => p.position_group !== "forwards"
+        && p.position_group !== "defense"
+        && p.position_group !== "goalies"
+    ))
   }, [])
+
+  const handleRunSorter = useCallback(() => {
+    if (activeGroup === "all") setActiveGroup("forwards")
+    setStep("rank")
+  }, [activeGroup])
 
   const handleResultsPositionSwitch = useCallback(
     (group: PositionGroup) => {
@@ -587,6 +636,7 @@ export default function HomePage() {
           onPinToTeam={handleRankPinToTeam}
           onPositionOverride={handlePositionOverride}
           onReset={handleRankReset}
+          onResetAll={handleRankResetAll}
           onNext={handleWizardDone}
           onSwitchPosition={handleRankPositionSwitch}
         />
@@ -609,6 +659,7 @@ export default function HomePage() {
       onUpdateTeamSlots={handleUpdateTeamSlots}
       onPositionOverride={handlePositionOverride}
       onReset={handleResultsReset}
+      onResetAll={handleResultsResetAll}
       onRunSorter={handleRunSorter}
       onSwitchPosition={handleResultsPositionSwitch}
     />

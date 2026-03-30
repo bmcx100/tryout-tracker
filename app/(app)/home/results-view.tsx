@@ -31,6 +31,7 @@ interface ResultsViewProps {
   onUpdateTeamSlots: (teamCode: string, slots: Record<string, number> | null) => void
   onPositionOverride: (playerNumber: number, newPosition: string | null) => void
   onReset: () => void
+  onResetAll: () => void
   onRunSorter: () => void
   onSwitchPosition: (group: PositionGroup) => void
 }
@@ -48,6 +49,7 @@ export function ResultsView({
   onUpdateTeamSlots,
   onPositionOverride,
   onReset,
+  onResetAll,
   onRunSorter,
   onSwitchPosition,
 }: ResultsViewProps) {
@@ -75,17 +77,6 @@ export function ResultsView({
           ))}
         </div>
 
-        <div className="results-toolbar">
-          <button className="btn-primary-icon" onClick={onRunSorter}>
-            <RotateCcw size={14} />
-            Re-Sort Existing Teams
-          </button>
-          <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
-            <RotateCcw size={14} />
-            <span className="comp-reset-label">Reset</span>
-          </button>
-        </div>
-
         <div className="results-content">
           <ResultingTeamsDnd
             teamOrder={teamOrder}
@@ -100,6 +91,23 @@ export function ResultsView({
             onUpdateTeamSlots={onUpdateTeamSlots}
             onPositionOverride={onPositionOverride}
           />
+        </div>
+
+        <div className="results-toolbar">
+          <div className="results-reset-group">
+            <button className="comp-reset-btn" onClick={onReset} title="Reset this position">
+              <RotateCcw size={14} />
+              <span className="comp-reset-label">Reset</span>
+            </button>
+            <button className="comp-reset-btn" onClick={onResetAll} title="Reset all positions">
+              <RotateCcw size={14} />
+              <span className="comp-reset-label">Reset All</span>
+            </button>
+          </div>
+          <button className="btn-primary-icon" onClick={onRunSorter}>
+            <RotateCcw size={14} />
+            Re-Rank Existing
+          </button>
         </div>
       </div>
     </div>
