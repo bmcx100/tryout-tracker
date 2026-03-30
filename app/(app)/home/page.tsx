@@ -65,13 +65,18 @@ export default function HomePage() {
   const [activeGroup, setActiveGroup] = useState<PositionGroup>("forwards")
 
   // Fast position lookup for splitting "all" tab reorders by position
+  // Incorporates position overrides so drag-and-drop on "all" tab routes correctly
   const playerPositionMap = useMemo(() => {
     const map: Record<number, string> = {}
     for (const p of players) {
       if (p.position) map[p.number] = p.position
     }
+    const overrides = currentPrefs.position_overrides || {}
+    for (const [numStr, pos] of Object.entries(overrides)) {
+      map[Number(numStr)] = pos
+    }
     return map
-  }, [players])
+  }, [players, currentPrefs.position_overrides])
 
   useEffect(() => {
     const load = async () => {
@@ -429,6 +434,8 @@ export default function HomePage() {
               delete overrides[String(playerNumber)]
             }
             next[idx] = { ...next[idx], position_overrides: overrides }
+          } else if (newPosition) {
+            next.push({ ...defaultPrefs, position_group: group, position_overrides: { [String(playerNumber)]: newPosition } })
           }
         }
         return next
