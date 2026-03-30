@@ -581,9 +581,11 @@ export default function HomePage() {
           crewNumbers={crewNumbers}
           positionFilter={positionFilter}
           positionGroup={activeGroup}
+          positionOverrides={currentPrefs.position_overrides || {}}
           onTeamReorder={handleTeamReorder}
           onPlayerReorder={handleRankPlayerReorder}
           onPinToTeam={handleRankPinToTeam}
+          onPositionOverride={handlePositionOverride}
           onReset={handleRankReset}
           onNext={handleWizardDone}
           onSwitchPosition={handleRankPositionSwitch}
