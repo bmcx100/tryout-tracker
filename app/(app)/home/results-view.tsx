@@ -26,8 +26,10 @@ interface ResultsViewProps {
   playerOrderMap: Record<string, number[]>
   teamSlots: Record<string, Record<string, number>>
   crewNumbers: Set<number>
+  positionOverrides: Record<string, string>
   onReorder: (team: string, playerNumbers: number[]) => void
   onUpdateTeamSlots: (teamCode: string, slots: Record<string, number> | null) => void
+  onPositionOverride: (playerNumber: number, newPosition: string | null) => void
   onReset: () => void
   onRunSorter: () => void
   onSwitchPosition: (group: PositionGroup) => void
@@ -41,8 +43,10 @@ export function ResultsView({
   playerOrderMap,
   teamSlots,
   crewNumbers,
+  positionOverrides,
   onReorder,
   onUpdateTeamSlots,
+  onPositionOverride,
   onReset,
   onRunSorter,
   onSwitchPosition,
@@ -51,48 +55,52 @@ export function ResultsView({
 
   return (
     <div className="app-page">
-      <div className="results-header">
-        <h1 className="results-label">
-          Expected Teams
-        </h1>
-        <p className="results-sublabel">Expand a team, then reorder players by dragging between teams.</p>
-      </div>
+      <div className="results-container">
+        <div className="results-header">
+          <h1 className="results-label">
+            Resulting Teams
+          </h1>
+          <p className="results-sublabel">Expand teams, then reorder players by dragging between teams.</p>
+        </div>
 
-      <div className="results-position-tabs">
-        {POSITION_BUTTONS.map(({ group, label }) => (
-          <button
-            key={group}
-            className={`results-position-tab${positionGroup === group ? " active" : ""}`}
-            onClick={() => onSwitchPosition(group)}
-          >
-            {label}
+        <div className="results-position-tabs">
+          {POSITION_BUTTONS.map(({ group, label }) => (
+            <button
+              key={group}
+              className={`results-position-tab${positionGroup === group ? " active" : ""}`}
+              onClick={() => onSwitchPosition(group)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="results-toolbar">
+          <button className="btn-primary-icon" onClick={onRunSorter}>
+            <RotateCcw size={14} />
+            Re-Sort Existing Teams
           </button>
-        ))}
-      </div>
+          <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
+            <RotateCcw size={14} />
+            <span className="comp-reset-label">Reset</span>
+          </button>
+        </div>
 
-      <div className="results-toolbar">
-        <button className="btn-primary-icon" onClick={onRunSorter}>
-          <RotateCcw size={14} />
-          Re-Sort Existing Teams
-        </button>
-        <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
-          <RotateCcw size={14} />
-          <span className="comp-reset-label">Reset</span>
-        </button>
-      </div>
-
-      <div className="results-content">
-        <ResultingTeamsDnd
-          teamOrder={teamOrder}
-          players={players}
-          pinnedPlayers={pinnedPlayers}
-          playerOrderMap={playerOrderMap}
-          teamSlots={teamSlots}
-          position={position}
-          crewNumbers={crewNumbers}
-          onReorder={onReorder}
-          onUpdateTeamSlots={onUpdateTeamSlots}
-        />
+        <div className="results-content">
+          <ResultingTeamsDnd
+            teamOrder={teamOrder}
+            players={players}
+            pinnedPlayers={pinnedPlayers}
+            playerOrderMap={playerOrderMap}
+            teamSlots={teamSlots}
+            position={position}
+            crewNumbers={crewNumbers}
+            positionOverrides={positionOverrides}
+            onReorder={onReorder}
+            onUpdateTeamSlots={onUpdateTeamSlots}
+            onPositionOverride={onPositionOverride}
+          />
+        </div>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { StepRankTeams } from "./step-rank-teams"
 import { ResultsView } from "./results-view"
@@ -16,6 +16,7 @@ import {
   updateTeamOrder,
   updatePlayerOrder,
   updateTeamSlots,
+  updatePositionOverrides,
   pinPlayer,
   markLastViewed,
   resetPrefs,
@@ -38,6 +39,7 @@ const defaultPrefs: UserCompetitionPrefs = {
   player_order: {},
   pinned_players: {},
   team_slots: {},
+  position_overrides: {},
   last_viewed: "",
   created_at: "",
   updated_at: "",
@@ -61,6 +63,15 @@ export default function HomePage() {
   // Wizard state
   const [step, setStep] = useState<WizardStep>("rank")
   const [activeGroup, setActiveGroup] = useState<PositionGroup>("forwards")
+
+  // Fast position lookup for splitting "all" tab reorders by position
+  const playerPositionMap = useMemo(() => {
+    const map: Record<number, string> = {}
+    for (const p of players) {
+      if (p.position) map[p.number] = p.position
+    }
+    return map
+  }, [players])
 
   useEffect(() => {
     const load = async () => {
@@ -93,7 +104,15 @@ export default function HomePage() {
 
         const prefs = (prefsRes.data || []) as UserCompetitionPrefs[]
         const globalRow = prefs.find((p) => p.position_group === "global")
-        const positionPrefs = prefs.filter((p) => p.position_group !== "global")
+        const positionPrefs = prefs.filter(
+          (p) => p.position_group !== "global" && p.position_group !== "all"
+        )
+
+        // Clean up legacy "all" rows (now derived from individual tabs)
+        const legacyAllRow = prefs.find((p) => p.position_group === "all")
+        if (legacyAllRow) {
+          resetPrefs("all").catch(() => {})
+        }
 
         // Determine global team order
         let initTeamOrder: string[] = []
@@ -236,57 +255,239 @@ export default function HomePage() {
     setStep("done")
   }, [])
 
+  // --- Helpers for derived "all" tab ---
+
+  const buildDerivedAllPlayerOrder = useCallback(
+    (prefsArray: UserCompetitionPrefs[]): Record<string, number[]> => {
+      const fwdPrefs = prefsArray.find((p) => p.position_group === "forwards")
+      const defPrefs = prefsArray.find((p) => p.position_group === "defense")
+      const goaPrefs = prefsArray.find((p) => p.position_group === "goalies")
+
+      const rtKeys = new Set<string>()
+      for (const prefs of [fwdPrefs, defPrefs, goaPrefs]) {
+        if (!prefs?.player_order) continue
+        for (const key of Object.keys(prefs.player_order)) {
+          if (key.startsWith("rt:")) rtKeys.add(key)
+        }
+      }
+
+      const merged: Record<string, number[]> = {}
+      for (const rtKey of rtKeys) {
+        merged[rtKey] = [
+          ...(fwdPrefs?.player_order?.[rtKey] || []),
+          ...(defPrefs?.player_order?.[rtKey] || []),
+          ...(goaPrefs?.player_order?.[rtKey] || []),
+        ]
+      }
+      return merged
+    },
+    []
+  )
+
+  const splitByPosition = useCallback(
+    (playerNumbers: number[]): { forwards: number[]; defense: number[]; goalies: number[] } => {
+      const forwards: number[] = []
+      const defense: number[] = []
+      const goalies: number[] = []
+      for (const num of playerNumbers) {
+        const pos = playerPositionMap[num]
+        if (pos === "F") forwards.push(num)
+        else if (pos === "D") defense.push(num)
+        else if (pos === "G") goalies.push(num)
+      }
+      return { forwards, defense, goalies }
+    },
+    [playerPositionMap]
+  )
+
   // --- Results step handlers (save per-position) ---
 
   const handleResultsPlayerReorder = useCallback(
     async (team: string, playerNumbers: number[]) => {
+      // Update currentPrefs for immediate UI feedback
       setCurrentPrefs((prev) => ({
         ...prev,
         player_order: { ...prev.player_order, [team]: playerNumbers },
       }))
-      try {
-        await updatePlayerOrder(activeGroup, team, playerNumbers)
-      } catch (err) {
-        console.error("Failed to save player order:", err)
+
+      if (activeGroup === "all") {
+        // Split the mixed-position array and save to each individual tab
+        const { forwards, defense, goalies } = splitByPosition(playerNumbers)
+        const updates: { group: PositionGroup; nums: number[] }[] = [
+          { group: "forwards", nums: forwards },
+          { group: "defense", nums: defense },
+          { group: "goalies", nums: goalies },
+        ]
+
+        setAllPrefs((prev) => {
+          const next = [...prev]
+          for (const { group, nums } of updates) {
+            const idx = next.findIndex((p) => p.position_group === group)
+            if (idx >= 0) {
+              next[idx] = { ...next[idx], player_order: { ...next[idx].player_order, [team]: nums } }
+            } else if (nums.length > 0) {
+              next.push({ ...defaultPrefs, position_group: group, player_order: { [team]: nums } })
+            }
+          }
+          return next
+        })
+
+        try {
+          await Promise.all(
+            updates
+              .filter(({ nums }) => nums.length > 0)
+              .map(({ group, nums }) => updatePlayerOrder(group, team, nums))
+          )
+        } catch (err) {
+          console.error("Failed to save player order:", err)
+        }
+      } else {
+        // Single position tab — save to that position
+        setAllPrefs((prev) => {
+          const idx = prev.findIndex((p) => p.position_group === activeGroup)
+          if (idx >= 0) {
+            const next = [...prev]
+            next[idx] = { ...next[idx], player_order: { ...next[idx].player_order, [team]: playerNumbers } }
+            return next
+          }
+          return [...prev, { ...defaultPrefs, position_group: activeGroup, player_order: { [team]: playerNumbers } }]
+        })
+
+        try {
+          await updatePlayerOrder(activeGroup, team, playerNumbers)
+        } catch (err) {
+          console.error("Failed to save player order:", err)
+        }
       }
     },
-    [activeGroup]
+    [activeGroup, splitByPosition]
   )
 
   const handleUpdateTeamSlots = useCallback(
     async (teamCode: string, slots: Record<string, number> | null) => {
-      setCurrentPrefs((prev) => {
-        const ts = { ...prev.team_slots }
+      const applySlots = (ts: Record<string, Record<string, number>>) => {
+        const next = { ...ts }
         if (slots) {
-          ts[teamCode] = slots
+          next[teamCode] = slots
         } else {
-          delete ts[teamCode]
+          delete next[teamCode]
         }
-        return { ...prev, team_slots: ts }
+        return next
+      }
+      setCurrentPrefs((prev) => ({ ...prev, team_slots: applySlots(prev.team_slots) }))
+
+      // Sync team_slots to all three position tabs (slots are position-agnostic)
+      const positionGroups: PositionGroup[] = ["forwards", "defense", "goalies"]
+      setAllPrefs((prev) => {
+        const next = [...prev]
+        for (const group of positionGroups) {
+          const idx = next.findIndex((p) => p.position_group === group)
+          if (idx >= 0) {
+            next[idx] = { ...next[idx], team_slots: applySlots(next[idx].team_slots || {}) }
+          } else {
+            next.push({ ...defaultPrefs, position_group: group, team_slots: applySlots({}) })
+          }
+        }
+        return next
       })
+
       try {
-        await updateTeamSlots(activeGroup, teamCode, slots)
+        await Promise.all(
+          positionGroups.map((group) => updateTeamSlots(group, teamCode, slots))
+        )
       } catch (err) {
         console.error("Failed to save team slots:", err)
       }
     },
-    [activeGroup]
+    []
+  )
+
+  const handlePositionOverride = useCallback(
+    async (playerNumber: number, newPosition: string | null) => {
+      // Update local state
+      setCurrentPrefs((prev) => {
+        const overrides = { ...prev.position_overrides }
+        if (newPosition) {
+          overrides[String(playerNumber)] = newPosition
+        } else {
+          delete overrides[String(playerNumber)]
+        }
+        return { ...prev, position_overrides: overrides }
+      })
+
+      // Sync to all three position group rows (like team_slots)
+      const positionGroups: PositionGroup[] = ["forwards", "defense", "goalies"]
+      setAllPrefs((prev) => {
+        const next = [...prev]
+        for (const group of positionGroups) {
+          const idx = next.findIndex((p) => p.position_group === group)
+          if (idx >= 0) {
+            const overrides = { ...next[idx].position_overrides }
+            if (newPosition) {
+              overrides[String(playerNumber)] = newPosition
+            } else {
+              delete overrides[String(playerNumber)]
+            }
+            next[idx] = { ...next[idx], position_overrides: overrides }
+          }
+        }
+        return next
+      })
+
+      // Save to DB for all three position groups
+      try {
+        await Promise.all(
+          positionGroups.map((group) =>
+            updatePositionOverrides(group, playerNumber, newPosition)
+          )
+        )
+      } catch (err) {
+        console.error("Failed to save position override:", err)
+      }
+    },
+    []
   )
 
   const handleResultsReset = useCallback(async () => {
-    if (!confirm("Reset your customizations for this position?")) return
-    setCurrentPrefs((prev) => ({
-      ...prev,
-      player_order: {},
-      pinned_players: {},
-      team_slots: {},
-    }))
-    try {
-      await resetPrefs(activeGroup)
-    } catch (err) {
-      console.error("Failed to reset:", err)
+    if (activeGroup === "all") {
+      if (!confirm("Reset customizations for all positions?")) return
+      setCurrentPrefs((prev) => ({
+        ...prev,
+        player_order: {},
+        pinned_players: {},
+        team_slots: {},
+        position_overrides: {},
+      }))
+      try {
+        await Promise.all([
+          resetPrefs("forwards"),
+          resetPrefs("defense"),
+          resetPrefs("goalies"),
+        ])
+      } catch (err) {
+        console.error("Failed to reset:", err)
+      }
+      setAllPrefs((prev) => prev.filter(
+        (p) => p.position_group !== "forwards"
+          && p.position_group !== "defense"
+          && p.position_group !== "goalies"
+      ))
+    } else {
+      if (!confirm("Reset your customizations for this position?")) return
+      setCurrentPrefs((prev) => ({
+        ...prev,
+        player_order: {},
+        pinned_players: {},
+        team_slots: {},
+        position_overrides: {},
+      }))
+      try {
+        await resetPrefs(activeGroup)
+      } catch (err) {
+        console.error("Failed to reset:", err)
+      }
+      setAllPrefs((prev) => prev.filter((p) => p.position_group !== activeGroup))
     }
-    setAllPrefs((prev) => prev.filter((p) => p.position_group !== activeGroup))
   }, [activeGroup])
 
   const handleRunSorter = useCallback(() => {
@@ -297,15 +498,33 @@ export default function HomePage() {
     (group: PositionGroup) => {
       if (group === "global") return
       setActiveGroup(group)
-      const existing = allPrefs.find((p) => p.position_group === group)
-      if (existing) {
-        setCurrentPrefs(existing)
+
+      if (group === "all") {
+        // Derive "all" from the three individual position tabs
+        const derivedPlayerOrder = buildDerivedAllPlayerOrder(allPrefs)
+        const anyPrefs = allPrefs.find(
+          (p) => p.position_group === "forwards"
+            || p.position_group === "defense"
+            || p.position_group === "goalies"
+        )
+        setCurrentPrefs({
+          ...defaultPrefs,
+          position_group: "all",
+          player_order: derivedPlayerOrder,
+          team_slots: anyPrefs?.team_slots || {},
+          position_overrides: anyPrefs?.position_overrides || {},
+        })
       } else {
-        setCurrentPrefs({ ...defaultPrefs, position_group: group })
+        const existing = allPrefs.find((p) => p.position_group === group)
+        if (existing) {
+          setCurrentPrefs(existing)
+        } else {
+          setCurrentPrefs({ ...defaultPrefs, position_group: group })
+        }
+        markLastViewed(group).catch((err) => console.error("Failed to mark last viewed:", err))
       }
-      markLastViewed(group).catch((err) => console.error("Failed to mark last viewed:", err))
     },
-    [allPrefs]
+    [allPrefs, buildDerivedAllPlayerOrder]
   )
 
   if (loading) {
@@ -376,8 +595,10 @@ export default function HomePage() {
       playerOrderMap={resultsPlayerOrderMap}
       teamSlots={currentPrefs.team_slots || {}}
       crewNumbers={crewNumbers}
+      positionOverrides={currentPrefs.position_overrides || {}}
       onReorder={handleResultsPlayerReorder}
       onUpdateTeamSlots={handleUpdateTeamSlots}
+      onPositionOverride={handlePositionOverride}
       onReset={handleResultsReset}
       onRunSorter={handleRunSorter}
       onSwitchPosition={handleResultsPositionSwitch}
