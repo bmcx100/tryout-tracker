@@ -3595,6 +3595,51 @@
   color: white;
 }
 
+.pos-switch-player {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  text-align: center;
+}
+
+.pos-switch-arrow {
+  @apply flex items-center justify-center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.pos-switch-badge {
+  font-family: var(--font-data);
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 14px;
+  border-radius: 0.25rem;
+  background: rgba(17, 17, 17, 0.06);
+  color: #6B6560;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+}
+
+.pos-switch-badge-new {
+  background: var(--color-signal);
+  color: white;
+  border-color: var(--color-signal);
+}
+
+.pos-switch-icon {
+  font-size: 20px;
+  color: #6B6560;
+}
+
+.pos-switch-revert {
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: #6B6560;
+  text-align: center;
+  margin-top: 8px;
+}
+
 .comp-player-heart {
   color: #E63B2E;
   flex-shrink: 0;

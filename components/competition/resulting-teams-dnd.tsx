@@ -52,6 +52,20 @@ function isCustomSlots(
   return custom.F !== DEFAULT_SLOTS.F || custom.D !== DEFAULT_SLOTS.D || custom.G !== DEFAULT_SLOTS.G
 }
 
+function applyPositionOverrides(
+  players: Player[],
+  overrides: Record<string, string>
+): Player[] {
+  if (!overrides || Object.keys(overrides).length === 0) return players
+  return players.map((p) => {
+    const override = overrides[String(p.number)]
+    if (override && override !== p.position) {
+      return { ...p, position: override }
+    }
+    return p
+  })
+}
+
 interface ResultingTeamsDndProps {
   teamOrder: string[]
   players: Player[]
@@ -60,8 +74,10 @@ interface ResultingTeamsDndProps {
   teamSlots: Record<string, Record<string, number>>
   position: "F" | "D" | "G" | "ALL"
   crewNumbers: Set<number>
+  positionOverrides: Record<string, string>
   onReorder: (team: string, playerNumbers: number[]) => void
   onUpdateTeamSlots: (teamCode: string, slots: Record<string, number> | null) => void
+  onPositionOverride: (playerNumber: number, newPosition: string | null) => void
 }
 
 function formatTeamCode(code: string): string {
@@ -125,12 +141,16 @@ function DraggablePlayerRow({
   isCrew,
   isPinned,
   showDivider,
+  isOverridden,
+  onLongPressPosition,
 }: {
   player: Player
   rank: number
   isCrew: boolean
   isPinned: boolean
   showDivider?: boolean
+  isOverridden: boolean
+  onLongPressPosition?: (player: Player) => void
 }) {
   const {
     attributes,
@@ -146,6 +166,36 @@ function DraggablePlayerRow({
     transition,
   }
 
+  const posLongPress = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const didPosLongPress = useRef(false)
+
+  const canSwitch = player.position === "F" || player.position === "D"
+
+  const handlePosPointerDown = (e: React.PointerEvent) => {
+    if (!canSwitch || !onLongPressPosition) return
+    e.stopPropagation()
+    didPosLongPress.current = false
+    posLongPress.current = setTimeout(() => {
+      didPosLongPress.current = true
+      onLongPressPosition(player)
+    }, 500)
+  }
+
+  const handlePosPointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation()
+    if (posLongPress.current) {
+      clearTimeout(posLongPress.current)
+      posLongPress.current = null
+    }
+  }
+
+  const handlePosPointerLeave = () => {
+    if (posLongPress.current) {
+      clearTimeout(posLongPress.current)
+      posLongPress.current = null
+    }
+  }
+
   return (
     <div
       ref={setNodeRef}
@@ -159,7 +209,14 @@ function DraggablePlayerRow({
       </span>
       <span className="comp-nt-rank">{rank}</span>
       <span className="comp-player-number">#{player.number}</span>
-      <span className="comp-player-pos">{player.position}</span>
+      <span
+        className={`comp-player-pos${isOverridden ? " comp-player-pos-override" : ""}`}
+        onPointerDown={canSwitch ? handlePosPointerDown : undefined}
+        onPointerUp={canSwitch ? handlePosPointerUp : undefined}
+        onPointerLeave={canSwitch ? handlePosPointerLeave : undefined}
+      >
+        {player.position}
+      </span>
       <span className="comp-player-name">
         {playerName(player.first_name, player.last_name, player.number)}
       </span>
@@ -269,6 +326,56 @@ function SlotEditorModal({
   )
 }
 
+function PositionSwitchModal({
+  player,
+  originalPosition,
+  onConfirm,
+  onClose,
+}: {
+  player: Player
+  originalPosition: string
+  onConfirm: () => void
+  onClose: () => void
+}) {
+  const currentPos = player.position
+  const newPos = currentPos === "F" ? "D" : "F"
+  const isReverting = currentPos !== originalPosition
+
+  return (
+    <div className="slot-modal-overlay" onClick={onClose}>
+      <div className="slot-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="slot-modal-header">
+          <span className="slot-modal-title">Switch Position</span>
+          <button className="slot-modal-close" onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
+        <div className="slot-modal-body">
+          <p className="pos-switch-player">
+            {playerName(player.first_name, player.last_name, player.number)} (#{player.number})
+          </p>
+          <div className="pos-switch-arrow">
+            <span className="pos-switch-badge">{currentPos}</span>
+            <span className="pos-switch-icon">→</span>
+            <span className="pos-switch-badge pos-switch-badge-new">{newPos}</span>
+          </div>
+          {isReverting && (
+            <p className="pos-switch-revert">Restoring original position</p>
+          )}
+        </div>
+        <div className="slot-modal-footer">
+          <button className="slot-reset-btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="slot-save-btn" onClick={onConfirm}>
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function DroppableTeam({
   teamCode,
   players,
@@ -278,7 +385,9 @@ function DroppableTeam({
   isCustom,
   position,
   totalPlayers,
+  positionOverrides,
   onOpenSlotEditor,
+  onLongPressPosition,
 }: {
   teamCode: string
   players: Player[]
@@ -288,7 +397,9 @@ function DroppableTeam({
   isCustom: boolean
   position: "F" | "D" | "G" | "ALL"
   totalPlayers: number
+  positionOverrides: Record<string, string>
   onOpenSlotEditor: (teamCode: string) => void
+  onLongPressPosition: (player: Player) => void
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const { setNodeRef } = useDroppable({ id: `rt-${teamCode}` })
@@ -373,6 +484,8 @@ function DroppableTeam({
                   isCrew={crewNumbers.has(player.number)}
                   isPinned={isPinned}
                   showDivider={isPositionBreak}
+                  isOverridden={!!positionOverrides[String(player.number)]}
+                  onLongPressPosition={onLongPressPosition}
                 />
               )
             })}
@@ -391,15 +504,23 @@ export function ResultingTeamsDnd({
   teamSlots,
   position,
   crewNumbers,
+  positionOverrides,
   onReorder,
   onUpdateTeamSlots,
+  onPositionOverride,
 }: ResultingTeamsDndProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
+  const effectivePlayers = useMemo(
+    () => applyPositionOverrides(players, positionOverrides),
+    [players, positionOverrides]
+  )
+
   const [slotEditorTeam, setSlotEditorTeam] = useState<string | null>(null)
+  const [switchTarget, setSwitchTarget] = useState<Player | null>(null)
 
   const assignments = useMemo(() => {
     const positions: ("F" | "D" | "G")[] = position === "ALL"
@@ -413,7 +534,7 @@ export function ResultingTeamsDnd({
     }
 
     for (const pos of positions) {
-      const ranked = buildRankedList(players, teamOrder, pinnedPlayers, playerOrderMap, pos)
+      const ranked = buildRankedList(effectivePlayers, teamOrder, pinnedPlayers, playerOrderMap, pos)
       let idx = 0
       for (const team of U15_TEAMS) {
         const slots = getTeamSlots(team, teamSlots)
@@ -427,7 +548,7 @@ export function ResultingTeamsDnd({
     const hasOverrides = U15_TEAMS.some((t) => playerOrderMap[`rt:${t}`]?.length > 0)
     if (!hasOverrides) return computed
 
-    const playerMap = new Map(players.map((p) => [p.number, p]))
+    const playerMap = new Map(effectivePlayers.map((p) => [p.number, p]))
     const result: Record<string, Player[]> = {}
     const assigned = new Set<number>()
 
@@ -451,7 +572,22 @@ export function ResultingTeamsDnd({
     }
 
     return result
-  }, [players, teamOrder, pinnedPlayers, playerOrderMap, teamSlots, position])
+  }, [effectivePlayers, teamOrder, pinnedPlayers, playerOrderMap, teamSlots, position])
+
+  const handleConfirmSwitch = useCallback(() => {
+    if (!switchTarget) return
+    const currentPos = switchTarget.position
+    const originalPos = players.find((p) => p.number === switchTarget.number)?.position
+    const isReverting = currentPos !== originalPos
+
+    if (isReverting) {
+      onPositionOverride(switchTarget.number, null)
+    } else {
+      const newPos = currentPos === "F" ? "D" : "F"
+      onPositionOverride(switchTarget.number, newPos)
+    }
+    setSwitchTarget(null)
+  }, [switchTarget, players, onPositionOverride])
 
   // Compute full team totals (all positions) for the warning indicator
   const fullTeamTotals = useMemo(() => {
@@ -619,7 +755,9 @@ export function ResultingTeamsDnd({
               isCustom={isCustomSlots(teamCode, teamSlots)}
               position={position}
               totalPlayers={fullTeamTotals[teamCode] ?? 17}
+              positionOverrides={positionOverrides}
               onOpenSlotEditor={setSlotEditorTeam}
+              onLongPressPosition={setSwitchTarget}
             />
           ))}
         </div>
@@ -630,6 +768,14 @@ export function ResultingTeamsDnd({
           slots={getTeamSlots(slotEditorTeam, teamSlots)}
           onSave={(slots) => onUpdateTeamSlots(slotEditorTeam, slots)}
           onClose={() => setSlotEditorTeam(null)}
+        />
+      )}
+      {switchTarget && (
+        <PositionSwitchModal
+          player={switchTarget}
+          originalPosition={players.find((p) => p.number === switchTarget.number)?.position ?? switchTarget.position ?? "F"}
+          onConfirm={handleConfirmSwitch}
+          onClose={() => setSwitchTarget(null)}
         />
       )}
     </>
