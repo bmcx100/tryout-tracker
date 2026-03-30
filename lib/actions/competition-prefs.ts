@@ -36,10 +36,7 @@ export async function getAllCompetitionPrefs(): Promise<UserCompetitionPrefs[]> 
   return data || []
 }
 
-export async function updateTeamOrder(
-  positionGroup: PositionGroup,
-  teamOrder: string[]
-) {
+export async function updateTeamOrder(teamOrder: string[]) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Not authenticated")
@@ -48,7 +45,7 @@ export async function updateTeamOrder(
     .from("user_competition_prefs")
     .upsert({
       user_id: user.id,
-      position_group: positionGroup,
+      position_group: "global",
       team_order: teamOrder,
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id,position_group" })

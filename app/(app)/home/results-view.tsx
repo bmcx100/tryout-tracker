@@ -4,18 +4,11 @@ import { RotateCcw } from "lucide-react"
 import { ResultingTeamsDnd } from "@/components/competition/resulting-teams-dnd"
 import type { Player, PinnedPlayer, PositionGroup } from "@/lib/types"
 
-const GROUP_TO_POSITION: Record<PositionGroup, "F" | "D" | "G" | "ALL"> = {
+const GROUP_TO_POSITION: Partial<Record<PositionGroup, "F" | "D" | "G" | "ALL">> = {
   all: "ALL",
   forwards: "F",
   defense: "D",
   goalies: "G",
-}
-
-const GROUP_LABELS: Record<PositionGroup, string> = {
-  all: "All Players",
-  forwards: "Forwards",
-  defense: "Defense",
-  goalies: "Goalies",
 }
 
 const POSITION_BUTTONS: { group: PositionGroup; label: string }[] = [
@@ -54,7 +47,7 @@ export function ResultsView({
   onRunSorter,
   onSwitchPosition,
 }: ResultsViewProps) {
-  const position = GROUP_TO_POSITION[positionGroup]
+  const position = GROUP_TO_POSITION[positionGroup] || "ALL"
 
   return (
     <div className="app-page">
@@ -63,17 +56,6 @@ export function ResultsView({
           Expected Teams
         </h1>
         <p className="results-sublabel">Expand a team, then reorder players by dragging between teams.</p>
-      </div>
-
-      <div className="results-toolbar">
-        <button className="btn-primary-icon" onClick={onRunSorter}>
-          <RotateCcw size={14} />
-          Re-Sort Existing Teams
-        </button>
-        <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
-          <RotateCcw size={14} />
-          <span className="comp-reset-label">Reset</span>
-        </button>
       </div>
 
       <div className="results-position-tabs">
@@ -86,6 +68,17 @@ export function ResultsView({
             {label}
           </button>
         ))}
+      </div>
+
+      <div className="results-toolbar">
+        <button className="btn-primary-icon" onClick={onRunSorter}>
+          <RotateCcw size={14} />
+          Re-Sort Existing Teams
+        </button>
+        <button className="comp-reset-btn" onClick={onReset} title="Reset to defaults">
+          <RotateCcw size={14} />
+          <span className="comp-reset-label">Reset</span>
+        </button>
       </div>
 
       <div className="results-content">

@@ -27,6 +27,7 @@ interface TeamTierListProps {
   playerOrderMap: Record<string, number[]>
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
+  positionFilter?: "F" | "D" | "G" | "ALL"
   onTeamReorder: (newOrder: string[]) => void
   onPlayerReorder: (team: string, playerNumbers: number[]) => void
   onPinToTeam: (playerNumber: number, targetTeam: string, position: number) => void
@@ -39,6 +40,7 @@ export function TeamTierList({
   playerOrderMap,
   pinnedPlayers,
   crewNumbers,
+  positionFilter,
   onTeamReorder,
   onPlayerReorder,
   onPinToTeam,
@@ -216,6 +218,17 @@ export function TeamTierList({
     return counts
   }, [teamOrder, teamPlayerNumbers])
 
+  // Filtered counts for display when position filter is active
+  const filteredPlayerCounts = useMemo(() => {
+    if (!positionFilter || positionFilter === "ALL") return teamPlayerCounts
+    const counts: Record<string, number> = {}
+    for (const team of teamOrder) {
+      const nums = teamPlayerNumbers[team] || []
+      counts[team] = nums.filter((n) => playerPositionLookup[n] === positionFilter).length
+    }
+    return counts
+  }, [teamOrder, teamPlayerNumbers, playerPositionLookup, positionFilter, teamPlayerCounts])
+
   const visibleTeams = teamOrder.filter(
     (t) => teamPlayerCounts[t] > 0
   )
@@ -233,11 +246,12 @@ export function TeamTierList({
               key={teamCode}
               teamCode={teamCode}
               rank={idx + 1}
-              playerCount={teamPlayerCounts[teamCode]}
+              playerCount={filteredPlayerCounts[teamCode]}
               allPlayers={allPlayers}
               playerOrder={effectivePlayerOrder[teamCode]}
               pinnedPlayers={effectivePinned}
               crewNumbers={crewNumbers}
+              positionFilter={positionFilter}
             />
           ))}
         </div>

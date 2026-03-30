@@ -16,7 +16,7 @@ export type CorrectionStatus = "pending" | "approved" | "rejected"
 
 export type CorrectionEntityType = "player" | "session" | "round"
 
-export type PositionGroup = "all" | "forwards" | "defense" | "goalies"
+export type PositionGroup = "all" | "forwards" | "defense" | "goalies" | "global"
 
 export interface Profile {
   id: string
