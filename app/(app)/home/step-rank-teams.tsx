@@ -64,9 +64,9 @@ export function StepRankTeams({
         </button>
         {showInstructions && (
           <div className="wizard-steps">
-            <p>1. Drag the teams to rank top to bottom.</p>
-            <p>2. Rank players in the teams for each of the positions.</p>
-            <p>3. Click &apos;View Resulting Teams&apos; at bottom of the page.</p>
+            <p>1. Drag Teams up / down to rank top to bottom.</p>
+            <p>2. Select Position, expand team, drag Player up / down to change their in team order.</p>
+            <p>3. Click &apos;View Resulting Teams&apos; at bottom of the page to see results.</p>
           </div>
         )}
       </div>
