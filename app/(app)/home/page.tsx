@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { StepRankTeams } from "./step-rank-teams"
 import { ResultsView } from "./results-view"
+import { ResetConfirmModal } from "@/components/competition/reset-confirm-modal"
 import type {
   Player,
   UserCompetitionPrefs,
@@ -29,6 +30,12 @@ const POSITION_MAP: Record<string, "F" | "D" | "G" | "ALL"> = {
   forwards: "F",
   defense: "D",
   goalies: "G",
+}
+
+const POSITION_LABEL: Record<string, string> = {
+  forwards: "Forwards",
+  defense: "Defense",
+  goalies: "Goalies",
 }
 
 const defaultPrefs: UserCompetitionPrefs = {
@@ -63,6 +70,11 @@ export default function HomePage() {
   // Wizard state
   const [step, setStep] = useState<WizardStep>("rank")
   const [activeGroup, setActiveGroup] = useState<PositionGroup>("forwards")
+  const [resetModal, setResetModal] = useState<{
+    title: string
+    items: string[]
+    onConfirm: () => void
+  } | null>(null)
 
   // Fast position lookup for splitting "all" tab reorders by position
   // Incorporates position overrides so drag-and-drop on "all" tab routes correctly
@@ -239,39 +251,79 @@ export default function HomePage() {
     []
   )
 
-  const handleRankReset = useCallback(async () => {
-    if (!confirm("Reset team rankings to default order?")) return
-    setGlobalTeamOrder([])
-    setGlobalPlayerOrder({})
-    setGlobalPinnedPlayers({})
-    try {
-      await resetPrefs("global")
-    } catch (err) {
-      console.error("Failed to reset global team order:", err)
-    }
-  }, [])
+  const handleRankReset = useCallback(() => {
+    const posCode = POSITION_MAP[activeGroup]
+    const label = POSITION_LABEL[activeGroup] || activeGroup
+    setResetModal({
+      title: `Reset ${label} Rankings`,
+      items: [
+        `${label} player order`,
+        `${label} moved between teams`,
+      ],
+      onConfirm: async () => {
+        setResetModal(null)
+        // Filter out only players matching the active position
+        const posNums = new Set(
+          players
+            .filter((p) => (playerPositionMap[p.number] || p.position) === posCode)
+            .map((p) => p.number)
+        )
+        setGlobalPlayerOrder((prev) => {
+          const next: Record<string, number[]> = {}
+          for (const [team, nums] of Object.entries(prev)) {
+            const filtered = nums.filter((n) => !posNums.has(n))
+            if (filtered.length > 0) next[team] = filtered
+          }
+          return next
+        })
+        setGlobalPinnedPlayers((prev) => {
+          const next: Record<string, PinnedPlayer> = {}
+          for (const [key, val] of Object.entries(prev)) {
+            if (!posNums.has(Number(key))) next[key] = val
+          }
+          return next
+        })
+        try {
+          await resetPrefs("global")
+        } catch (err) {
+          console.error("Failed to reset rank position:", err)
+        }
+      },
+    })
+  }, [activeGroup, players, playerPositionMap])
 
-  const handleRankResetAll = useCallback(async () => {
-    if (!confirm("Reset all rankings and position overrides?")) return
-    setGlobalTeamOrder([])
-    setGlobalPlayerOrder({})
-    setGlobalPinnedPlayers({})
-    setCurrentPrefs((prev) => ({ ...prev, position_overrides: {} }))
-    try {
-      await Promise.all([
-        resetPrefs("global"),
-        resetPrefs("forwards"),
-        resetPrefs("defense"),
-        resetPrefs("goalies"),
-      ])
-    } catch (err) {
-      console.error("Failed to reset all:", err)
-    }
-    setAllPrefs((prev) => prev.filter(
-      (p) => p.position_group !== "forwards"
-        && p.position_group !== "defense"
-        && p.position_group !== "goalies"
-    ))
+  const handleRankResetAll = useCallback(() => {
+    setResetModal({
+      title: "Reset All Rankings",
+      items: [
+        "Team order",
+        "All player order",
+        "Players moved between teams",
+        "F/D position switches",
+      ],
+      onConfirm: async () => {
+        setResetModal(null)
+        setGlobalTeamOrder([])
+        setGlobalPlayerOrder({})
+        setGlobalPinnedPlayers({})
+        setCurrentPrefs((prev) => ({ ...prev, position_overrides: {} }))
+        try {
+          await Promise.all([
+            resetPrefs("global"),
+            resetPrefs("forwards"),
+            resetPrefs("defense"),
+            resetPrefs("goalies"),
+          ])
+        } catch (err) {
+          console.error("Failed to reset all:", err)
+        }
+        setAllPrefs((prev) => prev.filter(
+          (p) => p.position_group !== "forwards"
+            && p.position_group !== "defense"
+            && p.position_group !== "goalies"
+        ))
+      },
+    })
   }, [])
 
   const handleRankPositionSwitch = useCallback((group: PositionGroup) => {
@@ -478,72 +530,70 @@ export default function HomePage() {
     []
   )
 
-  const handleResultsReset = useCallback(async () => {
-    if (activeGroup === "all") {
-      if (!confirm("Reset customizations for all positions?")) return
-      setCurrentPrefs((prev) => ({
-        ...prev,
-        player_order: {},
-        pinned_players: {},
-        team_slots: {},
-        position_overrides: {},
-      }))
-      try {
-        await Promise.all([
-          resetPrefs("forwards"),
-          resetPrefs("defense"),
-          resetPrefs("goalies"),
-        ])
-      } catch (err) {
-        console.error("Failed to reset:", err)
-      }
-      setAllPrefs((prev) => prev.filter(
-        (p) => p.position_group !== "forwards"
-          && p.position_group !== "defense"
-          && p.position_group !== "goalies"
-      ))
-    } else {
-      if (!confirm("Reset your customizations for this position?")) return
-      setCurrentPrefs((prev) => ({
-        ...prev,
-        player_order: {},
-        pinned_players: {},
-        team_slots: {},
-        position_overrides: {},
-      }))
-      try {
-        await resetPrefs(activeGroup)
-      } catch (err) {
-        console.error("Failed to reset:", err)
-      }
-      setAllPrefs((prev) => prev.filter((p) => p.position_group !== activeGroup))
-    }
-  }, [activeGroup])
-
-  const handleResultsResetAll = useCallback(async () => {
-    if (!confirm("Reset customizations for all positions?")) return
-    setCurrentPrefs((prev) => ({
-      ...prev,
-      player_order: {},
-      pinned_players: {},
-      team_slots: {},
-      position_overrides: {},
-    }))
-    try {
-      await Promise.all([
-        resetPrefs("forwards"),
-        resetPrefs("defense"),
-        resetPrefs("goalies"),
-      ])
-    } catch (err) {
-      console.error("Failed to reset all:", err)
-    }
-    setAllPrefs((prev) => prev.filter(
-      (p) => p.position_group !== "forwards"
-        && p.position_group !== "defense"
-        && p.position_group !== "goalies"
-    ))
+  const handleResultsResetAll = useCallback(() => {
+    setResetModal({
+      title: "Reset All Results",
+      items: [
+        "All player order",
+        "Players moved between teams",
+        "Team roster slots",
+        "F/D position switches",
+      ],
+      onConfirm: async () => {
+        setResetModal(null)
+        setCurrentPrefs((prev) => ({
+          ...prev,
+          player_order: {},
+          pinned_players: {},
+          team_slots: {},
+          position_overrides: {},
+        }))
+        try {
+          await Promise.all([
+            resetPrefs("forwards"),
+            resetPrefs("defense"),
+            resetPrefs("goalies"),
+          ])
+        } catch (err) {
+          console.error("Failed to reset all:", err)
+        }
+        setAllPrefs((prev) => prev.filter(
+          (p) => p.position_group !== "forwards"
+            && p.position_group !== "defense"
+            && p.position_group !== "goalies"
+        ))
+      },
+    })
   }, [])
+
+  const handleResultsReset = useCallback(() => {
+    if (activeGroup === "all") {
+      handleResultsResetAll()
+      return
+    }
+    const label = POSITION_LABEL[activeGroup] || activeGroup
+    setResetModal({
+      title: `Reset ${label} Results`,
+      items: [
+        `${label} player order`,
+        `${label} moved between teams`,
+      ],
+      onConfirm: async () => {
+        setResetModal(null)
+        setCurrentPrefs((prev) => ({
+          ...prev,
+          player_order: {},
+          pinned_players: {},
+        }))
+        try {
+          await resetPrefs(activeGroup)
+        } catch (err) {
+          console.error("Failed to reset:", err)
+        }
+        setAllPrefs((prev) => prev.filter((p) => p.position_group !== activeGroup))
+      },
+    })
+  }, [activeGroup, handleResultsResetAll])
 
   const handleRunSorter = useCallback(() => {
     if (activeGroup === "all") setActiveGroup("forwards")
@@ -640,28 +690,46 @@ export default function HomePage() {
           onNext={handleWizardDone}
           onSwitchPosition={handleRankPositionSwitch}
         />
+        {resetModal && (
+          <ResetConfirmModal
+            title={resetModal.title}
+            items={resetModal.items}
+            onConfirm={resetModal.onConfirm}
+            onCancel={() => setResetModal(null)}
+          />
+        )}
       </div>
     )
   }
 
   // step === "done" — results view
   return (
-    <ResultsView
-      positionGroup={activeGroup}
-      teamOrder={teamOrder}
-      players={players}
-      pinnedPlayers={globalPinnedPlayers}
-      playerOrderMap={resultsPlayerOrderMap}
-      teamSlots={currentPrefs.team_slots || {}}
-      crewNumbers={crewNumbers}
-      positionOverrides={currentPrefs.position_overrides || {}}
-      onReorder={handleResultsPlayerReorder}
-      onUpdateTeamSlots={handleUpdateTeamSlots}
-      onPositionOverride={handlePositionOverride}
-      onReset={handleResultsReset}
-      onResetAll={handleResultsResetAll}
-      onRunSorter={handleRunSorter}
-      onSwitchPosition={handleResultsPositionSwitch}
-    />
+    <>
+      <ResultsView
+        positionGroup={activeGroup}
+        teamOrder={teamOrder}
+        players={players}
+        pinnedPlayers={globalPinnedPlayers}
+        playerOrderMap={resultsPlayerOrderMap}
+        teamSlots={currentPrefs.team_slots || {}}
+        crewNumbers={crewNumbers}
+        positionOverrides={currentPrefs.position_overrides || {}}
+        onReorder={handleResultsPlayerReorder}
+        onUpdateTeamSlots={handleUpdateTeamSlots}
+        onPositionOverride={handlePositionOverride}
+        onReset={handleResultsReset}
+        onResetAll={handleResultsResetAll}
+        onRunSorter={handleRunSorter}
+        onSwitchPosition={handleResultsPositionSwitch}
+      />
+      {resetModal && (
+        <ResetConfirmModal
+          title={resetModal.title}
+          items={resetModal.items}
+          onConfirm={resetModal.onConfirm}
+          onCancel={() => setResetModal(null)}
+        />
+      )}
+    </>
   )
 }
