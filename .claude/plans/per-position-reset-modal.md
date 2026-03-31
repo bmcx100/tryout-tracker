@@ -39,7 +39,7 @@ Render `<ResetConfirmModal>` at the bottom of both the rank and results views wh
 ### Rank Teams — Reset (current position only)
 - Show modal with title "Reset {Position} Rankings"
 - Items: "Player order for {position}", "Pinned players for {position}"
-- On confirm: filter `globalPlayerOrder` and `globalPinnedPlayers` to remove only players matching the active position (using `playerPositionMap`), then save to DB
+- On confirm: filter `globalPlayerOrder` and `globalPinnedPlayers` to remove ONLY players matching the active position (using `playerPositionMap`), preserving other positions' ordering. Save updated global prefs to DB.
 
 ### Rank Teams — Reset All
 - Show modal with title "Reset All Rankings"
@@ -49,8 +49,8 @@ Render `<ResetConfirmModal>` at the bottom of both the rank and results views wh
 ### Resulting Teams — Reset (current position only)
 - If activeGroup is "all", behave like Reset All
 - Otherwise show modal with title "Reset {Position} Results"
-- Items: "Player order for {position}", "Pinned players for {position}", "Team roster slots", "Position overrides"
-- On confirm: reset only that position group's prefs
+- Items: "Player order for {position}", "Pinned players for {position}"
+- On confirm: reset only that position group's player_order and pinned_players. Team slots and position overrides are NOT cleared (shared across positions, only cleared on Reset All).
 
 ### Resulting Teams — Reset All
 - Show modal with title "Reset All Results"
