@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { getActiveOrgContext } from "@/lib/actions/org-context"
 import type { PlayerLevel } from "@/lib/types"
 
 export async function createSession(data: {
@@ -14,8 +15,12 @@ export async function createSession(data: {
   rink: string
   notes?: string
 }) {
+  const { orgId } = await getActiveOrgContext()
   const supabase = await createClient()
-  const { error } = await supabase.from("sessions").insert(data)
+  const { error } = await supabase.from("sessions").insert({
+    ...data,
+    org_id: orgId,
+  })
 
   if (error) throw new Error(error.message)
   revalidatePath("/admin/sessions")
@@ -59,20 +64,20 @@ export async function assignPlayersToSession(
   sessionId: string,
   playerNumbers: number[]
 ) {
+  const { orgId } = await getActiveOrgContext()
   const supabase = await createClient()
 
-  // Remove existing assignments
   await supabase
     .from("session_players")
     .delete()
     .eq("session_id", sessionId)
 
-  // Insert new assignments
   if (playerNumbers.length > 0) {
     const { error } = await supabase.from("session_players").insert(
       playerNumbers.map((num) => ({
         session_id: sessionId,
         player_number: num,
+        org_id: orgId,
       }))
     )
     if (error) throw new Error(error.message)

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { getActiveOrgContext } from "@/lib/actions/org-context"
 import type { PlayerLevel, PlayerStatus } from "@/lib/types"
 
 export async function createPlayer(data: {
@@ -15,9 +16,11 @@ export async function createPlayer(data: {
   entry_level?: PlayerLevel | null
   current_level?: PlayerLevel | null
 }) {
+  const { orgId } = await getActiveOrgContext()
   const supabase = await createClient()
   const { error } = await supabase.from("players").insert({
     ...data,
+    org_id: orgId,
     status: "active_tryout" as PlayerStatus,
   })
 
@@ -72,9 +75,11 @@ export async function bulkCreatePlayers(
     current_level?: PlayerLevel
   }[]
 ) {
+  const { orgId } = await getActiveOrgContext()
   const supabase = await createClient()
   const records = rows.map((row) => ({
     ...row,
+    org_id: orgId,
     status: "active_tryout" as PlayerStatus,
   }))
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { getActiveOrgContext } from "@/lib/actions/org-context"
 import type { PlayerLevel, RoundResult } from "@/lib/types"
 
 export async function createRound(data: {
@@ -10,8 +11,12 @@ export async function createRound(data: {
   date: string
   notes?: string
 }) {
+  const { orgId } = await getActiveOrgContext()
   const supabase = await createClient()
-  const { error } = await supabase.from("rounds").insert(data)
+  const { error } = await supabase.from("rounds").insert({
+    ...data,
+    org_id: orgId,
+  })
 
   if (error) throw new Error(error.message)
   revalidatePath("/admin/rounds")
@@ -25,21 +30,21 @@ export async function recordRoundResults(
     notes?: string
   }>
 ) {
+  const { orgId } = await getActiveOrgContext()
   const supabase = await createClient()
 
-  // Insert results
   const { error: resultError } = await supabase.from("round_results").insert(
     results.map((r) => ({
       round_id: roundId,
       player_number: r.player_number,
       result: r.result,
       notes: r.notes,
+      org_id: orgId,
     }))
   )
 
   if (resultError) throw new Error(resultError.message)
 
-  // Cascade status updates
   const { data: round } = await supabase
     .from("rounds")
     .select("level")
@@ -61,6 +66,7 @@ export async function recordRoundResults(
           updated_at: new Date().toISOString(),
         })
         .eq("number", r.player_number)
+        .eq("org_id", orgId)
     } else if (r.result === "placed") {
       await supabase
         .from("players")
@@ -69,6 +75,7 @@ export async function recordRoundResults(
           updated_at: new Date().toISOString(),
         })
         .eq("number", r.player_number)
+        .eq("org_id", orgId)
     } else if (r.result === "withdrawn") {
       await supabase
         .from("players")
@@ -77,6 +84,7 @@ export async function recordRoundResults(
           updated_at: new Date().toISOString(),
         })
         .eq("number", r.player_number)
+        .eq("org_id", orgId)
     }
   }
 
