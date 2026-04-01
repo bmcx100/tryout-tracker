@@ -1724,7 +1724,7 @@
 
 @media (min-width: 768px) {
   .admin-stats {
-    @apply flex-row;
+    max-width: 375px;
   }
 }
 
