@@ -1,10 +1,16 @@
 "use client"
 
-import { RotateCcw } from "lucide-react"
+import { RotateCcw, ChevronLeft } from "lucide-react"
 import { TeamTierList } from "@/components/competition/team-tier-list"
 import type { Player, PinnedPlayer, PositionGroup } from "@/lib/types"
 
-interface StepRankTeamsProps {
+const POSITION_BUTTONS: { group: PositionGroup; label: string }[] = [
+  { group: "forwards", label: "Forwards" },
+  { group: "defense", label: "Defense" },
+  { group: "goalies", label: "Goalies" },
+]
+
+interface StepRankPlayersProps {
   teamOrder: string[]
   playersByTeam: Record<string, Player[]>
   allPlayers: Player[]
@@ -12,16 +18,19 @@ interface StepRankTeamsProps {
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
   positionFilter: "F" | "D" | "G" | "ALL"
+  positionGroup: PositionGroup
   positionOverrides: Record<string, string>
-  onTeamReorder: (newOrder: string[]) => void
   onPlayerReorder: (team: string, playerNumbers: number[]) => void
   onPinToTeam: (playerNumber: number, targetTeam: string, pos: number) => void
   onReset: () => void
+  onResetAll: () => void
   onNext: () => void
+  onBack: () => void
+  onSwitchPosition: (group: PositionGroup) => void
   onPositionOverride: (playerNumber: number, newPosition: string | null) => void
 }
 
-export function StepRankTeams({
+export function StepRankPlayers({
   teamOrder,
   playersByTeam,
   allPlayers,
@@ -29,24 +38,43 @@ export function StepRankTeams({
   pinnedPlayers,
   crewNumbers,
   positionFilter,
+  positionGroup,
   positionOverrides,
-  onTeamReorder,
   onPlayerReorder,
   onPinToTeam,
   onReset,
+  onResetAll,
   onNext,
+  onBack,
+  onSwitchPosition,
   onPositionOverride,
-}: StepRankTeamsProps) {
+}: StepRankPlayersProps) {
   return (
     <div className="wizard-container">
       <div className="wizard-step-row">
-        <span className="wizard-step-label">Step 1 of 2</span>
+        <button className="wizard-back-link" onClick={onBack}>
+          <ChevronLeft size={14} />
+          Back
+        </button>
+        <span className="wizard-step-label">Step 2 of 2</span>
       </div>
-      <h1 className="wizard-headline">Rank Existing Teams</h1>
+      <h1 className="wizard-headline">Rank Existing Players</h1>
       <p className="wizard-instruction-inline">
-        Drag teams to rank them. Best at top. Age groups can mix.{" "}
-        <span className="nowrap">You&apos;ll sort players next.</span>
+        Expand a team. Drag players up or down to reorder.{" "}
+        <span className="nowrap">Drag between teams to move.</span>
       </p>
+
+      <div className="results-position-tabs">
+        {POSITION_BUTTONS.map(({ group, label }) => (
+          <button
+            key={group}
+            className={`results-position-tab${positionGroup === group ? " active" : ""}`}
+            onClick={() => onSwitchPosition(group)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <div className="comp-content">
         <TeamTierList
@@ -58,22 +86,26 @@ export function StepRankTeams({
           crewNumbers={crewNumbers}
           positionFilter={positionFilter}
           positionOverrides={positionOverrides}
-          onTeamReorder={onTeamReorder}
+          onTeamReorder={() => {}}
           onPlayerReorder={onPlayerReorder}
           onPinToTeam={onPinToTeam}
           onPositionOverride={onPositionOverride}
-          mode="teams"
+          mode="players"
         />
       </div>
 
       <div className="wizard-bottom-actions">
         <button className="btn-primary-icon" onClick={onNext}>
-          Rank Players
+          View Resulting Teams
         </button>
         <div className="results-reset-group">
-          <button className="comp-reset-btn" onClick={onReset} title="Reset team order">
+          <button className="comp-reset-btn" onClick={onReset} title="Reset this position">
             <RotateCcw size={16} />
             <span className="comp-reset-label">Reset</span>
+          </button>
+          <button className="comp-reset-btn" onClick={onResetAll} title="Reset all positions">
+            <RotateCcw size={16} />
+            <span className="comp-reset-label">Reset All</span>
           </button>
         </div>
       </div>

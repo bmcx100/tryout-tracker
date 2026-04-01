@@ -3087,6 +3087,43 @@
   padding: 24px 0;
 }
 
+.wizard-step-label {
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--color-steel);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-left: auto;
+}
+
+.wizard-step-row {
+  @apply flex items-center justify-between;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.wizard-back-link {
+  @apply flex items-center;
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--color-steel);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  cursor: pointer;
+  gap: 2px;
+  padding: 0;
+}
+
+.wizard-back-link:hover {
+  color: var(--color-ink);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
 .wizard-headline {
   font-family: var(--font-heading);
   font-size: 28px;
@@ -3104,6 +3141,14 @@
   line-height: 1.5;
   margin-bottom: 32px;
   max-width: 360px;
+}
+
+.wizard-instruction-inline {
+  font-family: var(--font-data);
+  font-size: 15px;
+  color: #6B6560;
+  text-align: center;
+  margin-bottom: 12px;
 }
 
 .wizard-instructions-toggle {
@@ -3461,9 +3506,191 @@
   transition: box-shadow 150ms;
 }
 
+.comp-age-group-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.comp-age-group-divider::before,
+.comp-age-group-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(17, 17, 17, 0.08);
+}
+
+.comp-age-group-label {
+  font-family: var(--font-data);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(107, 101, 96, 0.45);
+  white-space: nowrap;
+}
+
 .comp-team-dragging {
   box-shadow: 0 4px 16px rgba(17, 17, 17, 0.15);
   z-index: 10;
+}
+
+/* Nudge hint — staggered wave on all cards */
+.comp-team-hint {
+  animation: team-nudge 0.6s ease var(--hint-delay, 2s) 1;
+}
+
+.comp-team-hint .comp-team-grip {
+  animation: grip-pulse 0.6s ease var(--hint-delay, 2s) 1;
+}
+
+@keyframes team-nudge {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+  60% { transform: translateY(3px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes grip-pulse {
+  0% { opacity: 0.6; }
+  30% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* Shift cards — nudge first, then shift synced to demo (no fill-mode overlap) */
+.comp-team-shift-a {
+  animation: team-nudge 0.6s ease var(--hint-delay, 2s) 1,
+             demo-shift-a 20s linear 5s infinite;
+}
+
+.comp-team-shift-b {
+  animation: team-nudge 0.6s ease var(--hint-delay, 2s) 1,
+             demo-shift-b 20s linear 5s infinite;
+}
+
+.comp-team-shift-a .comp-team-grip,
+.comp-team-shift-b .comp-team-grip {
+  animation: grip-pulse 0.6s ease var(--hint-delay, 2s) 1;
+}
+
+/* Demo drag — 20s cycle: 10s active + 10s idle, infinite until first drag */
+.comp-team-demo {
+  position: relative;
+  z-index: 5;
+  overflow: visible;
+  animation: team-nudge 0.6s ease var(--hint-delay, 2s) 1,
+             demo-drag 20s linear 5s infinite;
+}
+
+.comp-team-demo .comp-team-grip {
+  animation: grip-pulse 0.6s ease var(--hint-delay, 2s) 1;
+}
+
+@keyframes demo-drag {
+  0%, 4% {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+  7% {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
+  }
+  12%, 18% {
+    transform: translateY(var(--demo-high));
+    box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
+  }
+  24%, 28% {
+    transform: translateY(var(--demo-low));
+    box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
+  }
+  34%, 38% {
+    transform: translateY(var(--demo-high));
+    box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
+  }
+  44% {
+    transform: translateY(-6px);
+    box-shadow: 0 6px 16px rgba(17, 17, 17, 0.12);
+  }
+  48%, 100% {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+}
+
+/* Surrounding cards shift — synced to demo-drag keyframes */
+@keyframes demo-shift-a {
+  0%, 7% { transform: translateY(0); }
+  12%, 18% { transform: translateY(var(--demo-shift)); }
+  24%, 28% { transform: translateY(0); }
+  34%, 38% { transform: translateY(var(--demo-shift)); }
+  44%, 100% { transform: translateY(0); }
+}
+
+@keyframes demo-shift-b {
+  0%, 7% { transform: translateY(0); }
+  12%, 38% { transform: translateY(var(--demo-shift)); }
+  44%, 100% { transform: translateY(0); }
+}
+
+/* Hand icon — sweeps in from upper-left to grab the card */
+.comp-demo-hand {
+  position: absolute;
+  left: 10px;
+  top: 6px;
+  color: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 6;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+  animation: demo-hand 20s linear 5s infinite;
+}
+
+@keyframes demo-hand {
+  0% { opacity: 0; transform: translate(-35px, -55px); }
+  2% { opacity: 0.6; transform: translate(-18px, -28px); }
+  4% { opacity: 1; transform: translate(-4px, -6px); }
+  5% { opacity: 1; transform: translate(0, 0); }
+  7%, 42% { opacity: 1; transform: translate(0, 0); }
+  46%, 100% { opacity: 0; transform: translate(0, 0); }
+}
+
+/* Floating label — thought bubble that sticks with the card */
+.comp-demo-label {
+  position: absolute;
+  top: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 0.5rem;
+  padding: 5px 14px;
+  font-family: var(--font-data);
+  font-size: 14px;
+  color: #6B6560;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0;
+  animation: demo-label 20s linear 5s infinite;
+}
+
+.comp-demo-label::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 7px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.95);
+  border-right: 1px solid rgba(17, 17, 17, 0.1);
+  border-bottom: 1px solid rgba(17, 17, 17, 0.1);
+}
+
+@keyframes demo-label {
+  0%, 2% { opacity: 0; }
+  5%, 42% { opacity: 1; }
+  46%, 100% { opacity: 0; }
 }
 
 .comp-team-header {
