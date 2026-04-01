@@ -32,6 +32,42 @@ function computeTeamStats(
   return { total: teams.size, fullyConfirmed, allCheckedIn }
 }
 
+interface SessionStats {
+  missingResults: number
+  upcoming: number
+  completed: number
+}
+
+function computeSessionStats(
+  sessions: { level: string, round_number: number, date: string }[],
+  rounds: { level: string, round_number: number, hasResults: boolean }[]
+): SessionStats {
+  const today = new Date().toISOString().split("T")[0]
+  const roundMap = new Map<string, boolean>()
+  for (const r of rounds) {
+    roundMap.set(`${r.level}-${r.round_number}`, r.hasResults)
+  }
+
+  let missingResults = 0
+  let upcoming = 0
+  let completed = 0
+
+  for (const s of sessions) {
+    if (s.date >= today) {
+      upcoming++
+    } else {
+      const key = `${s.level}-${s.round_number}`
+      if (roundMap.get(key)) {
+        completed++
+      } else {
+        missingResults++
+      }
+    }
+  }
+
+  return { missingResults, upcoming, completed }
+}
+
 export default async function AdminDashboard() {
   const supabase = await createClient()
 
@@ -40,6 +76,8 @@ export default async function AdminDashboard() {
     { count: confirmedCount },
     { count: checkedInCount },
     { data: teamPlayers },
+    { data: sessions },
+    { data: rounds },
     { count: userCount },
     { count: pendingUserCount },
   ] = await Promise.all([
@@ -47,6 +85,8 @@ export default async function AdminDashboard() {
     supabase.from("players").select("*", { count: "exact", head: true }).eq("info_confirmed", true),
     supabase.from("players").select("*", { count: "exact", head: true }).eq("checked_in", true),
     supabase.from("players").select("previous_team, info_confirmed, checked_in"),
+    supabase.from("sessions").select("level, round_number, date"),
+    supabase.from("rounds").select("level, round_number, round_results(id)"),
     supabase.from("profiles").select("*", { count: "exact", head: true }),
     supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "pending"),
   ])
@@ -55,6 +95,12 @@ export default async function AdminDashboard() {
   const totalConfirmed = confirmedCount ?? 0
   const totalCheckedIn = checkedInCount ?? 0
   const teamStats = computeTeamStats(teamPlayers ?? [])
+  const roundsWithResults = (rounds ?? []).map((r: { level: string, round_number: number, round_results: { id: string }[] }) => ({
+    level: r.level,
+    round_number: r.round_number,
+    hasResults: r.round_results.length > 0,
+  }))
+  const sessionStats = computeSessionStats(sessions ?? [], roundsWithResults)
   const totalUsers = userCount ?? 0
   const totalPending = pendingUserCount ?? 0
   const totalActive = totalUsers - totalPending
@@ -131,7 +177,27 @@ export default async function AdminDashboard() {
           </div>
         </div>
 
-        {/* Sessions Card — placeholder, implemented in Task 4 */}
+        {/* Sessions Card */}
+        <div className="admin-stat-card">
+          <div className="admin-stat-header">
+            <div className="admin-stat-label">Active Sessions</div>
+            <div className="admin-stat-value">{sessionStats.missingResults + sessionStats.upcoming}</div>
+          </div>
+          <div className="admin-stat-substats">
+            <div className="admin-stat-row admin-stat-row--alert">
+              <span>Missing Results</span>
+              <span>{sessionStats.missingResults}</span>
+            </div>
+            <div className="admin-stat-row">
+              <span>Upcoming</span>
+              <span>{sessionStats.upcoming}</span>
+            </div>
+            <div className="admin-stat-row admin-stat-divider">
+              <span>Completed</span>
+              <span>{sessionStats.completed}</span>
+            </div>
+          </div>
+        </div>
 
         {/* Users Card */}
         <div className="admin-stat-card">
