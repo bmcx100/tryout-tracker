@@ -1,7 +1,9 @@
 "use client"
 
-import { RotateCcw, ChevronLeft } from "lucide-react"
+import { useRef, useState } from "react"
+import { RotateCcw, ChevronLeft, Pointer, Hand } from "lucide-react"
 import { TeamTierList } from "@/components/competition/team-tier-list"
+import { usePlayerRankDemo } from "@/hooks/use-player-rank-demo"
 import type { Player, PinnedPlayer, PositionGroup } from "@/lib/types"
 
 const POSITION_BUTTONS: { group: PositionGroup; label: string }[] = [
@@ -49,8 +51,33 @@ export function StepRankPlayers({
   onSwitchPosition,
   onPositionOverride,
 }: StepRankPlayersProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [demoEnabled, setDemoEnabled] = useState(true)
+
+  const {
+    demoExpandedTeams,
+    demoActive,
+    cursorPos,
+    cursorType,
+    cursorFollowing,
+    showLabel,
+    labelText,
+    pressKey,
+    onUserInteraction,
+  } = usePlayerRankDemo({
+    containerRef,
+    positionGroup,
+    onSwitchPosition,
+    enabled: demoEnabled,
+  })
+
+  const handleUserInteraction = () => {
+    setDemoEnabled(false)
+    onUserInteraction()
+  }
+
   return (
-    <div className="wizard-container">
+    <div className="wizard-container wizard-container-demo" ref={containerRef}>
       <div className="wizard-step-row">
         <button className="wizard-back-link" onClick={onBack}>
           <ChevronLeft size={14} />
@@ -91,6 +118,8 @@ export function StepRankPlayers({
           onPinToTeam={onPinToTeam}
           onPositionOverride={onPositionOverride}
           mode="players"
+          demoExpandedTeams={demoExpandedTeams}
+          onUserInteraction={handleUserInteraction}
         />
       </div>
 
@@ -109,6 +138,26 @@ export function StepRankPlayers({
           </button>
         </div>
       </div>
+
+      {demoActive && (
+        <div
+          className={`player-demo-cursor${cursorFollowing ? " following" : ""}`}
+          style={cursorFollowing ? undefined : { transform: `translate(${cursorPos.x}px, ${cursorPos.y}px)` }}
+        >
+          <Pointer
+            key={`ptr-${pressKey}`}
+            size={28}
+            className={`player-demo-pointer${cursorType === "pointer" ? " visible" : ""}${pressKey > 0 && cursorType === "pointer" ? " player-demo-press" : ""}`}
+          />
+          <Hand
+            size={28}
+            className={`player-demo-hand${cursorType === "hand" ? " visible" : ""}`}
+          />
+          <div className={`player-demo-label${showLabel ? " visible" : ""}`}>
+            {labelText}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

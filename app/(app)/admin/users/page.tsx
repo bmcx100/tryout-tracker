@@ -61,7 +61,7 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <h1 className="app-page-title">User Management</h1>
+      <h1 className="app-page-title">Users</h1>
 
       {pendingUsers.length > 0 && (
         <div className="admin-section">

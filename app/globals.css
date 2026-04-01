@@ -3141,6 +3141,10 @@
   padding: 24px 0;
 }
 
+.wizard-container-demo {
+  position: relative;
+}
+
 .wizard-step-label {
   font-family: var(--font-data);
   font-size: 11px;
@@ -3723,6 +3727,7 @@
   color: #6B6560;
   white-space: nowrap;
   pointer-events: none;
+  user-select: none;
   z-index: 6;
   opacity: 0;
   animation: demo-label 20s linear 5s infinite;
@@ -3746,6 +3751,156 @@
   5%, 42% { opacity: 1; }
   46%, 100% { opacity: 0; }
 }
+
+/* ===== Player Rank Demo ===== */
+
+.player-demo-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 100;
+  color: white;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
+  transition: transform 0.6s ease;
+}
+
+.player-demo-cursor.no-transition {
+  transition: none;
+}
+
+.player-demo-pointer,
+.player-demo-hand {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 200ms;
+}
+
+.player-demo-pointer.visible,
+.player-demo-hand.visible {
+  opacity: 1;
+}
+
+.player-demo-press {
+  animation: pdemo-press 0.15s ease;
+}
+
+@keyframes pdemo-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.85); }
+  100% { transform: scale(1); }
+}
+
+.player-demo-label {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 0.5rem;
+  padding: 5px 14px;
+  font-family: var(--font-data);
+  font-size: 14px;
+  color: #6B6560;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  z-index: 101;
+  opacity: 0;
+  transition: opacity 300ms;
+}
+
+.player-demo-label.visible {
+  opacity: 1;
+}
+
+.player-demo-label::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 7px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.95);
+  border-right: 1px solid rgba(17, 17, 17, 0.1);
+  border-bottom: 1px solid rgba(17, 17, 17, 0.1);
+}
+
+/* Player drag animation — 10s single iteration, controlled by JS */
+.comp-player-demo-drag {
+  position: relative;
+  z-index: 50;
+  animation: pdemo-drag 10s linear 1 forwards;
+}
+
+@keyframes pdemo-drag {
+  0%, 5% {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+  8% {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
+  }
+  15%, 45% {
+    transform: translateY(var(--pdemo-target-y));
+    box-shadow: 0 8px 24px rgba(17, 17, 17, 0.18);
+  }
+  58% {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(17, 17, 17, 0.12);
+  }
+  65%, 100% {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+}
+
+/* Shift down — players below insertion point in target team */
+.comp-player-demo-shift-down {
+  animation: pdemo-shift-down 10s linear 1 forwards;
+}
+
+@keyframes pdemo-shift-down {
+  0%, 12% { transform: translateY(0); }
+  15%, 50% { transform: translateY(var(--pdemo-shift)); }
+  58%, 100% { transform: translateY(0); }
+}
+
+/* Cursor follow — mirrors drag path, offset to grip position */
+.player-demo-cursor.following {
+  transition: none;
+  animation: pdemo-cursor-follow 10s linear 1 forwards;
+}
+
+@keyframes pdemo-cursor-follow {
+  0%, 5% {
+    transform: translate(var(--pdemo-cursor-x), var(--pdemo-cursor-y));
+  }
+  8% {
+    transform: translate(var(--pdemo-cursor-x), calc(var(--pdemo-cursor-y) - 4px));
+  }
+  15%, 45% {
+    transform: translate(var(--pdemo-cursor-x), calc(var(--pdemo-cursor-y) + var(--pdemo-target-y)));
+  }
+  58% {
+    transform: translate(var(--pdemo-cursor-x), calc(var(--pdemo-cursor-y) - 4px));
+  }
+  65%, 100% {
+    transform: translate(var(--pdemo-cursor-x), var(--pdemo-cursor-y));
+  }
+}
+
+/* Override overflow on team rows during drag demo */
+.comp-team-demo-active {
+  overflow: visible !important;
+}
+
+/* ===== End Player Rank Demo ===== */
 
 .comp-team-header {
   display: flex;

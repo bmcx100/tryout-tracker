@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation"
 
 const ADMIN_NAV = [
   { href: "/admin", label: "Dashboard" },
-  { href: "/admin/players", label: "Players" },
+  { href: "/admin/users", label: "Users" },
   { href: "/admin/teams", label: "Teams" },
+  { href: "/admin/players", label: "Players" },
   { href: "/admin/sessions", label: "Sessions" },
   { href: "/admin/rounds", label: "Rounds" },
   { href: "/admin/import", label: "Import" },
-  { href: "/admin/users", label: "Users" },
   { href: "/admin/corrections", label: "Corrections" },
 ]
 

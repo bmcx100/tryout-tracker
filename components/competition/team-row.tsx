@@ -19,6 +19,7 @@ interface TeamRowProps {
   positionOverrides?: Record<string, string>
   onLongPressPosition?: (player: Player) => void
   mode?: "teams" | "players"
+  demoExpanded?: boolean
   hintIndex?: number
   demoHint?: { high: number; low: number; shift: number }
   demoShift?: "a" | "b"
@@ -43,12 +44,14 @@ export function TeamRow({
   positionOverrides,
   onLongPressPosition,
   mode,
+  demoExpanded,
   hintIndex,
   demoHint,
   demoShift,
   demoShiftAmount,
 }: TeamRowProps) {
   const [expanded, setExpanded] = useState(false)
+  const isExpanded = expanded || demoExpanded
   const {
     attributes,
     listeners,
@@ -85,9 +88,11 @@ export function TeamRow({
       ref={setNodeRef}
       style={style}
       className={cls}
+      data-team={teamCode}
     >
       <button
         className="comp-team-header"
+        data-team-header={teamCode}
         onClick={() => mode !== "teams" && setExpanded(!expanded)}
         {...(mode !== "players" ? { ...attributes, ...listeners } : {})}
       >
@@ -102,12 +107,12 @@ export function TeamRow({
           {playerCount} player{playerCount !== 1 ? "s" : ""}
         </span>
         {mode !== "teams" && (
-          <span className={`comp-team-chevron${expanded ? " comp-team-chevron-open" : ""}`}>
+          <span className={`comp-team-chevron${isExpanded ? " comp-team-chevron-open" : ""}`}>
             <ChevronDown size={16} />
           </span>
         )}
       </button>
-      {mode !== "teams" && expanded && (
+      {mode !== "teams" && isExpanded && (
         <div className="comp-team-body">
           <PlayerList
             players={allPlayers}

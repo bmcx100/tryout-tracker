@@ -77,6 +77,7 @@ export function PlayerCard({
       ref={setNodeRef}
       style={style}
       className={`comp-player-card${isDragging ? " comp-player-dragging" : ""}${isDefense ? " comp-player-defense" : ""}${showDivider ? " comp-position-break" : ""}${isGhost ? " comp-player-ghost" : ""}`}
+      data-player-number={player.number}
       {...(isGhost ? {} : attributes)}
       {...(isGhost ? {} : listeners)}
     >

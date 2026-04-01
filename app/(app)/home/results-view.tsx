@@ -62,7 +62,7 @@ export function ResultsView({
           <h1 className="results-label">
             Resulting Teams
           </h1>
-          <p className="results-sublabel">Expand teams, then reorder players by dragging between teams.</p>
+          <p className="results-sublabel">Expand teams, then drag players between teams to fine tune.</p>
         </div>
 
         <div className="results-position-tabs">

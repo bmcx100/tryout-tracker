@@ -107,7 +107,7 @@ export default async function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="app-page-title">Admin Dashboard</h1>
+      <h1 className="app-page-title">Dashboard</h1>
       <div className="admin-stats">
         {/* Players Card */}
         <div className="admin-stat-card">

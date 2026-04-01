@@ -36,6 +36,8 @@ interface TeamTierListProps {
   onPinToTeam: (playerNumber: number, targetTeam: string, position: number) => void
   onPositionOverride?: (playerNumber: number, newPosition: string | null) => void
   mode?: "teams" | "players"
+  demoExpandedTeams?: Set<string>
+  onUserInteraction?: () => void
 }
 
 export function TeamTierList({
@@ -52,6 +54,8 @@ export function TeamTierList({
   onPinToTeam,
   onPositionOverride,
   mode,
+  demoExpandedTeams,
+  onUserInteraction,
 }: TeamTierListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -386,25 +390,30 @@ export function TeamTierList({
     }
   }, [])
 
-  const handleDragStart = useCallback(() => {
+  // Stop demo on pointer down — before dnd-kit measures rects during activation.
+  // The 5px activation constraint gives React time to re-render and remove
+  // animation classes before dnd-kit captures initial positions.
+  const handlePointerDown = useCallback(() => {
+    if (!animating) return
     setAnimating(false)
     setDemoOffsets(null)
     if (pauseTimerRef.current) {
       clearTimeout(pauseTimerRef.current)
       pauseTimerRef.current = null
     }
-  }, [])
+    onUserInteraction?.()
+  }, [animating, onUserInteraction])
 
   return (
     <>
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
-        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={visibleTeams} strategy={verticalListSortingStrategy}>
-          <div ref={listRef} className="comp-tier-list">
+          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+          <div ref={listRef} className="comp-tier-list" onPointerDown={handlePointerDown}>
             {visibleTeams.map((teamCode, idx) => {
               const prevAge = idx > 0 ? ages[idx - 1] : null
               const currAge = ages[idx]
@@ -438,6 +447,7 @@ export function TeamTierList({
                     positionOverrides={positionOverrides}
                     onLongPressPosition={setSwitchTarget}
                     mode={mode}
+                    demoExpanded={demoExpandedTeams?.has(teamCode)}
                     hintIndex={mode === "teams" && animating ? idx : undefined}
                     demoHint={isDemo ? demoOffsets : undefined}
                     demoShift={shiftGroup}
