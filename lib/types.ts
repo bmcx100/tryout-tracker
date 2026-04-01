@@ -18,13 +18,29 @@ export type CorrectionEntityType = "player" | "session" | "round"
 
 export type PositionGroup = "all" | "forwards" | "defense" | "goalies" | "global"
 
+export interface Organization {
+  id: string
+  name: string
+  slug: string
+  created_at: string
+}
+
+export interface OrgMember {
+  id: string
+  org_id: string
+  user_id: string
+  role: UserRole
+  approved_at: string | null
+  created_at: string
+}
+
 export interface Profile {
   id: string
   email: string
   display_name: string | null
-  role: UserRole
+  is_super_admin: boolean
+  active_org_id: string | null
   created_at: string
-  approved_at: string | null
 }
 
 export interface Player {
