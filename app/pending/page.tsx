@@ -11,35 +11,38 @@ export default function PendingPage() {
     const supabase = createClient()
 
     const channel = supabase
-      .channel("profile-changes")
+      .channel("membership-changes")
       .on(
         "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
-          table: "profiles",
+          table: "org_members",
         },
         (payload) => {
           if (payload.new.role !== "pending") {
-            router.push("/crew")
+            router.push("/home")
           }
         }
       )
       .subscribe()
 
-    // Polling fallback — check every 10s
     const interval = setInterval(async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single()
+      const { data: memberships } = await supabase
+        .from("org_members")
+        .select("role, org_id")
+        .eq("user_id", user.id)
+        .neq("role", "pending")
 
-      if (profile && profile.role !== "pending") {
-        router.push("/crew")
+      if (memberships && memberships.length > 0) {
+        await supabase
+          .from("profiles")
+          .update({ active_org_id: memberships[0].org_id })
+          .eq("id", user.id)
+        router.push("/home")
       }
     }, 10000)
 

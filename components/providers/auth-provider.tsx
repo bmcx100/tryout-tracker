@@ -4,46 +4,80 @@ import { createContext, useContext, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
-import type { Profile } from "@/lib/types"
+import type { Profile, Organization } from "@/lib/types"
+
+interface UserOrg {
+  org_id: string
+  role: string
+  organizations: Organization
+}
 
 interface AuthContext {
   user: User | null
   profile: Profile | null
+  activeOrgId: string | null
+  orgRole: string | null
+  userOrgs: UserOrg[]
   loading: boolean
   signOut: () => Promise<void>
+  refreshOrgs: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContext>({
   user: null,
   profile: null,
+  activeOrgId: null,
+  orgRole: null,
+  userOrgs: [],
   loading: true,
   signOut: async () => {},
+  refreshOrgs: async () => {},
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [userOrgs, setUserOrgs] = useState<UserOrg[]>([])
   const [loading, setLoading] = useState(true)
   const hadUser = useRef(false)
   const supabase = createClient()
   const router = useRouter()
 
-  useEffect(() => {
-    const fetchProfile = async (userId: string) => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single()
-      setProfile(data)
-    }
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single()
+    setProfile(data)
+    return data
+  }
 
+  const fetchOrgs = async (userId: string) => {
+    const { data } = await supabase
+      .from("org_members")
+      .select("org_id, role, organizations(id, name, slug)")
+      .eq("user_id", userId)
+      .neq("role", "pending")
+    setUserOrgs((data as UserOrg[]) || [])
+    return (data as UserOrg[]) || []
+  }
+
+  const refreshOrgs = async () => {
+    if (user) {
+      await fetchOrgs(user.id)
+      await fetchProfile(user.id)
+    }
+  }
+
+  useEffect(() => {
     const getInitialSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      if (user) {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      setUser(authUser)
+      if (authUser) {
         hadUser.current = true
-        await fetchProfile(user.id)
+        await fetchProfile(authUser.id)
+        await fetchOrgs(authUser.id)
       }
       setLoading(false)
     }
@@ -52,7 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Skip INITIAL_SESSION — already handled by getInitialSession above
         if (event === "INITIAL_SESSION") return
 
         const currentUser = session?.user ?? null
@@ -60,12 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (currentUser) {
           hadUser.current = true
-          // Only re-fetch profile on sign-in or user update, not token refresh
           if (event === "SIGNED_IN" || event === "USER_UPDATED") {
             await fetchProfile(currentUser.id)
+            await fetchOrgs(currentUser.id)
           }
         } else {
           setProfile(null)
+          setUserOrgs([])
           if (hadUser.current) {
             router.push("/login")
           }
@@ -83,10 +117,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut()
     setUser(null)
     setProfile(null)
+    setUserOrgs([])
   }
 
+  const activeOrgId = profile?.active_org_id ?? null
+  const orgRole = activeOrgId
+    ? (userOrgs.find((o) => o.org_id === activeOrgId)?.role ?? null)
+    : null
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
+    <AuthContext.Provider value={{
+      user,
+      profile,
+      activeOrgId,
+      orgRole,
+      userOrgs,
+      loading,
+      signOut,
+      refreshOrgs,
+    }}>
       {children}
     </AuthContext.Provider>
   )

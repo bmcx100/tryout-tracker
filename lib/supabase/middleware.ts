@@ -33,43 +33,50 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Public routes that don't require authentication
   const publicRoutes = ["/", "/login", "/pending", "/auth/callback"]
   const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith("/auth/")
+    (route) => pathname === route || pathname.startsWith("/auth/") || pathname.startsWith("/join/")
   )
 
-  // Redirect logged-in users from landing page to app
   if (user && pathname === "/") {
     const url = request.nextUrl.clone()
     url.pathname = "/home"
     return NextResponse.redirect(url)
   }
 
-  // Redirect unauthenticated users to login for protected routes
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     return NextResponse.redirect(url)
   }
 
-  // For all protected routes, check role-based access
   if (user && !isPublicRoute) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("active_org_id, is_super_admin")
       .eq("id", user.id)
       .single()
 
-    // Pending or missing profile — redirect to pending page
-    if (!profile || profile.role === "pending") {
+    if (!profile || !profile.active_org_id) {
       const url = request.nextUrl.clone()
       url.pathname = "/pending"
       return NextResponse.redirect(url)
     }
 
-    // Block non-admin users from admin routes
-    if (pathname.startsWith("/admin") && profile.role !== "admin") {
+    const { data: membership } = await supabase
+      .from("org_members")
+      .select("role")
+      .eq("org_id", profile.active_org_id)
+      .eq("user_id", user.id)
+      .single()
+
+    if (!membership || membership.role === "pending") {
+      const url = request.nextUrl.clone()
+      url.pathname = "/pending"
+      return NextResponse.redirect(url)
+    }
+
+    if (pathname.startsWith("/admin") && membership.role !== "admin" && !profile.is_super_admin) {
       const url = request.nextUrl.clone()
       url.pathname = "/home"
       return NextResponse.redirect(url)
