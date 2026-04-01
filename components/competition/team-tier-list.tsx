@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   DndContext,
   closestCenter,
@@ -20,6 +20,7 @@ import {
 import { TeamRow } from "./team-row"
 import { PositionSwitchModal } from "./position-switch-modal"
 import type { Player, PinnedPlayer } from "@/lib/types"
+import { extractLevelFromTeam } from "@/lib/utils"
 
 interface TeamTierListProps {
   teamOrder: string[]
@@ -34,6 +35,7 @@ interface TeamTierListProps {
   onPlayerReorder: (team: string, playerNumbers: number[]) => void
   onPinToTeam: (playerNumber: number, targetTeam: string, position: number) => void
   onPositionOverride?: (playerNumber: number, newPosition: string | null) => void
+  mode?: "teams" | "players"
 }
 
 export function TeamTierList({
@@ -49,6 +51,7 @@ export function TeamTierList({
   onPlayerReorder,
   onPinToTeam,
   onPositionOverride,
+  mode,
 }: TeamTierListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -166,16 +169,26 @@ export function TeamTierList({
 
       // Team reorder
       if (!isActivePlayer && !isOverPlayer && !isOverContainer) {
+        if (mode === "players") return
+
+        // Start 15s resume timer (user interacted)
+        if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
+        pauseTimerRef.current = setTimeout(() => {
+          setAnimating(true)
+          pauseTimerRef.current = null
+        }, 15000)
+
         if (activeId === overId) return
         const oldIndex = teamOrder.indexOf(activeId)
         const newIndex = teamOrder.indexOf(overId)
         if (oldIndex === -1 || newIndex === -1) return
+        setMovedTeams((prev) => new Set(prev).add(activeId))
         onTeamReorder(arrayMove(teamOrder, oldIndex, newIndex))
         return
       }
 
       // Player drag
-      if (isActivePlayer) {
+      if (isActivePlayer && mode !== "teams") {
         const activeNum = Number(activeId.slice(2))
         const activeTeam = playerTeamLookup[activeNum]
         if (!activeTeam) return
@@ -233,7 +246,7 @@ export function TeamTierList({
         }
       }
     },
-    [teamOrder, playerTeamLookup, playerPositionLookup, teamPlayerNumbers, playerOrderMap, pinnedPlayers, onTeamReorder, onPlayerReorder, onPinToTeam]
+    [teamOrder, playerTeamLookup, playerPositionLookup, teamPlayerNumbers, playerOrderMap, pinnedPlayers, onTeamReorder, onPlayerReorder, onPinToTeam, mode]
   )
 
   // Count players per team using effective assignments
@@ -256,34 +269,183 @@ export function TeamTierList({
     return counts
   }, [teamOrder, teamPlayerNumbers, playerPositionLookup, positionFilter, teamPlayerCounts])
 
-  const visibleTeams = teamOrder.filter(
-    (t) => teamPlayerCounts[t] > 0
+  const visibleTeams = useMemo(
+    () => teamOrder.filter((t) => teamPlayerCounts[t] > 0),
+    [teamOrder, teamPlayerCounts]
   )
+
+  // Demo drag hint state for teams mode
+  const listRef = useRef<HTMLDivElement>(null)
+  const [animating, setAnimating] = useState(true)
+  const [movedTeams, setMovedTeams] = useState<Set<string>>(new Set())
+  const prevTeamOrderLen = useRef(teamOrder.length)
+  useEffect(() => {
+    if (teamOrder.length === 0 && prevTeamOrderLen.current > 0) {
+      setMovedTeams(new Set())
+      setAnimating(true)
+    }
+    prevTeamOrderLen.current = teamOrder.length
+  }, [teamOrder])
+  const [demoOffsets, setDemoOffsets] = useState<{ high: number; low: number; shift: number } | null>(null)
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Age group analysis
+  const ages = useMemo(() => visibleTeams.map((t) => t.match(/^(U\d+)/)?.[1] || ""), [visibleTeams])
+
+  const groupsClean = useMemo(() => {
+    if (ages.length < 3 || new Set(ages).size < 2) return false
+    const lastOfFirst = ages.lastIndexOf(ages[0])
+    return ages.slice(0, lastOfFirst + 1).every((a) => a === ages[0])
+      && ages.slice(lastOfFirst + 1).every((a) => a !== ages[0])
+  }, [ages])
+
+  // Find first unmoved lower-group team with a valid level-matched destination
+  const { demoTargetIdx, demoDestIndices } = useMemo((): {
+    demoTargetIdx: number
+    demoDestIndices: { destIdx1: number; destIdx2: number | null } | null
+  } => {
+    const noDemo = { demoTargetIdx: -1, demoDestIndices: null }
+
+    // Determine upper (higher number) and lower age groups by value
+    const uniqueAges = [...new Set(ages)].filter(Boolean)
+    if (uniqueAges.length < 2) return noDemo
+    uniqueAges.sort((a, b) => {
+      const na = parseInt(a.replace("U", ""))
+      const nb = parseInt(b.replace("U", ""))
+      return nb - na
+    })
+    const upperAge = uniqueAges[0]
+    const lowerAge = uniqueAges[1]
+
+    for (let i = 0; i < visibleTeams.length; i++) {
+      const team = visibleTeams[i]
+      if (!team.startsWith(lowerAge) || movedTeams.has(team)) continue
+
+      const level = extractLevelFromTeam(team)
+      if (!level) continue
+
+      const matchingUpper = upperAge + level
+      const matchIdx = visibleTeams.indexOf(matchingUpper)
+      if (matchIdx < 0) continue
+
+      const destIdx1 = matchIdx + 1
+      if (destIdx1 >= i) continue  // already at or below its match
+
+      const destIdx2Raw = matchIdx + 2
+      const destIdx2 = destIdx2Raw < i ? destIdx2Raw : null
+
+      return { demoTargetIdx: i, demoDestIndices: { destIdx1, destIdx2 } }
+    }
+
+    return noDemo
+  }, [ages, visibleTeams, movedTeams])
+
+  // Measure DOM positions for the demo animation
+  useEffect(() => {
+    if (mode !== "teams" || !animating || demoTargetIdx < 0 || !demoDestIndices || !listRef.current) return
+
+    const measure = () => {
+      if (!listRef.current) return
+      const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>(".comp-team-row"))
+      if (rows.length <= demoTargetIdx) return
+
+      const target = rows[demoTargetIdx]
+      const dest1 = rows[demoDestIndices.destIdx1]
+      if (!target || !dest1) return
+
+      const high = dest1.offsetTop - target.offsetTop
+      let low = high
+      if (demoDestIndices.destIdx2 !== null) {
+        const dest2 = rows[demoDestIndices.destIdx2]
+        if (dest2) low = dest2.offsetTop - target.offsetTop
+      }
+
+      const shift = target.offsetHeight + 8
+      if (high !== 0 || low !== 0) {
+        setDemoOffsets({ high, low, shift })
+      }
+    }
+
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(measure)
+      rafRef.current = raf2
+    })
+    const timeout = setTimeout(measure, 200)
+    const rafRef = { current: 0 as number }
+
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(rafRef.current)
+      clearTimeout(timeout)
+    }
+  }, [mode, animating, demoTargetIdx, demoDestIndices, visibleTeams])
+
+  useEffect(() => {
+    return () => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
+    }
+  }, [])
+
+  const handleDragStart = useCallback(() => {
+    setAnimating(false)
+    setDemoOffsets(null)
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current)
+      pauseTimerRef.current = null
+    }
+  }, [])
 
   return (
     <>
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={visibleTeams} strategy={verticalListSortingStrategy}>
-          <div className="comp-tier-list">
-            {visibleTeams.map((teamCode, idx) => (
-              <TeamRow
-                key={teamCode}
-                teamCode={teamCode}
-                rank={idx + 1}
-                playerCount={filteredPlayerCounts[teamCode]}
-                allPlayers={allPlayers}
-                playerOrder={effectivePlayerOrder[teamCode]}
-                pinnedPlayers={effectivePinned}
-                crewNumbers={crewNumbers}
-                positionFilter={positionFilter}
-                positionOverrides={positionOverrides}
-                onLongPressPosition={setSwitchTarget}
-              />
-            ))}
+          <div ref={listRef} className="comp-tier-list">
+            {visibleTeams.map((teamCode, idx) => {
+              const prevAge = idx > 0 ? ages[idx - 1] : null
+              const currAge = ages[idx]
+              const showLabel = groupsClean && (idx === 0 || currAge !== prevAge)
+              const demoActive = mode === "teams" && animating && movedTeams.size < 3 && demoOffsets && demoTargetIdx >= 0
+              const isDemo = demoActive && idx === demoTargetIdx
+
+              // Determine shift group for surrounding cards
+              let shiftGroup: "a" | "b" | undefined
+              if (demoActive && demoDestIndices) {
+                if (idx === demoDestIndices.destIdx1) shiftGroup = "a"
+                else if (demoDestIndices.destIdx2 !== null && idx >= demoDestIndices.destIdx2 && idx < demoTargetIdx) shiftGroup = "b"
+              }
+
+              return (
+                <React.Fragment key={teamCode}>
+                  {showLabel && (
+                    <div className="comp-age-group-divider">
+                      <span className="comp-age-group-label">Move {currAge} Teams</span>
+                    </div>
+                  )}
+                  <TeamRow
+                    teamCode={teamCode}
+                    rank={idx + 1}
+                    playerCount={mode === "teams" ? teamPlayerCounts[teamCode] : filteredPlayerCounts[teamCode]}
+                    allPlayers={allPlayers}
+                    playerOrder={effectivePlayerOrder[teamCode]}
+                    pinnedPlayers={effectivePinned}
+                    crewNumbers={crewNumbers}
+                    positionFilter={positionFilter}
+                    positionOverrides={positionOverrides}
+                    onLongPressPosition={setSwitchTarget}
+                    mode={mode}
+                    hintIndex={mode === "teams" && animating ? idx : undefined}
+                    demoHint={isDemo ? demoOffsets : undefined}
+                    demoShift={shiftGroup}
+                    demoShiftAmount={shiftGroup && demoOffsets ? demoOffsets.shift : undefined}
+                  />
+                </React.Fragment>
+              )
+            })}
           </div>
         </SortableContext>
       </DndContext>

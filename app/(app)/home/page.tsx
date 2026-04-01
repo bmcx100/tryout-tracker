@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { StepRankTeams } from "./step-rank-teams"
+import { StepRankPlayers } from "./step-rank-players"
 import { ResultsView } from "./results-view"
 import { ResetConfirmModal } from "@/components/competition/reset-confirm-modal"
 import type {
@@ -23,7 +24,7 @@ import {
   resetPrefs,
 } from "@/lib/actions/competition-prefs"
 
-type WizardStep = "rank" | "done"
+type WizardStep = "rank" | "rank-players" | "done"
 
 const POSITION_MAP: Record<string, "F" | "D" | "G" | "ALL"> = {
   all: "ALL",
@@ -263,6 +264,15 @@ export default function HomePage() {
     []
   )
 
+  const handleTeamOrderReset = useCallback(async () => {
+    setGlobalTeamOrder([])
+    try {
+      await updateTeamOrder([])
+    } catch (err) {
+      console.error("Failed to reset team order:", err)
+    }
+  }, [])
+
   const handleRankReset = useCallback(() => {
     const posCode = POSITION_MAP[activeGroup]
     const label = POSITION_LABEL[activeGroup] || activeGroup
@@ -343,8 +353,16 @@ export default function HomePage() {
     setActiveGroup(group)
   }, [])
 
-  const handleWizardDone = useCallback(async () => {
+  const handleWizardTeamsDone = useCallback(() => {
+    setStep("rank-players")
+  }, [])
+
+  const handleWizardPlayersDone = useCallback(() => {
     setStep("done")
+  }, [])
+
+  const handleBackToTeams = useCallback(() => {
+    setStep("rank")
   }, [])
 
   // --- Helpers for derived "all" tab ---
@@ -691,15 +709,46 @@ export default function HomePage() {
           pinnedPlayers={globalPinnedPlayers}
           crewNumbers={crewNumbers}
           positionFilter={positionFilter}
-          positionGroup={activeGroup}
           positionOverrides={currentPrefs.position_overrides || {}}
           onTeamReorder={handleTeamReorder}
           onPlayerReorder={handleRankPlayerReorder}
           onPinToTeam={handleRankPinToTeam}
           onPositionOverride={handlePositionOverride}
+          onReset={handleTeamOrderReset}
+          onNext={handleWizardTeamsDone}
+        />
+        {resetModal && (
+          <ResetConfirmModal
+            title={resetModal.title}
+            items={resetModal.items}
+            onConfirm={resetModal.onConfirm}
+            onCancel={() => setResetModal(null)}
+          />
+        )}
+      </div>
+    )
+  }
+
+  if (step === "rank-players") {
+    return (
+      <div className="app-page">
+        <StepRankPlayers
+          teamOrder={teamOrder}
+          playersByTeam={playersByTeam}
+          allPlayers={players}
+          playerOrderMap={globalPlayerOrder}
+          pinnedPlayers={globalPinnedPlayers}
+          crewNumbers={crewNumbers}
+          positionFilter={positionFilter}
+          positionGroup={activeGroup}
+          positionOverrides={currentPrefs.position_overrides || {}}
+          onPlayerReorder={handleRankPlayerReorder}
+          onPinToTeam={handleRankPinToTeam}
+          onPositionOverride={handlePositionOverride}
           onReset={handleRankReset}
           onResetAll={handleRankResetAll}
-          onNext={handleWizardDone}
+          onNext={handleWizardPlayersDone}
+          onBack={handleBackToTeams}
           onSwitchPosition={handleRankPositionSwitch}
         />
         {resetModal && (
