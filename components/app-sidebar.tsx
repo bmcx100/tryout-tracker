@@ -13,7 +13,7 @@ const NAV_ITEMS = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { profile } = useAuth()
+  const { profile, orgRole } = useAuth()
 
   return (
     <aside className="app-sidebar">
@@ -33,7 +33,7 @@ export function AppSidebar() {
             </Link>
           )
         })}
-        {profile?.role === "admin" && (
+        {(orgRole === "admin" || profile?.is_super_admin) && (
           <Link
             href="/admin"
             className={`app-sidebar-item${pathname.startsWith("/admin") ? " active" : ""}`}

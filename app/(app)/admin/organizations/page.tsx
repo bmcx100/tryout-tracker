@@ -6,12 +6,11 @@ import { useAuth } from "@/hooks/use-auth"
 import { createOrganization } from "@/lib/actions/organizations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import type { Organization } from "@/lib/types"
 
 export default function OrganizationsPage() {
   const { profile } = useAuth()
-  const { toast } = useToast()
   const [orgs, setOrgs] = useState<Organization[]>([])
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
@@ -39,12 +38,12 @@ export default function OrganizationsPage() {
       await createOrganization({ name, slug: slug.toLowerCase().replace(/\s+/g, "-") })
       setName("")
       setSlug("")
-      toast({ title: "Organization created" })
+      toast.success("Organization created")
       const supabase = createClient()
       const { data } = await supabase.from("organizations").select("*").order("created_at", { ascending: false })
       setOrgs(data || [])
     } catch (e) {
-      toast({ title: "Error", description: (e as Error).message, variant: "destructive" })
+      toast.error((e as Error).message)
     }
   }
 

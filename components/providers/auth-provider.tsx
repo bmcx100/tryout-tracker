@@ -59,8 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .select("org_id, role, organizations(id, name, slug)")
       .eq("user_id", userId)
       .neq("role", "pending")
-    setUserOrgs((data as UserOrg[]) || [])
-    return (data as UserOrg[]) || []
+    setUserOrgs((data as unknown as UserOrg[]) || [])
+    return (data as unknown as UserOrg[]) || []
   }
 
   const refreshOrgs = async () => {

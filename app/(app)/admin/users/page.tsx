@@ -61,7 +61,7 @@ export default function AdminUsersPage() {
       .select("id, user_id, role, approved_at, created_at, profiles(id, email, display_name, created_at)")
       .eq("org_id", activeOrgId)
       .order("created_at", { ascending: false })
-    if (data) setMembers(data as OrgMemberWithProfile[])
+    if (data) setMembers(data as unknown as OrgMemberWithProfile[])
   }
 
   useEffect(() => {

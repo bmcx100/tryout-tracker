@@ -12,12 +12,21 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("is_super_admin, active_org_id")
     .eq("id", user.id)
     .single()
 
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  if (!profile?.is_super_admin) {
+    const { data: membership } = await supabase
+      .from("org_members")
+      .select("role")
+      .eq("org_id", profile?.active_org_id)
+      .eq("user_id", user.id)
+      .single()
+
+    if (!membership || membership.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
   }
 
   try {
