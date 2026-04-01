@@ -4677,3 +4677,41 @@
 .org-switcher-check {
   @apply h-3.5 w-3.5;
 }
+
+/* Join page */
+.join-page {
+  @apply flex min-h-screen items-center justify-center p-4;
+}
+
+.join-card {
+  @apply flex flex-col items-center gap-4 rounded-sm border-2 border-border/12 bg-card p-8 text-center max-w-md;
+}
+
+.join-brand {
+  @apply text-xs font-mono tracking-widest text-muted-foreground;
+}
+
+.join-headline {
+  @apply text-2xl font-heading font-bold;
+}
+
+.join-body {
+  @apply text-sm text-muted-foreground;
+}
+
+.join-error {
+  @apply text-sm text-destructive;
+}
+
+/* Admin form helpers */
+.admin-form-row {
+  @apply flex items-center gap-2;
+}
+
+.org-slug-label {
+  @apply text-xs text-muted-foreground font-mono ml-2;
+}
+
+.org-date-label {
+  @apply text-xs text-muted-foreground ml-auto;
+}
