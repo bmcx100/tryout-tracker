@@ -91,28 +91,29 @@ export default function HomePage() {
   }, [players, currentPrefs.position_overrides])
 
   useEffect(() => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15000)
+
     const load = async () => {
       try {
         const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-          window.location.href = "/login"
-          return
-        }
 
         const [playersRes, prefsRes, crewRes] = await Promise.all([
           supabase
             .from("players_view")
             .select("*")
             .not("position", "is", null)
-            .not("previous_team", "is", null),
+            .not("previous_team", "is", null)
+            .abortSignal(controller.signal),
           supabase
             .from("user_competition_prefs")
             .select("*")
-            .order("last_viewed", { ascending: false }),
+            .order("last_viewed", { ascending: false })
+            .abortSignal(controller.signal),
           supabase
             .from("user_crew")
-            .select("*"),
+            .select("*")
+            .abortSignal(controller.signal),
         ])
 
         if (playersRes.error) throw new Error(playersRes.error.message)
@@ -171,12 +172,23 @@ export default function HomePage() {
 
         setLoading(false)
       } catch (err) {
-        console.error("Home load error:", err)
-        setError(err instanceof Error ? err.message : "Failed to load")
+        if (controller.signal.aborted) {
+          setError("Request timed out — try refreshing the page")
+        } else {
+          console.error("Home load error:", err)
+          setError(err instanceof Error ? err.message : "Failed to load")
+        }
         setLoading(false)
+      } finally {
+        clearTimeout(timer)
       }
     }
     load()
+
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
+    }
   }, [])
 
   const crewNumbers = new Set(crew.map((c) => c.player_number))

@@ -50,7 +50,9 @@ export function AppHeaderAuth() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel className="app-header-auth-label">
-              <span>{profile?.display_name || "Loading..."}</span>
+              {profile?.display_name && (
+                <span>{profile.display_name}</span>
+              )}
               <span className="app-header-auth-email">{user?.email}</span>
               {profile?.role && (
                 <Badge variant="outline" className="app-header-auth-badge">

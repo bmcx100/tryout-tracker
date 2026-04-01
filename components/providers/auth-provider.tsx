@@ -1,12 +1,10 @@
 "use client"
 
 import { createContext, useContext, useEffect, useRef, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
 import type { Profile } from "@/lib/types"
-
-const PUBLIC_ROUTES = ["/", "/login", "/pending", "/auth/callback"]
 
 interface AuthContext {
   user: User | null
@@ -29,30 +27,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hadUser = useRef(false)
   const supabase = createClient()
   const router = useRouter()
-  const pathname = usePathname()
-
-  const isPublicRoute = PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith("/auth/")
-  )
 
   useEffect(() => {
+    const fetchProfile = async (userId: string) => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single()
+      setProfile(data)
+    }
+
     const getInitialSession = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
-      if (user) hadUser.current = true
-
       if (user) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single()
-        setProfile(data)
-      } else if (!isPublicRoute) {
-        router.push("/login")
-        return
+        hadUser.current = true
+        await fetchProfile(user.id)
       }
-
       setLoading(false)
     }
 
@@ -60,22 +52,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // Skip INITIAL_SESSION — already handled by getInitialSession above
+        if (event === "INITIAL_SESSION") return
+
         const currentUser = session?.user ?? null
         setUser(currentUser)
 
         if (currentUser) {
           hadUser.current = true
-          const { data } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", currentUser.id)
-            .single()
-          setProfile(data)
+          // Only re-fetch profile on sign-in or user update, not token refresh
+          if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+            await fetchProfile(currentUser.id)
+          }
         } else {
           setProfile(null)
-          if (hadUser.current && !isPublicRoute) {
+          if (hadUser.current) {
             router.push("/login")
-            return
           }
         }
 
@@ -84,7 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase, isPublicRoute, router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const signOut = async () => {
     await supabase.auth.signOut()

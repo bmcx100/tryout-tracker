@@ -26,11 +26,6 @@ export default function TryoutsPage() {
 
   const fetchData = async () => {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      window.location.href = "/login"
-      return
-    }
 
     const [
       { data: roundData },

@@ -20,11 +20,6 @@ export default function CrewPage() {
 
   const fetchCrew = async () => {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      window.location.href = "/login"
-      return
-    }
     const { data } = await supabase
       .from("user_crew")
       .select("*, player:players(*)")
@@ -35,17 +30,8 @@ export default function CrewPage() {
   }
 
   useEffect(() => {
-    const load = async () => {
-      const supabase = createClient()
-      const { data } = await supabase
-        .from("user_crew")
-        .select("*, player:players(*)")
-        .order("tag")
-
-      if (data) setCrew(data)
-      setLoading(false)
-    }
-    load()
+    fetchCrew()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const grouped = TAG_ORDER.map((tag) => ({
