@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { LogIn } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { OrgSwitcher } from "@/components/org-switcher"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 
 export function AppHeaderAuth() {
   const { user, profile, loading, signOut } = useAuth()
@@ -54,11 +54,7 @@ export function AppHeaderAuth() {
                 <span>{profile.display_name}</span>
               )}
               <span className="app-header-auth-email">{user?.email}</span>
-              {profile?.role && (
-                <Badge variant="outline" className="app-header-auth-badge">
-                  {profile.role}
-                </Badge>
-              )}
+              <OrgSwitcher />
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>

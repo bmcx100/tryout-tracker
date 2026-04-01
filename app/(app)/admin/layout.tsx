@@ -16,12 +16,25 @@ export default async function AdminLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("active_org_id, is_super_admin")
     .eq("id", user.id)
     .single()
 
-  if (!profile || profile.role !== "admin") {
+  if (!profile) {
     redirect("/home")
+  }
+
+  if (!profile.is_super_admin) {
+    const { data: membership } = await supabase
+      .from("org_members")
+      .select("role")
+      .eq("org_id", profile.active_org_id)
+      .eq("user_id", user.id)
+      .single()
+
+    if (!membership || membership.role !== "admin") {
+      redirect("/home")
+    }
   }
 
   return (

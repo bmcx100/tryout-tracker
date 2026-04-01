@@ -4656,3 +4656,24 @@
   flex-direction: column;
   gap: 4px;
 }
+
+/* Org Switcher */
+.org-switcher-label {
+  @apply text-xs text-muted-foreground;
+}
+
+.org-switcher-trigger {
+  @apply flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors;
+}
+
+.org-switcher-chevron {
+  @apply h-3 w-3;
+}
+
+.org-switcher-item {
+  @apply flex items-center gap-2 text-sm;
+}
+
+.org-switcher-check {
+  @apply h-3.5 w-3.5;
+}
