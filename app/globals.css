@@ -1729,23 +1729,77 @@
 }
 
 .admin-stat-card {
-  @apply bg-ash flex-1;
-  padding: 16px;
-  border-radius: 0.5rem;
+  @apply bg-paper;
+  padding: 14px;
+  border-radius: 0.25rem;
   border: 2px solid rgba(17, 17, 17, 0.12);
 }
 
-.admin-stat-value {
-  @apply font-data text-signal font-bold;
-  font-size: 28px;
-  line-height: 1;
-  margin-bottom: 4px;
+.admin-stat-header {
+  @apply flex justify-between items-baseline;
 }
 
 .admin-stat-label {
   @apply font-data uppercase text-steel;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.1em;
+}
+
+.admin-stat-value {
+  @apply font-heading font-bold text-ink;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.admin-stat-substats {
+  margin-top: 10px;
+}
+
+.admin-stat-row {
+  @apply flex justify-between font-data text-steel;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.admin-stat-row--alert {
+  @apply text-signal;
+}
+
+.admin-stat-divider {
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+  padding-top: 6px;
+  margin-top: 4px;
+}
+
+.admin-progress {
+  @apply bg-ash;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.admin-progress-fill {
+  @apply bg-ink;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.admin-progress-fill--alert {
+  @apply bg-signal;
+}
+
+.admin-progress-row {
+  margin-bottom: 8px;
+}
+
+.admin-progress-row:last-child {
+  margin-bottom: 0;
+}
+
+.admin-progress-label {
+  @apply flex justify-between font-data text-steel;
+  font-size: 11px;
+  margin-bottom: 3px;
 }
 
 .admin-form {
