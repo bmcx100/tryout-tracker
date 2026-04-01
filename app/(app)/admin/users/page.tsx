@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 import { approveUser, updateUserRole } from "@/lib/actions/users"
 import type { UserRole } from "@/lib/types"
+import QRCode from "qrcode"
 import {
   Select,
   SelectContent,
@@ -20,6 +21,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 const ROLES: UserRole[] = ["pending", "lite", "full", "admin"]
 
@@ -38,8 +41,16 @@ interface OrgMemberWithProfile {
 }
 
 export default function AdminUsersPage() {
-  const { activeOrgId } = useAuth()
+  const { activeOrgId, userOrgs } = useAuth()
   const [members, setMembers] = useState<OrgMemberWithProfile[]>([])
+  const [qrDataUrl, setQrDataUrl] = useState("")
+  const [copied, setCopied] = useState(false)
+
+  const activeOrg = userOrgs.find((o) => o.org_id === activeOrgId)
+  const orgSlug = activeOrg?.organizations?.slug ?? ""
+  const inviteLink = typeof window !== "undefined" && orgSlug
+    ? `${window.location.origin}/join/${orgSlug}`
+    : ""
 
   const supabase = createClient()
 
@@ -58,6 +69,18 @@ export default function AdminUsersPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrgId])
 
+  useEffect(() => {
+    if (inviteLink) {
+      QRCode.toDataURL(inviteLink, { width: 200, margin: 2 }).then(setQrDataUrl)
+    }
+  }, [inviteLink])
+
+  const handleCopyLink = async () => {
+    await navigator.clipboard.writeText(inviteLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   const handleApprove = async (userId: string, role: "lite" | "full") => {
     await approveUser(userId, role)
     fetchMembers()
@@ -74,6 +97,22 @@ export default function AdminUsersPage() {
   return (
     <div>
       <h1 className="app-page-title">Users</h1>
+
+      {inviteLink && (
+        <div className="admin-card">
+          <h2 className="admin-card-title">Invite Parents</h2>
+          <p className="admin-card-desc">Share this link or QR code with parents to let them request access.</p>
+          <div className="invite-section">
+            <Input value={inviteLink} readOnly />
+            <Button onClick={handleCopyLink}>
+              {copied ? "Copied!" : "Copy Link"}
+            </Button>
+          </div>
+          {qrDataUrl && (
+            <img src={qrDataUrl} alt="Invite QR code" className="invite-qr" />
+          )}
+        </div>
+      )}
 
       {pendingMembers.length > 0 && (
         <div className="admin-section">

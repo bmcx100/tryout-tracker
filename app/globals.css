@@ -1869,6 +1869,36 @@
   width: 100px;
 }
 
+.admin-card {
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0.5rem;
+  padding: 20px;
+  margin-bottom: 24px;
+  background: var(--concrete);
+}
+
+.admin-card-title {
+  @apply font-heading font-bold text-ink;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.admin-card-desc {
+  @apply text-steel;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.invite-section {
+  @apply flex items-center gap-2 w-full;
+}
+
+.invite-qr {
+  margin-top: 16px;
+  border-radius: 0.5rem;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+}
+
 /* Admin Teams Confirmation */
 
 .admin-teams-list {
