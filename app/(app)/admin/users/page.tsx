@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 import { approveUser, updateUserRole } from "@/lib/actions/users"
-import type { UserRole } from "@/lib/types"
+import { addPreApprovedEmail, removePreApprovedEmail } from "@/lib/actions/pre-approved-emails"
+import type { UserRole, PreApprovedEmail } from "@/lib/types"
 import QRCode from "qrcode"
 import {
   Select,
@@ -43,8 +44,12 @@ interface OrgMemberWithProfile {
 export default function AdminUsersPage() {
   const { activeOrgId, userOrgs } = useAuth()
   const [members, setMembers] = useState<OrgMemberWithProfile[]>([])
+  const [preApproved, setPreApproved] = useState<PreApprovedEmail[]>([])
   const [qrDataUrl, setQrDataUrl] = useState("")
   const [copied, setCopied] = useState(false)
+  const [newEmail, setNewEmail] = useState("")
+  const [newRole, setNewRole] = useState<"lite" | "full" | "admin">("lite")
+  const [preApproveError, setPreApproveError] = useState("")
 
   const activeOrg = userOrgs.find((o) => o.org_id === activeOrgId)
   const orgSlug = activeOrg?.organizations?.slug ?? ""
@@ -56,7 +61,7 @@ export default function AdminUsersPage() {
 
   const fetchMembers = async () => {
     if (!activeOrgId) return
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("org_members")
       .select("id, user_id, role, approved_at, created_at, profiles(id, email, display_name, created_at)")
       .eq("org_id", activeOrgId)
@@ -64,8 +69,20 @@ export default function AdminUsersPage() {
     if (data) setMembers(data as unknown as OrgMemberWithProfile[])
   }
 
+  const fetchPreApproved = async () => {
+    if (!activeOrgId) return
+    const { data, error } = await supabase
+      .from("pre_approved_emails")
+      .select("*")
+      .eq("org_id", activeOrgId)
+      .order("created_at", { ascending: false })
+    if (error) console.error("pre_approved fetch error:", error)
+    if (data) setPreApproved(data as PreApprovedEmail[])
+  }
+
   useEffect(() => {
     fetchMembers()
+    fetchPreApproved()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrgId])
 
@@ -91,6 +108,22 @@ export default function AdminUsersPage() {
     fetchMembers()
   }
 
+  const handleAddPreApproved = async () => {
+    setPreApproveError("")
+    try {
+      await addPreApprovedEmail(newEmail, newRole)
+      setNewEmail("")
+      fetchPreApproved()
+    } catch (err) {
+      setPreApproveError(err instanceof Error ? err.message : "Failed to add")
+    }
+  }
+
+  const handleRemovePreApproved = async (id: string) => {
+    await removePreApprovedEmail(id)
+    fetchPreApproved()
+  }
+
   const pendingMembers = members.filter((m) => m.role === "pending")
   const approvedMembers = members.filter((m) => m.role !== "pending")
 
@@ -113,6 +146,35 @@ export default function AdminUsersPage() {
           )}
         </div>
       )}
+
+      <div className="admin-card">
+        <h2 className="admin-card-title">Pre-Approve Emails</h2>
+        <p className="admin-card-desc">
+          Add emails to skip the approval queue when they sign up.
+        </p>
+        <div className="preapproved-form">
+          <Input
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            placeholder="parent@email.com"
+            type="email"
+          />
+          <Select value={newRole} onValueChange={(v) => setNewRole(v as "lite" | "full" | "admin")}>
+            <SelectTrigger className="preapproved-role-select">
+              <Badge variant="outline">{newRole}</Badge>
+            </SelectTrigger>
+            <SelectContent position="popper" sideOffset={4}>
+              <SelectItem value="lite">lite</SelectItem>
+              <SelectItem value="full">full</SelectItem>
+              <SelectItem value="admin">admin</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={handleAddPreApproved} disabled={!newEmail.trim()}>
+            Add
+          </Button>
+        </div>
+        {preApproveError && <p className="preapproved-error">{preApproveError}</p>}
+      </div>
 
       {pendingMembers.length > 0 && (
         <div className="admin-section">
@@ -161,6 +223,26 @@ export default function AdminUsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {preApproved.map((entry) => (
+              <TableRow key={`pre-${entry.id}`} className="preapproved-table-row">
+                <TableCell>{entry.email}</TableCell>
+                <TableCell>—</TableCell>
+                <TableCell>
+                  <Badge variant="outline">{entry.role}</Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="preapproved-status">
+                    <span className="preapproved-label">pre-approved</span>
+                    <button
+                      className="btn-danger-sm"
+                      onClick={() => handleRemovePreApproved(entry.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
             {approvedMembers.map((member) => (
               <TableRow key={member.id}>
                 <TableCell>{member.profiles?.email}</TableCell>

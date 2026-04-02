@@ -126,6 +126,15 @@ export interface UserCompetitionPrefs {
   updated_at: string
 }
 
+export interface PreApprovedEmail {
+  id: string
+  org_id: string
+  email: string
+  role: "lite" | "full" | "admin"
+  created_by: string | null
+  created_at: string
+}
+
 export interface Correction {
   id: string
   user_id: string

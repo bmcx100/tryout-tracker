@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { joinOrganization } from "@/lib/actions/join"
 import { Button } from "@/components/ui/button"
 
 export default function JoinPage() {
@@ -10,8 +11,15 @@ export default function JoinPage() {
   const router = useRouter()
   const slug = params.slug as string
   const [orgName, setOrgName] = useState<string | null>(null)
-  const [status, setStatus] = useState<"loading" | "ready" | "joining" | "done" | "error">("loading")
+  const [status, setStatus] = useState<"loading" | "ready" | "joining" | "done" | "approved" | "error">("loading")
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    if (status === "approved") {
+      const timer = setTimeout(() => router.push("/home"), 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [status, router])
 
   useEffect(() => {
     const supabase = createClient()
@@ -50,49 +58,25 @@ export default function JoinPage() {
       return
     }
 
-    const { data: org } = await supabase
-      .from("organizations")
-      .select("id")
-      .eq("slug", slug)
-      .single()
+    const result = await joinOrganization(slug)
 
-    if (!org) {
-      setError("Organization not found")
+    if (result.error) {
+      setError(result.error)
       setStatus("error")
       return
     }
 
-    const { data: existing } = await supabase
-      .from("org_members")
-      .select("id, role")
-      .eq("org_id", org.id)
-      .eq("user_id", user.id)
-      .single()
-
-    if (existing) {
-      if (existing.role === "pending") {
-        setStatus("done")
-      } else {
-        router.push("/home")
-        return
-      }
-    } else {
-      const { error: insertError } = await supabase
-        .from("org_members")
-        .insert({
-          org_id: org.id,
-          user_id: user.id,
-          role: "pending",
-        })
-
-      if (insertError) {
-        setError(insertError.message)
-        setStatus("error")
-        return
-      }
-
-      setStatus("done")
+    if (result.alreadyMember && result.role !== "pending") {
+      router.push("/home")
+      return
     }
+
+    if (result.preApproved) {
+      setStatus("approved")
+      return
+    }
+
+    setStatus("done")
   }
 
   if (status === "loading") {
@@ -104,6 +88,20 @@ export default function JoinPage() {
       <div className="join-page">
         <div className="join-card">
           <p className="join-error">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === "approved") {
+    return (
+      <div className="join-page">
+        <div className="join-card">
+          <h1 className="join-headline">Welcome!</h1>
+          <p className="join-body">
+            You&apos;ve been pre-approved for {orgName}. Redirecting...
+          </p>
+          <Button onClick={() => router.push("/home")}>Go to Home</Button>
         </div>
       </div>
     )

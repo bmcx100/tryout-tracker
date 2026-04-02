@@ -212,6 +212,20 @@ create table public.user_competition_prefs (
 )
 
 -- ========================================
+-- PRE-APPROVED EMAILS (admin pre-approves before signup)
+-- ========================================
+
+create table public.pre_approved_emails (
+  id uuid primary key default gen_random_uuid(),
+  org_id uuid references public.organizations(id) on delete cascade not null,
+  email text not null,
+  role text not null default 'lite' check (role in ('lite', 'full', 'admin')),
+  created_by uuid references auth.users on delete set null,
+  created_at timestamptz not null default now(),
+  unique (org_id, email)
+)
+
+-- ========================================
 -- HELPER FUNCTIONS
 -- ========================================
 
@@ -599,6 +613,86 @@ create policy "Users can delete own competition prefs in active org"
   on public.user_competition_prefs for delete
   using (auth.uid() = user_id and org_id = public.get_active_org_id())
 
+-- --- Pre-Approved Emails ---
+alter table public.pre_approved_emails enable row level security
+
+create policy "Org admins can read pre-approved emails"
+  on public.pre_approved_emails for select
+  using (
+    public.get_org_role(org_id) = 'admin'
+    or public.is_super_admin()
+  )
+
+create policy "Org admins can insert pre-approved emails"
+  on public.pre_approved_emails for insert
+  with check (
+    public.get_org_role(org_id) = 'admin'
+    or public.is_super_admin()
+  )
+
+create policy "Org admins can delete pre-approved emails"
+  on public.pre_approved_emails for delete
+  using (
+    public.get_org_role(org_id) = 'admin'
+    or public.is_super_admin()
+  )
+
+-- Authenticated users can check if their own email is pre-approved (for join flow)
+create policy "Users can check own pre-approval"
+  on public.pre_approved_emails for select
+  using (
+    lower(email) = lower((select email from auth.users where id = auth.uid()))
+  )
+
+-- ========================================
+-- FUNCTION: join_org_pre_approved (security definer)
+-- Allows a pre-approved user to join with their approved role,
+-- bypassing the RLS policy that only allows 'pending' inserts.
+-- ========================================
+
+create or replace function public.join_org_pre_approved(
+  target_org_id uuid,
+  target_role text
+)
+returns void as $$
+declare
+  caller_email text;
+  pre_approved_row record;
+begin
+  -- Get the caller's email
+  select email into caller_email from auth.users where id = auth.uid();
+  if caller_email is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  -- Verify the caller is actually pre-approved for this org with this role
+  select * into pre_approved_row from public.pre_approved_emails
+  where org_id = target_org_id
+    and lower(email) = lower(caller_email);
+
+  if pre_approved_row is null then
+    raise exception 'Email is not pre-approved for this organization';
+  end if;
+
+  if pre_approved_row.role != target_role then
+    raise exception 'Role mismatch with pre-approval';
+  end if;
+
+  -- Insert the org_members row with the approved role
+  insert into public.org_members (org_id, user_id, role, approved_at)
+  values (target_org_id, auth.uid(), target_role, now());
+
+  -- Set active_org_id if not already set
+  update public.profiles
+  set active_org_id = target_org_id
+  where id = auth.uid() and active_org_id is null;
+
+  -- Delete the pre-approved entry (consumed)
+  delete from public.pre_approved_emails
+  where id = pre_approved_row.id;
+end;
+$$ language plpgsql security definer
+
 -- ========================================
 -- TABLE-LEVEL GRANTS
 -- RLS controls row access; GRANTs control table access
@@ -627,6 +721,7 @@ grant select, insert, update, delete on public.user_crew to authenticated
 grant select, insert, update, delete on public.user_scenarios to authenticated
 grant select, insert, update on public.corrections to authenticated
 grant select, insert, update, delete on public.user_competition_prefs to authenticated
+grant select, insert, delete on public.pre_approved_emails to authenticated
 
 -- View
 grant select on public.players_view to authenticated
@@ -637,3 +732,4 @@ grant execute on function public.get_active_org_id() to authenticated
 grant execute on function public.get_org_role(uuid) to authenticated
 grant execute on function public.is_super_admin() to authenticated
 grant execute on function public.handle_new_user() to authenticated
+grant execute on function public.join_org_pre_approved(uuid, text) to authenticated
