@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { StepRankTeams } from "./step-rank-teams"
 import { StepRankPlayers } from "./step-rank-players"
 import { ResultsView } from "./results-view"
@@ -54,6 +55,7 @@ const defaultPrefs: UserCompetitionPrefs = {
 }
 
 export default function HomePage() {
+  const { activeOrgId } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -92,6 +94,8 @@ export default function HomePage() {
   }, [players, currentPrefs.position_overrides])
 
   useEffect(() => {
+    if (!activeOrgId) return
+
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 15000)
 
@@ -103,17 +107,20 @@ export default function HomePage() {
           supabase
             .from("players_view")
             .select("*")
+            .eq("org_id", activeOrgId)
             .not("position", "is", null)
             .not("previous_team", "is", null)
             .abortSignal(controller.signal),
           supabase
             .from("user_competition_prefs")
             .select("*")
+            .eq("org_id", activeOrgId)
             .order("last_viewed", { ascending: false })
             .abortSignal(controller.signal),
           supabase
             .from("user_crew")
             .select("*")
+            .eq("org_id", activeOrgId)
             .abortSignal(controller.signal),
         ])
 
@@ -190,7 +197,7 @@ export default function HomePage() {
       controller.abort()
       clearTimeout(timer)
     }
-  }, [])
+  }, [activeOrgId])
 
   const crewNumbers = new Set(crew.map((c) => c.player_number))
 

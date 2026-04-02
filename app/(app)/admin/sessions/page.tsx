@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { createSession, updateSession, deleteSession } from "@/lib/actions/sessions"
 import type { Session, PlayerLevel } from "@/lib/types"
 import {
@@ -32,6 +33,7 @@ import {
 const LEVELS: PlayerLevel[] = ["AA", "A", "BB", "B", "C"]
 
 export default function AdminSessionsPage() {
+  const { activeOrgId } = useAuth()
   const [sessions, setSessions] = useState<Session[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Session | null>(null)
@@ -40,23 +42,27 @@ export default function AdminSessionsPage() {
   const supabase = createClient()
 
   const fetchSessions = async () => {
+    if (!activeOrgId) return
     const { data } = await supabase
       .from("sessions")
       .select("*")
+      .eq("org_id", activeOrgId)
       .order("date", { ascending: false })
     if (data) setSessions(data)
   }
 
   useEffect(() => {
+    if (!activeOrgId) return
     const load = async () => {
       const { data } = await supabase
         .from("sessions")
         .select("*")
+        .eq("org_id", activeOrgId)
         .order("date", { ascending: false })
       if (data) setSessions(data)
     }
     load()
-  }, [])
+  }, [activeOrgId])
 
   const filtered = sessions.filter((s) => {
     if (filterLevel !== "all" && s.level !== filterLevel) return false

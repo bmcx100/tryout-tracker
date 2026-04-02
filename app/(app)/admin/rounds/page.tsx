@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { createRound, recordRoundResults } from "@/lib/actions/rounds"
 import type { Round, Player, PlayerLevel, RoundResult } from "@/lib/types"
 import {
@@ -33,6 +34,7 @@ const LEVELS: PlayerLevel[] = ["AA", "A", "BB", "B", "C"]
 const RESULTS: RoundResult[] = ["advanced", "cut_down", "withdrawn", "placed"]
 
 export default function AdminRoundsPage() {
+  const { activeOrgId } = useAuth()
   const [rounds, setRounds] = useState<Round[]>([])
   const [players, setPlayers] = useState<Player[]>([])
   const [addOpen, setAddOpen] = useState(false)
@@ -43,25 +45,27 @@ export default function AdminRoundsPage() {
   const supabase = createClient()
 
   const fetchData = async () => {
+    if (!activeOrgId) return
     const [{ data: roundData }, { data: playerData }] = await Promise.all([
-      supabase.from("rounds").select("*").order("date", { ascending: false }),
-      supabase.from("players").select("*").order("number"),
+      supabase.from("rounds").select("*").eq("org_id", activeOrgId).order("date", { ascending: false }),
+      supabase.from("players").select("*").eq("org_id", activeOrgId).order("number"),
     ])
     if (roundData) setRounds(roundData)
     if (playerData) setPlayers(playerData)
   }
 
   useEffect(() => {
+    if (!activeOrgId) return
     const load = async () => {
       const [{ data: roundData }, { data: playerData }] = await Promise.all([
-        supabase.from("rounds").select("*").order("date", { ascending: false }),
-        supabase.from("players").select("*").order("number"),
+        supabase.from("rounds").select("*").eq("org_id", activeOrgId).order("date", { ascending: false }),
+        supabase.from("players").select("*").eq("org_id", activeOrgId).order("number"),
       ])
       if (roundData) setRounds(roundData)
       if (playerData) setPlayers(playerData)
     }
     load()
-  }, [])
+  }, [activeOrgId])
 
   const handleCreateRound = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

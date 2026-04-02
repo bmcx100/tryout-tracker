@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { RoundsTab } from "@/components/current/rounds-tab"
 import { ResultsTab } from "@/components/current/results-tab"
 import type { Player, Round, RoundResultRecord, Session, CrewMember } from "@/lib/types"
@@ -17,6 +18,7 @@ interface RoundWithResults extends Round {
 type TryoutsTab = "results" | "rounds"
 
 export default function TryoutsPage() {
+  const { activeOrgId } = useAuth()
   const [activeTab, setActiveTab] = useState<TryoutsTab>("rounds")
   const [rounds, setRounds] = useState<RoundWithResults[]>([])
   const [sessions, setSessions] = useState<SessionWithCrew[]>([])
@@ -25,6 +27,7 @@ export default function TryoutsPage() {
   const [loading, setLoading] = useState(true)
 
   const fetchData = async () => {
+    if (!activeOrgId) return
     const supabase = createClient()
 
     const [
@@ -35,12 +38,12 @@ export default function TryoutsPage() {
       { data: sessionPlayers },
       { data: playerData },
     ] = await Promise.all([
-      supabase.from("rounds").select("*").order("date", { ascending: false }),
-      supabase.from("round_results").select("*"),
-      supabase.from("sessions").select("*").order("date").order("start_time"),
-      supabase.from("user_crew").select("*"),
-      supabase.from("session_players").select("*"),
-      supabase.from("players_view").select("*"),
+      supabase.from("rounds").select("*").eq("org_id", activeOrgId).order("date", { ascending: false }),
+      supabase.from("round_results").select("*").eq("org_id", activeOrgId),
+      supabase.from("sessions").select("*").eq("org_id", activeOrgId).order("date").order("start_time"),
+      supabase.from("user_crew").select("*").eq("org_id", activeOrgId),
+      supabase.from("session_players").select("*").eq("org_id", activeOrgId),
+      supabase.from("players_view").select("*").eq("org_id", activeOrgId),
     ])
 
     if (playerData) setPlayers(playerData)
@@ -83,6 +86,7 @@ export default function TryoutsPage() {
   }
 
   useEffect(() => {
+    if (!activeOrgId) return
     const load = async () => {
       const supabase = createClient()
       const [
@@ -93,12 +97,12 @@ export default function TryoutsPage() {
         { data: sessionPlayers },
         { data: playerData },
       ] = await Promise.all([
-        supabase.from("rounds").select("*").order("date", { ascending: false }),
-        supabase.from("round_results").select("*"),
-        supabase.from("sessions").select("*").order("date").order("start_time"),
-        supabase.from("user_crew").select("*"),
-        supabase.from("session_players").select("*"),
-        supabase.from("players_view").select("*"),
+        supabase.from("rounds").select("*").eq("org_id", activeOrgId).order("date", { ascending: false }),
+        supabase.from("round_results").select("*").eq("org_id", activeOrgId),
+        supabase.from("sessions").select("*").eq("org_id", activeOrgId).order("date").order("start_time"),
+        supabase.from("user_crew").select("*").eq("org_id", activeOrgId),
+        supabase.from("session_players").select("*").eq("org_id", activeOrgId),
+        supabase.from("players_view").select("*").eq("org_id", activeOrgId),
       ])
       if (playerData) setPlayers(playerData)
       if (crewData) setCrew(crewData)
@@ -135,7 +139,7 @@ export default function TryoutsPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [activeOrgId])
 
   const crewMap = new Map(crew.map((c) => [c.player_number, c]))
 

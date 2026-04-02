@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { createPlayer, updatePlayer, deletePlayer, bulkCreatePlayers } from "@/lib/actions/players"
+import { useAuth } from "@/hooks/use-auth"
 import { getAgeGroup, playerName } from "@/lib/utils"
 import type { Player, PlayerLevel, PlayerStatus } from "@/lib/types"
 import {
@@ -61,27 +62,32 @@ export default function AdminPlayersPage() {
   const [bulkPreview, setBulkPreview] = useState<BulkRow[]>([])
   const [bulkError, setBulkError] = useState("")
   const [bulkLoading, setBulkLoading] = useState(false)
+  const { activeOrgId } = useAuth()
 
   const supabase = createClient()
 
   const fetchPlayers = async () => {
+    if (!activeOrgId) return
     const { data } = await supabase
       .from("players")
       .select("*")
+      .eq("org_id", activeOrgId)
       .order("number")
     if (data) setPlayers(data)
   }
 
   useEffect(() => {
+    if (!activeOrgId) return
     const load = async () => {
       const { data } = await supabase
         .from("players")
         .select("*")
+        .eq("org_id", activeOrgId)
         .order("number")
       if (data) setPlayers(data)
     }
     load()
-  }, [])
+  }, [activeOrgId])
 
   const filtered = players.filter((p) => {
     if (ageFilter !== "all") {

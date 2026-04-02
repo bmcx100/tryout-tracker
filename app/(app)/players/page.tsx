@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Heart } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { addToCrew, removeFromCrew } from "@/lib/actions/crew"
 import { toast } from "sonner"
 import { getAgeGroup, playerName, AGE_GROUPS, PREVIOUS_TEAMS, type AgeGroup } from "@/lib/utils"
@@ -20,6 +21,7 @@ const TAG_ORDER = ["bff", "teammate", "old_teammate", "friend"]
 const LEVELS = ["AA", "A", "BB", "B", "C"]
 
 export default function PlayersPage() {
+  const { activeOrgId } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [tab, setTab] = useState<Tab>("crew")
@@ -40,10 +42,11 @@ export default function PlayersPage() {
   const [addOpen, setAddOpen] = useState(false)
 
   const fetchData = async () => {
+    if (!activeOrgId) return
     const supabase = createClient()
     const [{ data: playerData }, { data: crewData }] = await Promise.all([
-      supabase.from("players_view").select("*").order("number"),
-      supabase.from("user_crew").select("*, player:players(*)").order("tag"),
+      supabase.from("players_view").select("*").eq("org_id", activeOrgId).order("number"),
+      supabase.from("user_crew").select("*, player:players(*)").eq("org_id", activeOrgId).order("tag"),
     ])
     if (playerData) setPlayers(playerData)
     if (crewData) setCrew(crewData)
@@ -51,8 +54,9 @@ export default function PlayersPage() {
   }
 
   useEffect(() => {
+    if (!activeOrgId) return
     fetchData()
-  }, [])
+  }, [activeOrgId])
 
   const crewMap = new Map(crew.map((c) => [c.player_number, c]))
 

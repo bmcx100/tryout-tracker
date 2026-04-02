@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import { togglePlayerConfirmation, bulkConfirmTeam } from "@/lib/actions/teams"
 import { getAgeGroup, PREVIOUS_TEAMS, AGE_GROUPS, playerName } from "@/lib/utils"
 import type { Player } from "@/lib/types"
@@ -18,29 +19,34 @@ import {
 type AgeFilter = AgeGroup | "all"
 
 export default function AdminTeamsPage() {
+  const { activeOrgId } = useAuth()
   const [players, setPlayers] = useState<Player[]>([])
   const [ageFilter, setAgeFilter] = useState<AgeFilter>("all")
 
   const fetchPlayers = async () => {
+    if (!activeOrgId) return
     const supabase = createClient()
     const { data } = await supabase
       .from("players")
       .select("*")
+      .eq("org_id", activeOrgId)
       .order("number")
     if (data) setPlayers(data)
   }
 
   useEffect(() => {
+    if (!activeOrgId) return
     const load = async () => {
       const supabase = createClient()
       const { data } = await supabase
         .from("players")
         .select("*")
+        .eq("org_id", activeOrgId)
         .order("number")
       if (data) setPlayers(data)
     }
     load()
-  }, [])
+  }, [activeOrgId])
 
   const previousTeams = ageFilter === "all"
     ? [...PREVIOUS_TEAMS.U15, ...PREVIOUS_TEAMS.U13]

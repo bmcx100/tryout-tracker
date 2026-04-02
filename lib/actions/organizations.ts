@@ -5,9 +5,24 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function createOrganization(data: { name: string; slug: string }) {
   const supabase = await createClient()
-  const { error } = await supabase.from("organizations").insert(data)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Not authenticated")
+
+  const { data: org, error } = await supabase
+    .from("organizations")
+    .insert(data)
+    .select("id")
+    .single()
 
   if (error) throw new Error(error.message)
+
+  await supabase.from("org_members").insert({
+    org_id: org.id,
+    user_id: user.id,
+    role: "admin",
+    approved_at: new Date().toISOString(),
+  })
+
   revalidatePath("/admin/organizations")
 }
 

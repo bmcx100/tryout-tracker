@@ -1,4 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
+"use client"
+
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 
 interface TeamStats {
   total: number
@@ -68,42 +72,63 @@ function computeSessionStats(
   return { missingResults, upcoming, completed }
 }
 
-export default async function AdminDashboard() {
-  const supabase = await createClient()
+export default function AdminDashboard() {
+  const { activeOrgId } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [totalPlayers, setTotalPlayers] = useState(0)
+  const [totalConfirmed, setTotalConfirmed] = useState(0)
+  const [totalCheckedIn, setTotalCheckedIn] = useState(0)
+  const [teamStats, setTeamStats] = useState<TeamStats>({ total: 0, fullyConfirmed: 0, allCheckedIn: 0 })
+  const [sessionStats, setSessionStats] = useState<SessionStats>({ missingResults: 0, upcoming: 0, completed: 0 })
+  const [totalUsers, setTotalUsers] = useState(0)
+  const [totalPending, setTotalPending] = useState(0)
 
-  const [
-    { count: playerCount },
-    { count: confirmedCount },
-    { count: checkedInCount },
-    { data: teamPlayers },
-    { data: sessions },
-    { data: rounds },
-    { count: userCount },
-    { count: pendingUserCount },
-  ] = await Promise.all([
-    supabase.from("players").select("*", { count: "exact", head: true }),
-    supabase.from("players").select("*", { count: "exact", head: true }).eq("info_confirmed", true),
-    supabase.from("players").select("*", { count: "exact", head: true }).eq("checked_in", true),
-    supabase.from("players").select("previous_team, info_confirmed, checked_in"),
-    supabase.from("sessions").select("level, round_number, date"),
-    supabase.from("rounds").select("level, round_number, round_results(id)"),
-    supabase.from("profiles").select("*", { count: "exact", head: true }),
-    supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "pending"),
-  ])
+  useEffect(() => {
+    if (!activeOrgId) return
+    const load = async () => {
+      const supabase = createClient()
 
-  const totalPlayers = playerCount ?? 0
-  const totalConfirmed = confirmedCount ?? 0
-  const totalCheckedIn = checkedInCount ?? 0
-  const teamStats = computeTeamStats(teamPlayers ?? [])
-  const roundsWithResults = (rounds ?? []).map((r: { level: string, round_number: number, round_results: { id: string }[] }) => ({
-    level: r.level,
-    round_number: r.round_number,
-    hasResults: r.round_results.length > 0,
-  }))
-  const sessionStats = computeSessionStats(sessions ?? [], roundsWithResults)
-  const totalUsers = userCount ?? 0
-  const totalPending = pendingUserCount ?? 0
+      const [
+        { count: playerCount },
+        { count: confirmedCount },
+        { count: checkedInCount },
+        { data: teamPlayers },
+        { data: sessions },
+        { data: rounds },
+        { count: userCount },
+        { count: pendingUserCount },
+      ] = await Promise.all([
+        supabase.from("players").select("*", { count: "exact", head: true }).eq("org_id", activeOrgId),
+        supabase.from("players").select("*", { count: "exact", head: true }).eq("org_id", activeOrgId).eq("info_confirmed", true),
+        supabase.from("players").select("*", { count: "exact", head: true }).eq("org_id", activeOrgId).eq("checked_in", true),
+        supabase.from("players").select("previous_team, info_confirmed, checked_in").eq("org_id", activeOrgId),
+        supabase.from("sessions").select("level, round_number, date").eq("org_id", activeOrgId),
+        supabase.from("rounds").select("level, round_number, round_results(id)").eq("org_id", activeOrgId),
+        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("org_id", activeOrgId),
+        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("org_id", activeOrgId).eq("role", "pending"),
+      ])
+
+      setTotalPlayers(playerCount ?? 0)
+      setTotalConfirmed(confirmedCount ?? 0)
+      setTotalCheckedIn(checkedInCount ?? 0)
+      setTeamStats(computeTeamStats(teamPlayers ?? []))
+
+      const roundsWithResults = (rounds ?? []).map((r: { level: string, round_number: number, round_results: { id: string }[] }) => ({
+        level: r.level,
+        round_number: r.round_number,
+        hasResults: r.round_results.length > 0,
+      }))
+      setSessionStats(computeSessionStats(sessions ?? [], roundsWithResults))
+      setTotalUsers(userCount ?? 0)
+      setTotalPending(pendingUserCount ?? 0)
+      setLoading(false)
+    }
+    load()
+  }, [activeOrgId])
+
   const totalActive = totalUsers - totalPending
+
+  if (loading) return null
 
   return (
     <div>

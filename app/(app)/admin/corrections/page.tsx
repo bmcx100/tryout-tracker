@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/hooks/use-auth"
 import type { Correction } from "@/lib/types"
 import {
   Table,
@@ -13,20 +14,23 @@ import {
 } from "@/components/ui/table"
 
 export default function AdminCorrectionsPage() {
+  const { activeOrgId } = useAuth()
   const [corrections, setCorrections] = useState<Correction[]>([])
 
   const supabase = createClient()
 
   useEffect(() => {
+    if (!activeOrgId) return
     const fetch = async () => {
       const { data } = await supabase
         .from("corrections")
         .select("*")
+        .eq("org_id", activeOrgId)
         .order("status")
       if (data) setCorrections(data)
     }
     fetch()
-  }, [])
+  }, [activeOrgId])
 
   const handleResolve = async (id: string, status: "approved" | "rejected") => {
     await supabase
