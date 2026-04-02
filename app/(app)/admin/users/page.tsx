@@ -50,6 +50,7 @@ export default function AdminUsersPage() {
   const [newEmail, setNewEmail] = useState("")
   const [newRole, setNewRole] = useState<"lite" | "full" | "admin">("lite")
   const [preApproveError, setPreApproveError] = useState("")
+  const [preApprovedFetchError, setPreApprovedFetchError] = useState("")
 
   const activeOrg = userOrgs.find((o) => o.org_id === activeOrgId)
   const orgSlug = activeOrg?.organizations?.slug ?? ""
@@ -71,18 +72,44 @@ export default function AdminUsersPage() {
 
   const fetchPreApproved = async () => {
     if (!activeOrgId) return
+    setPreApprovedFetchError("")
     const { data, error } = await supabase
       .from("pre_approved_emails")
       .select("*")
       .eq("org_id", activeOrgId)
       .order("created_at", { ascending: false })
-    if (error) console.error("pre_approved fetch error:", error)
+    if (error) {
+      console.error("pre_approved fetch error:", error)
+      setPreApprovedFetchError(`Failed to load pre-approved emails: ${error.message}`)
+    }
     if (data) setPreApproved(data as PreApprovedEmail[])
   }
 
   useEffect(() => {
     fetchMembers()
     fetchPreApproved()
+
+    if (!activeOrgId) return
+
+    const channel = supabase
+      .channel(`admin-members-${activeOrgId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "org_members",
+          filter: `org_id=eq.${activeOrgId}`,
+        },
+        () => {
+          fetchMembers()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrgId])
 
@@ -174,6 +201,12 @@ export default function AdminUsersPage() {
           </Button>
         </div>
         {preApproveError && <p className="preapproved-error">{preApproveError}</p>}
+        {preApprovedFetchError && <p className="preapproved-error">{preApprovedFetchError}</p>}
+        <p className="preapproved-count">
+          {preApproved.length > 0
+            ? `${preApproved.length} email${preApproved.length === 1 ? "" : "s"} pre-approved`
+            : "No emails pre-approved yet"}
+        </p>
       </div>
 
       {pendingMembers.length > 0 && (

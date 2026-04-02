@@ -37,6 +37,16 @@ npx shadcn@latest add <component-name>
 
 Components are placed in `components/ui/` and use `class-variance-authority` for variants, `radix-ui` for primitives, and the `cn()` utility for class merging.
 
+## Debugging & Diagnosis Rules
+
+Before proposing a fix for a production bug:
+
+1. **Blast radius check:** If your proposed root cause were true, what ELSE would be broken? List those things and ask the user whether they've seen those failures too. If they haven't, your diagnosis is wrong — go back and investigate further.
+2. **Shared code paths:** When a fix involves changing shared infrastructure (layouts, middleware, utilities, revalidation, auth), verify that other features using the same code path still work. If they do, the shared code is not the problem.
+3. **Don't change code you can't justify:** Never remove or modify working patterns (e.g., `revalidatePath`, middleware checks) based on speculation. Get the actual error first (e.g., Vercel function logs, browser console) before making changes.
+4. **Localhost vs production:** When a bug only appears in production, focus on what differs between environments (error sanitization, caching, cookie handling, env vars) rather than blaming code that works in both.
+5. **Ask before acting:** When uncertain about the root cause, ask the user for more information (logs, reproduction steps, what else they've tested) instead of guessing and shipping a wrong fix.
+
 ## Additional Coding Preferences
 
 - Do NOT use semicolons for JavaScript or TypeScript code.

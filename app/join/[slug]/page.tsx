@@ -58,25 +58,30 @@ export default function JoinPage() {
       return
     }
 
-    const result = await joinOrganization(slug)
+    try {
+      const result = await joinOrganization(slug)
 
-    if (result.error) {
-      setError(result.error)
+      if (result.error) {
+        setError(result.error)
+        setStatus("error")
+        return
+      }
+
+      if (result.alreadyMember && result.role !== "pending") {
+        router.push("/home")
+        return
+      }
+
+      if (result.preApproved) {
+        setStatus("approved")
+        return
+      }
+
+      setStatus("done")
+    } catch {
+      setError("Something went wrong. Please try again.")
       setStatus("error")
-      return
     }
-
-    if (result.alreadyMember && result.role !== "pending") {
-      router.push("/home")
-      return
-    }
-
-    if (result.preApproved) {
-      setStatus("approved")
-      return
-    }
-
-    setStatus("done")
   }
 
   if (status === "loading") {
@@ -107,11 +112,23 @@ export default function JoinPage() {
     )
   }
 
+  if (status === "joining") {
+    return (
+      <div className="join-page">
+        <div className="join-card">
+          <div className="join-spinner" />
+          <p className="join-body">Connecting to {orgName}...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (status === "done") {
     return (
       <div className="join-page">
         <div className="join-card">
-          <h1 className="join-headline">Request sent</h1>
+          <div className="join-success-icon">&#10003;</div>
+          <h1 className="join-headline">Request sent!</h1>
           <p className="join-body">
             A {orgName} admin will review your request.
             You&apos;ll get access once approved.
@@ -126,12 +143,12 @@ export default function JoinPage() {
     <div className="join-page">
       <div className="join-card">
         <div className="join-brand">TRYOUT TRACKER</div>
-        <h1 className="join-headline">Join {orgName}</h1>
+        <h1 className="join-headline">Track {orgName}</h1>
         <p className="join-body">
-          Sign in with Google to request access to {orgName}&apos;s tryout tracker.
+          Sign in to start tracking {orgName}&apos;s tryouts.
         </p>
-        <Button onClick={handleJoin} disabled={status === "joining"}>
-          {status === "joining" ? "Joining..." : `Join ${orgName}`}
+        <Button onClick={handleJoin}>
+          Track {orgName}
         </Button>
       </div>
     </div>
