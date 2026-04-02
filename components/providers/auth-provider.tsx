@@ -44,21 +44,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single()
+    if (error) console.error("[auth] fetchProfile error:", error.message, error.code)
+    else console.debug("[auth] profile:", { active_org_id: data?.active_org_id, display_name: data?.display_name })
     setProfile(data)
     return data
   }
 
   const fetchOrgs = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("org_members")
       .select("org_id, role, organizations(id, name, slug)")
       .eq("user_id", userId)
       .neq("role", "pending")
+    if (error) console.error("[auth] fetchOrgs error:", error.message, error.code)
+    else console.debug("[auth] orgs:", data?.map((o) => ({ org_id: o.org_id, role: o.role })))
     setUserOrgs((data as unknown as UserOrg[]) || [])
     return (data as unknown as UserOrg[]) || []
   }
@@ -71,18 +75,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    const getInitialSession = async () => {
-      const { data: { user: authUser } } = await supabase.auth.getUser()
+    const initSession = async (attempt = 1): Promise<void> => {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+
+      if (authError) {
+        console.error("[auth] getUser error (attempt %d):", attempt, authError.message)
+        // Retry once after a short delay — covers stale token / race with middleware cookie refresh
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 1000))
+          return initSession(attempt + 1)
+        }
+      } else {
+        console.debug("[auth] user:", authUser?.id, authUser?.email)
+      }
+
       setUser(authUser)
+
       if (authUser) {
         hadUser.current = true
-        await fetchProfile(authUser.id)
-        await fetchOrgs(authUser.id)
+        let profileData = await fetchProfile(authUser.id)
+        const orgsData = await fetchOrgs(authUser.id)
+
+        // Retry profile once if it came back null but user is authenticated
+        if (!profileData && attempt < 2) {
+          console.warn("[auth] profile null on first try — retrying")
+          await new Promise((r) => setTimeout(r, 500))
+          profileData = await fetchProfile(authUser.id)
+        }
+
+        // Auto-fix: patch missing profile fields
+        const patches: Record<string, string> = {}
+        if (!profileData?.active_org_id && orgsData.length > 0) {
+          patches.active_org_id = orgsData[0].org_id
+        }
+        if (!profileData?.display_name) {
+          const name = authUser.user_metadata?.full_name
+            || authUser.user_metadata?.name
+          if (name) patches.display_name = name
+        }
+        if (Object.keys(patches).length > 0) {
+          console.debug("[auth] auto-patching profile:", patches)
+          const { error: patchError } = await supabase
+            .from("profiles")
+            .update(patches)
+            .eq("id", authUser.id)
+          if (patchError) console.error("[auth] patch error:", patchError.message)
+          else await fetchProfile(authUser.id)
+        }
+      } else {
+        console.warn("[auth] no authenticated user found")
       }
+
+      console.debug("[auth] init complete, loading → false")
       setLoading(false)
     }
 
-    getInitialSession()
+    initSession()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {

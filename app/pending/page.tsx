@@ -19,8 +19,15 @@ export default function PendingPage() {
           schema: "public",
           table: "org_members",
         },
-        (payload) => {
+        async (payload) => {
           if (payload.new.role !== "pending") {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+              await supabase
+                .from("profiles")
+                .update({ active_org_id: payload.new.org_id })
+                .eq("id", user.id)
+            }
             router.push("/home")
           }
         }
