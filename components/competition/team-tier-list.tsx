@@ -3,12 +3,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
   type CollisionDetection,
 } from "@dnd-kit/core"
 import {
@@ -18,6 +20,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable"
 import { TeamRow } from "./team-row"
+import { PlayerCard } from "./player-card"
 import { PositionSwitchModal } from "./position-switch-modal"
 import type { Player, PinnedPlayer } from "@/lib/types"
 import { extractLevelFromTeam } from "@/lib/utils"
@@ -99,6 +102,16 @@ export function TeamTierList({
   }, [allPlayers, positionOverrides])
 
   const [switchTarget, setSwitchTarget] = useState<Player | null>(null)
+  const [activeDragPlayer, setActiveDragPlayer] = useState<Player | null>(null)
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const activeId = String(event.active.id)
+    if (activeId.startsWith("p-")) {
+      const num = Number(activeId.slice(2))
+      const player = allPlayers.find((p) => p.number === num)
+      if (player) setActiveDragPlayer(player)
+    }
+  }, [allPlayers])
 
   const handleConfirmSwitch = useCallback(() => {
     if (!switchTarget || !onPositionOverride) return
@@ -164,6 +177,7 @@ export function TeamTierList({
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      setActiveDragPlayer(null)
       const { active, over } = event
       if (!over) return
 
@@ -449,6 +463,7 @@ export function TeamTierList({
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={visibleTeams} strategy={verticalListSortingStrategy}>
@@ -494,6 +509,16 @@ export function TeamTierList({
             })}
           </div>
         </SortableContext>
+        <DragOverlay dropAnimation={null}>
+          {activeDragPlayer && (
+            <PlayerCard
+              player={activeDragPlayer}
+              isCrew={crewNumbers.has(activeDragPlayer.number)}
+              isDefense={activeDragPlayer.position === "D"}
+              isOverlay
+            />
+          )}
+        </DragOverlay>
       </DndContext>
       {switchTarget && onPositionOverride && (
         <PositionSwitchModal

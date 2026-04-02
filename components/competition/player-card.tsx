@@ -14,6 +14,7 @@ interface PlayerCardProps {
   showDivider?: boolean
   isOverridden?: boolean
   isGhost?: boolean
+  isOverlay?: boolean
   onLongPressPosition?: (player: Player) => void
 }
 
@@ -24,6 +25,7 @@ export function PlayerCard({
   showDivider,
   isOverridden,
   isGhost,
+  isOverlay,
   onLongPressPosition,
 }: PlayerCardProps) {
   const {
@@ -76,7 +78,7 @@ export function PlayerCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`comp-player-card${isDragging ? " comp-player-dragging" : ""}${isDefense ? " comp-player-defense" : ""}${showDivider ? " comp-position-break" : ""}${isGhost ? " comp-player-ghost" : ""}`}
+      className={`comp-player-card${isDragging ? " comp-player-dragging" : ""}${isDefense ? " comp-player-defense" : ""}${showDivider ? " comp-position-break" : ""}${isGhost ? " comp-player-ghost" : ""}${isOverlay ? " comp-player-overlay" : ""}`}
       data-player-number={player.number}
       {...(isGhost ? {} : attributes)}
       {...(isGhost ? {} : listeners)}

@@ -3710,7 +3710,7 @@
   border: 2px solid rgba(17, 17, 17, 0.12);
   background: var(--color-ash);
   overflow: hidden;
-  transition: box-shadow 150ms, transform 0.3s ease;
+  transition: box-shadow 150ms;
 }
 
 .comp-team-lower-age {
@@ -4104,8 +4104,12 @@
 }
 
 .comp-player-dragging {
+  opacity: 0;
+}
+
+.comp-player-overlay {
   background: var(--color-concrete);
-  box-shadow: 0 2px 8px rgba(17, 17, 17, 0.1);
+  box-shadow: 0 4px 16px rgba(17, 17, 17, 0.15);
   border-radius: 0.25rem;
 }
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useRef, useState } from "react"
-import { RotateCcw, ChevronLeft, CircleHelp, Pointer, Hand } from "lucide-react"
+import { RotateCcw, ChevronLeft, CircleHelp, Pointer } from "lucide-react"
 import { TeamTierList } from "@/components/competition/team-tier-list"
 import { usePlayerRankDemo } from "@/hooks/use-player-rank-demo"
 import type { Player, PinnedPlayer, PositionGroup } from "@/lib/types"
@@ -63,16 +63,11 @@ export function StepRankPlayers({
     demoActive,
     cursorPos,
     cursorType,
-    cursorFollowing,
-    showLabel,
-    labelText,
     pressKey,
     onUserInteraction,
     restart,
   } = usePlayerRankDemo({
     containerRef,
-    positionGroup,
-    onSwitchPosition,
     enabled: demoEnabled,
     skipDemo: hasMovedPlayers,
   })
@@ -158,21 +153,14 @@ export function StepRankPlayers({
 
       {demoActive && (
         <div
-          className={`player-demo-cursor${cursorFollowing ? " following" : ""}`}
-          style={cursorFollowing ? undefined : { transform: `translate(${cursorPos.x}px, ${cursorPos.y}px)` }}
+          className="player-demo-cursor"
+          style={{ transform: `translate(${cursorPos.x}px, ${cursorPos.y}px)` }}
         >
           <Pointer
             key={`ptr-${pressKey}`}
             size={28}
-            className={`player-demo-pointer${cursorType === "pointer" ? " visible" : ""}${pressKey > 0 && cursorType === "pointer" ? " player-demo-press" : ""}`}
+            className={`player-demo-pointer visible${pressKey > 0 ? " player-demo-press" : ""}`}
           />
-          <Hand
-            size={28}
-            className={`player-demo-hand${cursorType === "hand" ? " visible" : ""}`}
-          />
-          <div className={`player-demo-label${showLabel ? " visible" : ""}`}>
-            {labelText}
-          </div>
         </div>
       )}
     </div>
