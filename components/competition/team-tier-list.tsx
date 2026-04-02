@@ -241,7 +241,19 @@ export function TeamTierList({
             ...(prev || pinnedPlayers),
             [String(activeNum)]: { team: targetTeam, position: targetPosition },
           }))
+
+          // Build new player order for target team with player inserted at correct position
+          const currentTargetNums = [...(teamPlayerNumbers[targetTeam] || [])]
+          currentTargetNums.splice(targetPosition, 0, activeNum)
+          setLocalPlayerOrder((prev) => ({
+            ...(prev || playerOrderMap),
+            [activeTeam]: (teamPlayerNumbers[activeTeam] || []).filter((n) => n !== activeNum),
+            [targetTeam]: currentTargetNums,
+          }))
+
           onPinToTeam(activeNum, targetTeam, targetPosition)
+          onPlayerReorder(targetTeam, currentTargetNums)
+          onPlayerReorder(activeTeam, (teamPlayerNumbers[activeTeam] || []).filter((n) => n !== activeNum))
         }
       }
     },
