@@ -3239,6 +3239,73 @@
   margin-bottom: 12px;
 }
 
+.wizard-footer-instructions {
+  @apply flex flex-col items-center;
+}
+
+.wizard-title-divider {
+  height: 1px;
+  background: rgba(17, 17, 17, 0.08);
+  margin-bottom: 12px;
+}
+
+.demo-help-btn {
+  @apply inline-flex items-center justify-center;
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  background: transparent;
+  color: #6B6560;
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  vertical-align: middle;
+  margin-left: 8px;
+  padding: 0;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.demo-help-btn:hover {
+  border-color: rgba(17, 17, 17, 0.3);
+  color: #111111;
+}
+
+.demo-help-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 400;
+  color: #6B6560;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.demo-help-btn:hover .demo-help-tooltip {
+  opacity: 1;
+}
+
+.demo-help-pulse {
+  transform: scale(1.3);
+  animation: demo-help-shrink 4s ease-in-out infinite;
+}
+
+@keyframes demo-help-shrink {
+  0%, 75%, 100% { transform: scale(1.3); }
+  85% { transform: scale(1); }
+}
+
 .wizard-instructions-toggle {
   display: flex;
   flex-direction: column;
@@ -3313,6 +3380,7 @@
   @apply flex flex-col items-center;
   align-self: stretch;
   margin-top: 20px;
+  margin-bottom: 12px;
   gap: 16px;
 }
 
@@ -3591,31 +3659,11 @@
   border: 2px solid rgba(17, 17, 17, 0.12);
   background: var(--color-ash);
   overflow: hidden;
-  transition: box-shadow 150ms;
+  transition: box-shadow 150ms, transform 0.3s ease;
 }
 
-.comp-age-group-divider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 2px 0;
-}
-
-.comp-age-group-divider::before,
-.comp-age-group-divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: rgba(17, 17, 17, 0.08);
-}
-
-.comp-age-group-label {
-  font-family: var(--font-data);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgba(107, 101, 96, 0.45);
-  white-space: nowrap;
+.comp-team-lower-age {
+  background: color-mix(in oklch, var(--color-ash) 85%, var(--color-black));
 }
 
 .comp-team-dragging {
@@ -3623,55 +3671,21 @@
   z-index: 10;
 }
 
-/* Nudge hint — staggered wave on all cards */
-.comp-team-hint {
-  animation: team-nudge 0.6s ease var(--hint-delay, 2s) 1;
-}
-
-.comp-team-hint .comp-team-grip {
-  animation: grip-pulse 0.6s ease var(--hint-delay, 2s) 1;
-}
-
-@keyframes team-nudge {
-  0% { transform: translateY(0); }
-  30% { transform: translateY(-6px); }
-  60% { transform: translateY(3px); }
-  100% { transform: translateY(0); }
-}
-
-@keyframes grip-pulse {
-  0% { opacity: 0.6; }
-  30% { opacity: 1; }
-  100% { opacity: 1; }
-}
-
-/* Shift cards — nudge first, then shift synced to demo (no fill-mode overlap) */
+/* Shift cards — synced to demo-drag keyframes */
 .comp-team-shift-a {
-  animation: team-nudge 0.6s ease var(--hint-delay, 2s) 1,
-             demo-shift-a 20s linear 5s infinite;
+  animation: demo-shift-a 20s linear 1s 1;
 }
 
 .comp-team-shift-b {
-  animation: team-nudge 0.6s ease var(--hint-delay, 2s) 1,
-             demo-shift-b 20s linear 5s infinite;
+  animation: demo-shift-b 20s linear 1s 1;
 }
 
-.comp-team-shift-a .comp-team-grip,
-.comp-team-shift-b .comp-team-grip {
-  animation: grip-pulse 0.6s ease var(--hint-delay, 2s) 1;
-}
-
-/* Demo drag — 20s cycle: 10s active + 10s idle, infinite until first drag */
+/* Demo drag — 20s cycle, triggered by ? button */
 .comp-team-demo {
   position: relative;
   z-index: 5;
   overflow: visible;
-  animation: team-nudge 0.6s ease var(--hint-delay, 2s) 1,
-             demo-drag 20s linear 5s infinite;
-}
-
-.comp-team-demo .comp-team-grip {
-  animation: grip-pulse 0.6s ease var(--hint-delay, 2s) 1;
+  animation: demo-drag 20s linear 1s 1;
 }
 
 @keyframes demo-drag {
@@ -3730,7 +3744,7 @@
   pointer-events: none;
   z-index: 6;
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.4));
-  animation: demo-hand 20s linear 5s infinite;
+  animation: demo-hand 20s linear 1s 1;
 }
 
 @keyframes demo-hand {
@@ -3760,7 +3774,7 @@
   user-select: none;
   z-index: 6;
   opacity: 0;
-  animation: demo-label 20s linear 5s infinite;
+  animation: demo-label 20s linear 1s 1;
 }
 
 .comp-demo-label::after {

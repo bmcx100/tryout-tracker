@@ -38,6 +38,7 @@ interface TeamTierListProps {
   mode?: "teams" | "players"
   demoExpandedTeams?: Set<string>
   onUserInteraction?: () => void
+  replayDemoKey?: number
 }
 
 export function TeamTierList({
@@ -56,6 +57,7 @@ export function TeamTierList({
   mode,
   demoExpandedTeams,
   onUserInteraction,
+  replayDemoKey,
 }: TeamTierListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -175,13 +177,6 @@ export function TeamTierList({
       if (!isActivePlayer && !isOverPlayer && !isOverContainer) {
         if (mode === "players") return
 
-        // Start 15s resume timer (user interacted)
-        if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
-        pauseTimerRef.current = setTimeout(() => {
-          setAnimating(true)
-          pauseTimerRef.current = null
-        }, 15000)
-
         if (activeId === overId) return
         const oldIndex = teamOrder.indexOf(activeId)
         const newIndex = teamOrder.indexOf(overId)
@@ -280,33 +275,27 @@ export function TeamTierList({
 
   // Demo drag hint state for teams mode
   const listRef = useRef<HTMLDivElement>(null)
-  const [animating, setAnimating] = useState(true)
+  const [animating, setAnimating] = useState(false)
   const [movedTeams, setMovedTeams] = useState<Set<string>>(new Set())
-  const prevTeamOrderLen = useRef(teamOrder.length)
-  useEffect(() => {
-    if (teamOrder.length === 0 && prevTeamOrderLen.current > 0) {
-      setMovedTeams(new Set())
-      setAnimating(true)
-    }
-    prevTeamOrderLen.current = teamOrder.length
-  }, [teamOrder])
   const [demoOffsets, setDemoOffsets] = useState<{ high: number; low: number; shift: number } | null>(null)
+  const [demoAnimKey, setDemoAnimKey] = useState(0)
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const demoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Age group analysis
   const ages = useMemo(() => visibleTeams.map((t) => t.match(/^(U\d+)/)?.[1] || ""), [visibleTeams])
 
-  const groupsClean = useMemo(() => {
-    if (ages.length < 3 || new Set(ages).size < 2) return false
-    const lastOfFirst = ages.lastIndexOf(ages[0])
-    return ages.slice(0, lastOfFirst + 1).every((a) => a === ages[0])
-      && ages.slice(lastOfFirst + 1).every((a) => a !== ages[0])
+  // Upper (older) age group for distinguishing lower-age teams
+  const upperAge = useMemo(() => {
+    const unique = [...new Set(ages)].filter(Boolean)
+    if (unique.length < 2) return null
+    return unique.sort((a, b) => parseInt(b.replace("U", "")) - parseInt(a.replace("U", "")))[0]
   }, [ages])
 
   // Find first unmoved lower-group team with a valid level-matched destination
   const { demoTargetIdx, demoDestIndices } = useMemo((): {
     demoTargetIdx: number
-    demoDestIndices: { destIdx1: number; destIdx2: number | null } | null
+    demoDestIndices: { destIdx1: number; destIdx2: number | null; syntheticLow: boolean } | null
   } => {
     const noDemo = { demoTargetIdx: -1, demoDestIndices: null }
 
@@ -332,13 +321,22 @@ export function TeamTierList({
       const matchIdx = visibleTeams.indexOf(matchingUpper)
       if (matchIdx < 0) continue
 
-      const destIdx1 = matchIdx + 1
-      if (destIdx1 >= i) continue  // already at or below its match
+      let destIdx1 = matchIdx + 1
+      let syntheticLow = false
+      if (destIdx1 >= i) {
+        // Can't slot below the match — slot above it instead
+        if (matchIdx > 0 && matchIdx < i) {
+          destIdx1 = matchIdx
+          syntheticLow = true
+        } else {
+          continue
+        }
+      }
 
-      const destIdx2Raw = matchIdx + 2
+      const destIdx2Raw = destIdx1 + 1
       const destIdx2 = destIdx2Raw < i ? destIdx2Raw : null
 
-      return { demoTargetIdx: i, demoDestIndices: { destIdx1, destIdx2 } }
+      return { demoTargetIdx: i, demoDestIndices: { destIdx1, destIdx2, syntheticLow } }
     }
 
     return noDemo
@@ -357,14 +355,16 @@ export function TeamTierList({
       const dest1 = rows[demoDestIndices.destIdx1]
       if (!target || !dest1) return
 
+      const shift = target.offsetHeight + 8
       const high = dest1.offsetTop - target.offsetTop
       let low = high
-      if (demoDestIndices.destIdx2 !== null) {
+      if (demoDestIndices.syntheticLow) {
+        // No real row below the match — compute low as one card below high
+        low = high + shift
+      } else if (demoDestIndices.destIdx2 !== null) {
         const dest2 = rows[demoDestIndices.destIdx2]
         if (dest2) low = dest2.offsetTop - target.offsetTop
       }
-
-      const shift = target.offsetHeight + 8
       if (high !== 0 || low !== 0) {
         setDemoOffsets({ high, low, shift })
       }
@@ -384,9 +384,32 @@ export function TeamTierList({
     }
   }, [mode, animating, demoTargetIdx, demoDestIndices, visibleTeams])
 
+  // Auto-stop demo after animation completes (~25s = 5s delay + 20s anim)
+  useEffect(() => {
+    if (!animating || mode !== "teams") return
+    demoTimerRef.current = setTimeout(() => {
+      setAnimating(false)
+      setDemoOffsets(null)
+    }, 22000)
+    return () => {
+      if (demoTimerRef.current) clearTimeout(demoTimerRef.current)
+    }
+  }, [animating, demoAnimKey, mode])
+
+  // Replay demo when replayDemoKey changes (from parent ? button)
+  const prevReplayKey = useRef(replayDemoKey)
+  useEffect(() => {
+    if (replayDemoKey !== undefined && replayDemoKey !== prevReplayKey.current) {
+      prevReplayKey.current = replayDemoKey
+      setAnimating(true)
+      setDemoAnimKey((k) => k + 1)
+    }
+  }, [replayDemoKey])
+
   useEffect(() => {
     return () => {
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
+      if (demoTimerRef.current) clearTimeout(demoTimerRef.current)
     }
   }, [])
 
@@ -397,9 +420,14 @@ export function TeamTierList({
     if (!animating) return
     setAnimating(false)
     setDemoOffsets(null)
+    setDemoAnimKey((k) => k + 1)
     if (pauseTimerRef.current) {
       clearTimeout(pauseTimerRef.current)
       pauseTimerRef.current = null
+    }
+    if (demoTimerRef.current) {
+      clearTimeout(demoTimerRef.current)
+      demoTimerRef.current = null
     }
     onUserInteraction?.()
   }, [animating, onUserInteraction])
@@ -415,9 +443,7 @@ export function TeamTierList({
           {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
           <div ref={listRef} className="comp-tier-list" onPointerDown={handlePointerDown}>
             {visibleTeams.map((teamCode, idx) => {
-              const prevAge = idx > 0 ? ages[idx - 1] : null
               const currAge = ages[idx]
-              const showLabel = groupsClean && (idx === 0 || currAge !== prevAge)
               const demoActive = mode === "teams" && animating && movedTeams.size < 3 && demoOffsets && demoTargetIdx >= 0
               const isDemo = demoActive && idx === demoTargetIdx
 
@@ -428,16 +454,15 @@ export function TeamTierList({
                 else if (demoDestIndices.destIdx2 !== null && idx >= demoDestIndices.destIdx2 && idx < demoTargetIdx) shiftGroup = "b"
               }
 
+              const needsAnimKey = isDemo || shiftGroup
+              const rowKey = needsAnimKey ? `${teamCode}-d${demoAnimKey}` : teamCode
+
               return (
-                <React.Fragment key={teamCode}>
-                  {showLabel && (
-                    <div className="comp-age-group-divider">
-                      <span className="comp-age-group-label">Move {currAge} Teams</span>
-                    </div>
-                  )}
+                <React.Fragment key={rowKey}>
                   <TeamRow
                     teamCode={teamCode}
                     rank={idx + 1}
+                    isLowerAge={!!upperAge && currAge !== upperAge}
                     playerCount={mode === "teams" ? teamPlayerCounts[teamCode] : filteredPlayerCounts[teamCode]}
                     allPlayers={allPlayers}
                     playerOrder={effectivePlayerOrder[teamCode]}
@@ -448,7 +473,6 @@ export function TeamTierList({
                     onLongPressPosition={setSwitchTarget}
                     mode={mode}
                     demoExpanded={demoExpandedTeams?.has(teamCode)}
-                    hintIndex={mode === "teams" && animating ? idx : undefined}
                     demoHint={isDemo ? demoOffsets : undefined}
                     demoShift={shiftGroup}
                     demoShiftAmount={shiftGroup && demoOffsets ? demoOffsets.shift : undefined}

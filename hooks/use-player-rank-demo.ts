@@ -6,6 +6,7 @@ interface UsePlayerRankDemoOptions {
   positionGroup: PositionGroup
   onSwitchPosition: (group: PositionGroup) => void
   enabled: boolean
+  skipDemo?: boolean
 }
 
 interface UsePlayerRankDemoReturn {
@@ -18,6 +19,7 @@ interface UsePlayerRankDemoReturn {
   labelText: string
   pressKey: number
   onUserInteraction: () => void
+  restart: () => void
 }
 
 const OPPOSITE_GROUP: Partial<Record<PositionGroup, PositionGroup>> = {
@@ -34,6 +36,7 @@ export function usePlayerRankDemo({
   positionGroup,
   onSwitchPosition,
   enabled,
+  skipDemo,
 }: UsePlayerRankDemoOptions): UsePlayerRankDemoReturn {
   const [demoExpandedTeams, setDemoExpandedTeams] = useState<Set<string> | undefined>(undefined)
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 })
@@ -117,16 +120,10 @@ export function usePlayerRankDemo({
     resetState()
   }, [clearAllTimers, resetState])
 
-  // Phase 5: Full cleanup → wait 15s → repeat
+  // Phase 5: Full cleanup — demo complete
   const runFinalCleanup = useCallback(() => {
     resetState()
-    if (!stopped.current) {
-      schedule(() => {
-        if (stopped.current || !isMounted.current) return
-        runFullSequenceRef.current()
-      }, 15000)
-    }
-  }, [resetState, schedule])
+  }, [resetState])
 
   // Phase 4: Collapse teams gracefully, then fade cursor
   const runCollapse = useCallback(() => {
@@ -440,9 +437,21 @@ export function usePlayerRankDemo({
   }, [runTabs])
   runFullSequenceRef.current = runFullSequence
 
+  const restart = useCallback(() => {
+    clearAllTimers()
+    resetState()
+    stopped.current = false
+    usedPlayers.current.clear()
+    const id = setTimeout(() => {
+      if (!isMounted.current || stopped.current) return
+      runFullSequence()
+    }, 500)
+    timers.current.push(id)
+  }, [clearAllTimers, resetState, runFullSequence])
+
   // Start demo on mount
   useEffect(() => {
-    if (!enabled || hasStarted.current) return
+    if (!enabled || hasStarted.current || skipDemo) return
     hasStarted.current = true
 
     const id = setTimeout(() => {
@@ -450,7 +459,7 @@ export function usePlayerRankDemo({
       runFullSequence()
     }, 1500)
     timers.current.push(id)
-  }, [enabled, runFullSequence])
+  }, [enabled, skipDemo, runFullSequence])
 
   // Mount/unmount
   useEffect(() => {
@@ -474,5 +483,6 @@ export function usePlayerRankDemo({
     labelText,
     pressKey,
     onUserInteraction,
+    restart,
   }
 }

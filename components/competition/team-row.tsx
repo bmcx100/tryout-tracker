@@ -18,9 +18,9 @@ interface TeamRowProps {
   positionFilter?: "F" | "D" | "G" | "ALL"
   positionOverrides?: Record<string, string>
   onLongPressPosition?: (player: Player) => void
+  isLowerAge?: boolean
   mode?: "teams" | "players"
   demoExpanded?: boolean
-  hintIndex?: number
   demoHint?: { high: number; low: number; shift: number }
   demoShift?: "a" | "b"
   demoShiftAmount?: number
@@ -43,9 +43,9 @@ export function TeamRow({
   positionFilter,
   positionOverrides,
   onLongPressPosition,
+  isLowerAge,
   mode,
   demoExpanded,
-  hintIndex,
   demoHint,
   demoShift,
   demoShiftAmount,
@@ -64,7 +64,6 @@ export function TeamRow({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    ...(hintIndex !== undefined ? { "--hint-delay": `${2 + hintIndex * 0.12}s` } as React.CSSProperties : {}),
     ...(demoHint ? {
       "--demo-high": `${demoHint.high}px`,
       "--demo-low": `${demoHint.low}px`,
@@ -76,8 +75,8 @@ export function TeamRow({
 
   const cls = [
     "comp-team-row",
+    isLowerAge && "comp-team-lower-age",
     isDragging && "comp-team-dragging",
-    hintIndex !== undefined && !demoHint && !demoShift && "comp-team-hint",
     demoHint && "comp-team-demo",
     demoShift === "a" && "comp-team-shift-a",
     demoShift === "b" && "comp-team-shift-b",

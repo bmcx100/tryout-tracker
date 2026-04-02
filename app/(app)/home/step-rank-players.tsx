@@ -1,7 +1,7 @@
 "use client"
 
-import { useRef, useState } from "react"
-import { RotateCcw, ChevronLeft, Pointer, Hand } from "lucide-react"
+import { useMemo, useRef, useState } from "react"
+import { RotateCcw, ChevronLeft, CircleHelp, Pointer, Hand } from "lucide-react"
 import { TeamTierList } from "@/components/competition/team-tier-list"
 import { usePlayerRankDemo } from "@/hooks/use-player-rank-demo"
 import type { Player, PinnedPlayer, PositionGroup } from "@/lib/types"
@@ -54,6 +54,10 @@ export function StepRankPlayers({
   const containerRef = useRef<HTMLDivElement>(null)
   const [demoEnabled, setDemoEnabled] = useState(true)
 
+  const hasMovedPlayers = useMemo(() => {
+    return Object.keys(playerOrderMap).length > 0 || Object.keys(pinnedPlayers).length > 0
+  }, [playerOrderMap, pinnedPlayers])
+
   const {
     demoExpandedTeams,
     demoActive,
@@ -64,11 +68,13 @@ export function StepRankPlayers({
     labelText,
     pressKey,
     onUserInteraction,
+    restart,
   } = usePlayerRankDemo({
     containerRef,
     positionGroup,
     onSwitchPosition,
     enabled: demoEnabled,
+    skipDemo: hasMovedPlayers,
   })
 
   const handleUserInteraction = () => {
@@ -86,10 +92,7 @@ export function StepRankPlayers({
         <span className="wizard-step-label">Step 2 of 2</span>
       </div>
       <h1 className="wizard-headline">Rank Existing Players</h1>
-      <p className="wizard-instruction-inline">
-        Expand a team. Drag players up or down to reorder.{" "}
-        <span className="nowrap">Drag between teams to move.</span>
-      </p>
+      <div className="wizard-title-divider" />
 
       <div className="results-position-tabs">
         {POSITION_BUTTONS.map(({ group, label }) => (
@@ -125,7 +128,7 @@ export function StepRankPlayers({
 
       <div className="wizard-bottom-actions">
         <button className="btn-primary-icon" onClick={onNext}>
-          View Resulting Teams
+          View Results
         </button>
         <div className="results-reset-group">
           <button className="comp-reset-btn" onClick={onReset} title="Reset this position">
@@ -137,6 +140,20 @@ export function StepRankPlayers({
             <span className="comp-reset-label">Reset All</span>
           </button>
         </div>
+      </div>
+
+      <div className="wizard-footer-instructions">
+        <p className="wizard-instruction-inline">
+          Expand a team. Drag players up or down to reorder.{" "}
+          <span className="nowrap">Drag between teams to move.</span>
+        </p>
+        <button
+          className="demo-help-btn"
+          onClick={restart}
+        >
+          <CircleHelp size={14} />
+          <span className="demo-help-tooltip">Replay demo</span>
+        </button>
       </div>
 
       {demoActive && (
