@@ -753,7 +753,7 @@ export function ResultingTeamsDnd({
               players={displayRosters[teamCode]}
               pinnedPlayers={pinnedPlayers}
               crewNumbers={crewNumbers}
-              defaultCollapsed
+              defaultCollapsed={false}
               isCustom={isCustomSlots(teamCode, teamSlots)}
               position={position}
               totalPlayers={fullTeamTotals[teamCode] ?? 17}

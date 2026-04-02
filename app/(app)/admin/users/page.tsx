@@ -55,7 +55,7 @@ export default function AdminUsersPage() {
   const activeOrg = userOrgs.find((o) => o.org_id === activeOrgId)
   const orgSlug = activeOrg?.organizations?.slug ?? ""
   const inviteLink = typeof window !== "undefined" && orgSlug
-    ? `${window.location.origin}/join/${orgSlug}`
+    ? `${window.location.origin}/track/${orgSlug}`
     : ""
 
   const supabase = createClient()

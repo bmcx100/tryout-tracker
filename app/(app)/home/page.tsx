@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState, useCallback, useMemo } from "react"
+import { useEffect, useState, useCallback, useMemo, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 import { StepRankTeams } from "./step-rank-teams"
@@ -55,7 +56,9 @@ const defaultPrefs: UserCompetitionPrefs = {
 }
 
 export default function HomePage() {
-  const { activeOrgId } = useAuth()
+  const { activeOrgId, loading: authLoading, refreshOrgs } = useAuth()
+  const router = useRouter()
+  const retried = useRef(false)
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -94,7 +97,23 @@ export default function HomePage() {
   }, [players, currentPrefs.position_overrides])
 
   useEffect(() => {
-    if (!activeOrgId) return
+    if (authLoading || activeOrgId) return
+    if (!retried.current) {
+      retried.current = true
+      console.warn("[home] activeOrgId null after auth loaded — retrying orgs fetch")
+      refreshOrgs()
+      return
+    }
+    console.warn("[home] activeOrgId still null after retry — redirecting to /pending")
+    router.replace("/pending")
+  }, [authLoading, activeOrgId, refreshOrgs, router])
+
+  useEffect(() => {
+    if (!activeOrgId) {
+      console.debug("[home] waiting for activeOrgId (authLoading=%s)", authLoading)
+      return
+    }
+    console.debug("[home] fetching data for org:", activeOrgId)
 
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 15000)
@@ -124,7 +143,13 @@ export default function HomePage() {
             .abortSignal(controller.signal),
         ])
 
-        if (playersRes.error) throw new Error(playersRes.error.message)
+        if (playersRes.error) {
+          console.error("[home] players_view error:", playersRes.error.message, playersRes.error.code)
+          throw new Error(playersRes.error.message)
+        }
+        if (prefsRes.error) console.error("[home] prefs error:", prefsRes.error.message)
+        if (crewRes.error) console.error("[home] crew error:", crewRes.error.message)
+        console.debug("[home] loaded: %d players, %d prefs, %d crew", playersRes.data?.length, prefsRes.data?.length, crewRes.data?.length)
         setPlayers(playersRes.data || [])
         if (crewRes.data) setCrew(crewRes.data)
 
@@ -323,16 +348,14 @@ export default function HomePage() {
 
   const handleRankResetAll = useCallback(() => {
     setResetModal({
-      title: "Reset All Rankings",
+      title: "Reset All Player Rankings",
       items: [
-        "Team order",
         "All player order",
         "Players moved between teams",
         "F/D position switches",
       ],
       onConfirm: async () => {
         setResetModal(null)
-        setGlobalTeamOrder([])
         setGlobalPlayerOrder({})
         setGlobalPinnedPlayers({})
         setCurrentPrefs((prev) => ({ ...prev, position_overrides: {} }))

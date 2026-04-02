@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
 
   const publicRoutes = ["/", "/login", "/pending", "/auth/callback"]
   const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith("/auth/") || pathname.startsWith("/join/")
+    (route) => pathname === route || pathname.startsWith("/auth/") || pathname.startsWith("/track/")
   )
 
   if (user && pathname === "/") {

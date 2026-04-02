@@ -48,7 +48,7 @@ export default function JoinPage() {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      const returnUrl = `/join/${slug}`
+      const returnUrl = `/track/${slug}`
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

@@ -4089,6 +4089,7 @@
   align-items: center;
   padding: 8px 4px;
   gap: 10px;
+  background: white;
   border-bottom: 1px solid rgba(17, 17, 17, 0.06);
   transition: background 100ms;
   user-select: none;
