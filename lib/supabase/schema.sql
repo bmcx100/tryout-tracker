@@ -638,10 +638,11 @@ create policy "Org admins can delete pre-approved emails"
   )
 
 -- Authenticated users can check if their own email is pre-approved (for join flow)
+-- Uses auth.jwt() instead of querying auth.users (authenticated role lacks access to that table)
 create policy "Users can check own pre-approval"
   on public.pre_approved_emails for select
   using (
-    lower(email) = lower((select email from auth.users where id = auth.uid()))
+    lower(email) = lower(auth.jwt() ->> 'email')
   )
 
 -- ========================================

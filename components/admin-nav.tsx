@@ -13,6 +13,7 @@ const ADMIN_NAV = [
   { href: "/admin/import", label: "Import" },
   { href: "/admin/corrections", label: "Corrections" },
   { href: "/admin/organizations", label: "Orgs" },
+  { href: "/admin/backup", label: "Backup" },
 ]
 
 export function AdminNav() {

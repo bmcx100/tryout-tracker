@@ -4820,6 +4820,33 @@
   color: #16a34a;
 }
 
+/* Backup page */
+.backup-list {
+  @apply flex flex-col gap-2;
+  margin-top: 12px;
+}
+
+.backup-row {
+  @apply flex items-center gap-3;
+}
+
+.backup-label {
+  @apply font-data text-sm;
+  min-width: 160px;
+}
+
+.backup-error {
+  @apply text-signal;
+  font-size: 13px;
+}
+
+.backup-all {
+  @apply flex items-center gap-3;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 2px solid rgba(0, 0, 0, 0.06);
+}
+
 /* Admin form helpers */
 .admin-form-row {
   @apply flex items-center gap-2;

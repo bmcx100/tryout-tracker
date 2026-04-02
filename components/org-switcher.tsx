@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { switchOrg } from "@/lib/actions/organizations"
 import { Check, ChevronDown } from "lucide-react"
@@ -12,8 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export function OrgSwitcher() {
-  const { activeOrgId, userOrgs, refreshOrgs } = useAuth()
-  const router = useRouter()
+  const { activeOrgId, userOrgs } = useAuth()
 
   if (userOrgs.length <= 1) {
     const orgName = userOrgs[0]?.organizations?.name
@@ -26,8 +24,7 @@ export function OrgSwitcher() {
   const handleSwitch = async (orgId: string) => {
     if (orgId === activeOrgId) return
     await switchOrg(orgId)
-    await refreshOrgs()
-    router.push("/home")
+    window.location.href = "/home"
   }
 
   return (
