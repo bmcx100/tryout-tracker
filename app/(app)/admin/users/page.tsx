@@ -56,7 +56,7 @@ export default function AdminUsersPage() {
 
   const fetchMembers = async () => {
     if (!activeOrgId) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("org_members")
       .select("id, user_id, role, approved_at, created_at, profiles(id, email, display_name, created_at)")
       .eq("org_id", activeOrgId)
