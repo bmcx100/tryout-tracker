@@ -45,17 +45,24 @@ export function AppHeaderAuth() {
         <DropdownMenu>
           <DropdownMenuTrigger className="app-header-auth-trigger">
             <Avatar className="app-header-auth-avatar">
-              <AvatarFallback>{initials}</AvatarFallback>
+              <AvatarFallback>{loading ? "…" : initials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel className="app-header-auth-label">
-              {profile?.display_name && (
-                <span>{profile.display_name}</span>
-              )}
-              <span className="app-header-auth-email">{user?.email}</span>
-              <OrgSwitcher />
-            </DropdownMenuLabel>
+            {!loading && (
+              <DropdownMenuLabel className="app-header-auth-label">
+                {profile?.display_name && (
+                  <span>{profile.display_name}</span>
+                )}
+                <span className="app-header-auth-email">{user?.email}</span>
+                <OrgSwitcher />
+              </DropdownMenuLabel>
+            )}
+            {loading && (
+              <DropdownMenuLabel className="app-header-auth-label">
+                <span className="app-header-auth-email">Loading…</span>
+              </DropdownMenuLabel>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
               Sign out

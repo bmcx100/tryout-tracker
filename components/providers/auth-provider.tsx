@@ -130,7 +130,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     }
 
-    initSession()
+    const AUTH_TIMEOUT_MS = 12000
+    Promise.race([
+      initSession(),
+      new Promise<void>((resolve) =>
+        setTimeout(() => {
+          setLoading((prev) => {
+            if (prev) console.warn("[auth] init timed out after %dms — forcing loading → false", AUTH_TIMEOUT_MS)
+            return false
+          })
+          resolve()
+        }, AUTH_TIMEOUT_MS)
+      ),
+    ])
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
