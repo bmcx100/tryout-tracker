@@ -75,53 +75,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    const initSession = async (attempt = 1): Promise<void> => {
+    const loadUserData = async (authUser: User) => {
+      hadUser.current = true
+      setUser(authUser)
+
+      let profileData = await fetchProfile(authUser.id)
+      const orgsData = await fetchOrgs(authUser.id)
+
+      // Retry profile once if null (trigger may not have fired yet)
+      if (!profileData) {
+        console.warn("[auth] profile null on first try — retrying")
+        await new Promise((r) => setTimeout(r, 500))
+        profileData = await fetchProfile(authUser.id)
+      }
+
+      // Auto-fix: patch missing profile fields
+      const patches: Record<string, string> = {}
+      if (!profileData?.active_org_id && orgsData.length > 0) {
+        patches.active_org_id = orgsData[0].org_id
+      }
+      if (!profileData?.display_name) {
+        const name = authUser.user_metadata?.full_name
+          || authUser.user_metadata?.name
+        if (name) patches.display_name = name
+      }
+      if (Object.keys(patches).length > 0) {
+        console.debug("[auth] auto-patching profile:", patches)
+        const { error: patchError } = await supabase
+          .from("profiles")
+          .update(patches)
+          .eq("id", authUser.id)
+        if (patchError) console.error("[auth] patch error:", patchError.message)
+        else await fetchProfile(authUser.id)
+      }
+    }
+
+    const initSession = async () => {
+      // Step 1: Use getSession() for instant local read (no network call)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        console.error("[auth] getSession error:", sessionError.message)
+      }
+
+      if (session?.user) {
+        console.debug("[auth] session user:", session.user.id, session.user.email)
+        await loadUserData(session.user)
+        console.debug("[auth] init complete via getSession, loading → false")
+        setLoading(false)
+
+        // Step 2: Verify in background with getUser() (network call)
+        // If the token was actually invalid, this will catch it
+        supabase.auth.getUser().then(({ data: { user: verified }, error: verifyError }) => {
+          if (verifyError || !verified) {
+            console.warn("[auth] background getUser failed — session may be stale:", verifyError?.message)
+            // Token was invalid, clear state and redirect
+            setUser(null)
+            setProfile(null)
+            setUserOrgs([])
+            router.push("/login")
+          }
+        })
+        return
+      }
+
+      // No local session — fall back to getUser() (needed for fresh OAuth callback)
+      console.debug("[auth] no local session, falling back to getUser()")
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
 
       if (authError) {
-        console.error("[auth] getUser error (attempt %d):", attempt, authError.message)
-        // Retry once after a short delay — covers stale token / race with middleware cookie refresh
-        if (attempt < 2) {
-          await new Promise((r) => setTimeout(r, 1000))
-          return initSession(attempt + 1)
-        }
+        console.error("[auth] getUser error:", authError.message)
       } else {
         console.debug("[auth] user:", authUser?.id, authUser?.email)
       }
 
-      setUser(authUser)
-
       if (authUser) {
-        hadUser.current = true
-        let profileData = await fetchProfile(authUser.id)
-        const orgsData = await fetchOrgs(authUser.id)
-
-        // Retry profile once if it came back null but user is authenticated
-        if (!profileData && attempt < 2) {
-          console.warn("[auth] profile null on first try — retrying")
-          await new Promise((r) => setTimeout(r, 500))
-          profileData = await fetchProfile(authUser.id)
-        }
-
-        // Auto-fix: patch missing profile fields
-        const patches: Record<string, string> = {}
-        if (!profileData?.active_org_id && orgsData.length > 0) {
-          patches.active_org_id = orgsData[0].org_id
-        }
-        if (!profileData?.display_name) {
-          const name = authUser.user_metadata?.full_name
-            || authUser.user_metadata?.name
-          if (name) patches.display_name = name
-        }
-        if (Object.keys(patches).length > 0) {
-          console.debug("[auth] auto-patching profile:", patches)
-          const { error: patchError } = await supabase
-            .from("profiles")
-            .update(patches)
-            .eq("id", authUser.id)
-          if (patchError) console.error("[auth] patch error:", patchError.message)
-          else await fetchProfile(authUser.id)
-        }
+        await loadUserData(authUser)
       } else {
         console.warn("[auth] no authenticated user found")
       }
@@ -130,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     }
 
-    const AUTH_TIMEOUT_MS = 12000
+    const AUTH_TIMEOUT_MS = 8000
     Promise.race([
       initSession(),
       new Promise<void>((resolve) =>
