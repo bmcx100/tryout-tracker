@@ -4,62 +4,26 @@ import { createClient } from "@/lib/supabase/server"
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
-  const next = searchParams.get("next")
+  let next = searchParams.get("next") ?? "/"
+  if (!next.startsWith("/")) {
+    next = "/"
+  }
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-
     if (!error) {
-      // If there's a next URL (e.g., from /join flow), redirect there
-      if (next) {
+      const forwardedHost = request.headers.get("x-forwarded-host")
+      const isLocalEnv = process.env.NODE_ENV === "development"
+      if (isLocalEnv) {
         return NextResponse.redirect(`${origin}${next}`)
-      }
-
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("active_org_id")
-          .eq("id", user.id)
-          .single()
-
-        if (!profile?.active_org_id) {
-          // Auto-assign to Nepean Wildcats as pending if no org membership exists
-          const { data: defaultOrg } = await supabase
-            .from("organizations")
-            .select("id")
-            .eq("slug", "nepean-wildcats")
-            .single()
-
-          if (defaultOrg) {
-            const { data: existing } = await supabase
-              .from("org_members")
-              .select("id")
-              .eq("org_id", defaultOrg.id)
-              .eq("user_id", user.id)
-              .single()
-
-            if (!existing) {
-              await supabase
-                .from("org_members")
-                .insert({ org_id: defaultOrg.id, user_id: user.id, role: "pending" })
-            }
-
-            await supabase
-              .from("profiles")
-              .update({ active_org_id: defaultOrg.id })
-              .eq("id", user.id)
-          }
-
-          return NextResponse.redirect(`${origin}/pending`)
-        }
-
-        return NextResponse.redirect(`${origin}/home`)
+      } else if (forwardedHost) {
+        return NextResponse.redirect(`https://${forwardedHost}${next}`)
+      } else {
+        return NextResponse.redirect(`${origin}${next}`)
       }
     }
   }
 
-  return NextResponse.redirect(`${origin}/login`)
+  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
 }

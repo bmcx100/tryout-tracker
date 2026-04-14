@@ -1220,6 +1220,62 @@
 }
 
 /* ========================================
+   AUTH ERROR PAGE
+   ======================================== */
+
+.auth-error-page {
+  @apply flex items-center justify-center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 16px;
+}
+
+.auth-error-card {
+  @apply flex flex-col items-center text-center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.auth-error-brand {
+  @apply font-data font-bold text-ink uppercase;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  margin-bottom: 32px;
+}
+
+.auth-error-headline {
+  @apply font-heading font-bold text-ink;
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.auth-error-body {
+  @apply text-steel;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.auth-error-button {
+  @apply font-heading font-medium text-ink;
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 14px;
+  background: white;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms;
+}
+
+.auth-error-button:hover {
+  background: #F5F3EE;
+  border-color: rgba(17, 17, 17, 0.24);
+}
+
+/* ========================================
    APP SHELL — Sidebar
    ======================================== */
 

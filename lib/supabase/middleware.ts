@@ -14,7 +14,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
@@ -24,12 +24,18 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
+          if (headers) {
+            Object.entries(headers).forEach(([key, value]) =>
+              supabaseResponse.headers.set(key, value)
+            )
+          }
         },
       },
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data, error } = await supabase.auth.getClaims()
+  const userId = error ? null : (data?.claims?.sub as string | undefined)
 
   const pathname = request.nextUrl.pathname
 
@@ -38,23 +44,23 @@ export async function updateSession(request: NextRequest) {
     (route) => pathname === route || pathname.startsWith("/auth/") || pathname.startsWith("/track/")
   )
 
-  if (user && pathname === "/") {
+  if (userId && pathname === "/") {
     const url = request.nextUrl.clone()
     url.pathname = "/home"
     return NextResponse.redirect(url)
   }
 
-  if (!user && !isPublicRoute) {
+  if (!userId && !isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     return NextResponse.redirect(url)
   }
 
-  if (user && !isPublicRoute) {
+  if (userId && !isPublicRoute) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("active_org_id, is_super_admin")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single()
 
     if (!profile || !profile.active_org_id) {
@@ -67,7 +73,7 @@ export async function updateSession(request: NextRequest) {
       .from("org_members")
       .select("role")
       .eq("org_id", profile.active_org_id)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single()
 
     if (!membership || membership.role === "pending") {
@@ -82,6 +88,8 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
   }
+
+  supabaseResponse.headers.set("Cache-Control", "private, no-store")
 
   return supabaseResponse
 }
