@@ -34,8 +34,8 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data, error } = await supabase.auth.getClaims()
-  const userId = error ? null : (data?.claims?.sub as string | undefined)
+  const { data: { user } } = await supabase.auth.getUser()
+  const userId = user?.id ?? null
 
   const pathname = request.nextUrl.pathname
 

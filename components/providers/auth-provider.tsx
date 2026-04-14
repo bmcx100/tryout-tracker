@@ -74,34 +74,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const loadUserData = async (authUser: User) => {
-      let profileData = await fetchProfile(authUser.id)
-      const orgsData = await fetchOrgs(authUser.id)
+      try {
+        let profileData = await fetchProfile(authUser.id)
+        const orgsData = await fetchOrgs(authUser.id)
 
-      // Retry profile once if null (trigger may not have fired yet)
-      if (!profileData) {
-        console.warn("[auth] profile null on first try — retrying")
-        await new Promise((r) => setTimeout(r, 500))
-        profileData = await fetchProfile(authUser.id)
-      }
+        // Retry profile once if null (trigger may not have fired yet)
+        if (!profileData) {
+          console.warn("[auth] profile null on first try — retrying")
+          await new Promise((r) => setTimeout(r, 500))
+          profileData = await fetchProfile(authUser.id)
+        }
 
-      // Auto-fix: patch missing profile fields
-      const patches: Record<string, string> = {}
-      if (!profileData?.active_org_id && orgsData.length > 0) {
-        patches.active_org_id = orgsData[0].org_id
-      }
-      if (!profileData?.display_name) {
-        const name = authUser.user_metadata?.full_name
-          || authUser.user_metadata?.name
-        if (name) patches.display_name = name
-      }
-      if (Object.keys(patches).length > 0) {
-        console.debug("[auth] auto-patching profile:", patches)
-        const { error: patchError } = await supabase
-          .from("profiles")
-          .update(patches)
-          .eq("id", authUser.id)
-        if (patchError) console.error("[auth] patch error:", patchError.message)
-        else await fetchProfile(authUser.id)
+        // Auto-fix: patch missing profile fields
+        const patches: Record<string, string> = {}
+        if (!profileData?.active_org_id && orgsData.length > 0) {
+          patches.active_org_id = orgsData[0].org_id
+        }
+        if (!profileData?.display_name) {
+          const name = authUser.user_metadata?.full_name
+            || authUser.user_metadata?.name
+          if (name) patches.display_name = name
+        }
+        if (Object.keys(patches).length > 0) {
+          console.debug("[auth] auto-patching profile:", patches)
+          const { error: patchError } = await supabase
+            .from("profiles")
+            .update(patches)
+            .eq("id", authUser.id)
+          if (patchError) console.error("[auth] patch error:", patchError.message)
+          else await fetchProfile(authUser.id)
+        }
+      } catch (err) {
+        console.error("[auth] loadUserData error:", err)
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -116,12 +122,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setProfile(null)
           setUserOrgs([])
+          setLoading(false)
           if (hadUser.current) {
             router.push("/login")
           }
         }
-
-        setLoading(false)
       }
     )
 
@@ -131,7 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (prev) console.warn("[auth] safety timeout — forcing loading=false")
         return false
       })
-    }, 5000)
+    }, 10000)
 
     return () => {
       subscription.unsubscribe()
