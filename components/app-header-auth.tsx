@@ -64,7 +64,7 @@ export function AppHeaderAuth() {
               </DropdownMenuLabel>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
+            <DropdownMenuItem onSelect={handleSignOut}>
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

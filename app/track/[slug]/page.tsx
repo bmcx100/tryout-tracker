@@ -53,6 +53,9 @@ export default function JoinPage() {
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnUrl)}`,
+          queryParams: {
+            prompt: "select_account",
+          },
         },
       })
       return
