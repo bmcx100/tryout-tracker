@@ -1950,6 +1950,45 @@
   margin-top: 6px;
 }
 
+/* Admin Auth Errors */
+
+.auth-errors-section {
+  margin-top: 48px;
+  border-top: 2px solid rgba(17, 17, 17, 0.08);
+  padding-top: 24px;
+}
+
+.auth-errors-title {
+  @apply font-heading font-bold text-steel;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.auth-errors-empty {
+  @apply font-data text-steel italic;
+  font-size: 13px;
+}
+
+.auth-error-phase {
+  @apply font-data;
+  font-size: 13px;
+}
+
+.auth-error-message {
+  @apply text-steel;
+  font-size: 13px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-error-time {
+  @apply font-data text-steel;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 /* Admin Teams Confirmation */
 
 .admin-teams-list {

@@ -41,4 +41,12 @@ user=yes, profile=null, orgs=0, retried=true · 19s
 - Reduced timeout from 12s to 8s
 - Extracted `loadUserData()` helper to avoid duplication
 - **Rationale:** The middleware already refreshes the token on every request via `getUser()`. The client-side auth provider doesn't need to re-verify — it can trust the session the middleware already validated.
-- **Result:** TBD — needs testing
+- **Result:** Resolved the hang — auth loads instantly from local session now
+
+### Attempt 4 — Auth error logging table (2026-04-14)
+- Created `auth_errors` table in Supabase for persistent error logging
+- Added `logAuthError()` helper (`lib/auth-error-logger.ts`) — fire-and-forget, never throws
+- Calls added at every failure point in auth-provider: getSession error, getUser background fail, getUser fallback error, profile null after retry, and 8s timeout
+- RLS: insert open to anon+authenticated (user may not be fully authed), select restricted to super admins
+- Admin visibility: "Recent Auth Errors" section on admin users page shows last 20 errors
+- **Purpose:** Give admin visibility into when other users hit auth failures, since console logs are only visible to the affected user

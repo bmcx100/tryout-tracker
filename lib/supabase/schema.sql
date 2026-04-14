@@ -695,6 +695,31 @@ end;
 $$ language plpgsql security definer
 
 -- ========================================
+-- AUTH ERRORS (diagnostic logging)
+-- ========================================
+
+create table public.auth_errors (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users on delete set null,
+  email text,
+  phase text not null,
+  error_message text,
+  metadata jsonb,
+  created_at timestamptz not null default now()
+)
+
+-- --- Auth Errors RLS ---
+alter table public.auth_errors enable row level security
+
+create policy "Anyone can insert auth errors"
+  on public.auth_errors for insert
+  with check (true)
+
+create policy "Admins can read auth errors"
+  on public.auth_errors for select
+  using (public.is_super_admin())
+
+-- ========================================
 -- TABLE-LEVEL GRANTS
 -- RLS controls row access; GRANTs control table access
 -- ========================================
@@ -734,3 +759,7 @@ grant execute on function public.get_org_role(uuid) to authenticated
 grant execute on function public.is_super_admin() to authenticated
 grant execute on function public.handle_new_user() to authenticated
 grant execute on function public.join_org_pre_approved(uuid, text) to authenticated
+
+-- Auth errors: insert from anyone (user may not be fully authed), read by authenticated (RLS limits to admins)
+grant insert on public.auth_errors to anon, authenticated
+grant select on public.auth_errors to authenticated

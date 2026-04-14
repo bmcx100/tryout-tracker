@@ -27,6 +27,14 @@ import { Button } from "@/components/ui/button"
 
 const ROLES: UserRole[] = ["pending", "lite", "full", "admin"]
 
+interface AuthError {
+  id: string
+  email: string | null
+  phase: string
+  error_message: string | null
+  created_at: string
+}
+
 interface OrgMemberWithProfile {
   id: string
   user_id: string
@@ -51,6 +59,7 @@ export default function AdminUsersPage() {
   const [newRole, setNewRole] = useState<"lite" | "full" | "admin">("lite")
   const [preApproveError, setPreApproveError] = useState("")
   const [preApprovedFetchError, setPreApprovedFetchError] = useState("")
+  const [authErrors, setAuthErrors] = useState<AuthError[]>([])
 
   const activeOrg = userOrgs.find((o) => o.org_id === activeOrgId)
   const orgSlug = activeOrg?.organizations?.slug ?? ""
@@ -85,9 +94,19 @@ export default function AdminUsersPage() {
     if (data) setPreApproved(data as PreApprovedEmail[])
   }
 
+  const fetchAuthErrors = async () => {
+    const { data } = await supabase
+      .from("auth_errors")
+      .select("id, email, phase, error_message, created_at")
+      .order("created_at", { ascending: false })
+      .limit(20)
+    if (data) setAuthErrors(data as AuthError[])
+  }
+
   useEffect(() => {
     fetchMembers()
     fetchPreApproved()
+    fetchAuthErrors()
 
     if (!activeOrgId) return
 
@@ -304,6 +323,36 @@ export default function AdminUsersPage() {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="auth-errors-section">
+        <h2 className="auth-errors-title">Recent Auth Errors</h2>
+        {authErrors.length === 0 ? (
+          <p className="auth-errors-empty">No auth errors logged</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Time</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phase</TableHead>
+                <TableHead>Message</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {authErrors.map((err) => (
+                <TableRow key={err.id}>
+                  <TableCell className="auth-error-time">
+                    {new Date(err.created_at).toLocaleString()}
+                  </TableCell>
+                  <TableCell>{err.email || "—"}</TableCell>
+                  <TableCell className="auth-error-phase">{err.phase}</TableCell>
+                  <TableCell className="auth-error-message">{err.error_message || "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   )

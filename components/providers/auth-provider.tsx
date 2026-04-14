@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
 import type { Profile, Organization } from "@/lib/types"
+import { logAuthError } from "@/lib/auth-error-logger"
 
 interface UserOrg {
   org_id: string
@@ -87,6 +88,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn("[auth] profile null on first try — retrying")
         await new Promise((r) => setTimeout(r, 500))
         profileData = await fetchProfile(authUser.id)
+        if (!profileData) {
+          logAuthError("fetchProfile", "profile null after retry", undefined, {
+            userId: authUser.id,
+            email: authUser.email ?? undefined,
+          })
+        }
       }
 
       // Auto-fix: patch missing profile fields
@@ -111,11 +118,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const initSession = async () => {
-      // Step 1: Use getSession() for instant local read (no network call)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      // Step 1: Try getSession() with a 3s timeout
+      // getSession() is usually instant (local read), but if the JWT is expired
+      // it triggers a token refresh network call that can hang on production
+      const SESSION_TIMEOUT_MS = 3000
+      let session = null
+      let sessionError = null
+
+      try {
+        const result = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("getSession timed out")), SESSION_TIMEOUT_MS)
+          ),
+        ])
+        session = result.data.session
+        sessionError = result.error
+      } catch (err) {
+        console.warn("[auth] getSession timed out after %dms — skipping to getUser()", SESSION_TIMEOUT_MS)
+        logAuthError("getSession:timeout", `getSession hung for ${SESSION_TIMEOUT_MS}ms`)
+      }
 
       if (sessionError) {
         console.error("[auth] getSession error:", sessionError.message)
+        logAuthError("getSession", sessionError.message)
       }
 
       if (session?.user) {
@@ -129,6 +155,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         supabase.auth.getUser().then(({ data: { user: verified }, error: verifyError }) => {
           if (verifyError || !verified) {
             console.warn("[auth] background getUser failed — session may be stale:", verifyError?.message)
+            logAuthError("getUser:background", verifyError?.message ?? "no verified user returned", undefined, {
+              userId: session.user.id,
+              email: session.user.email ?? undefined,
+            })
             // Token was invalid, clear state and redirect
             setUser(null)
             setProfile(null)
@@ -139,12 +169,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // No local session — fall back to getUser() (needed for fresh OAuth callback)
+      // No local session (or getSession timed out) — fall back to getUser()
       console.debug("[auth] no local session, falling back to getUser()")
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
 
       if (authError) {
         console.error("[auth] getUser error:", authError.message)
+        logAuthError("getUser:fallback", authError.message)
       } else {
         console.debug("[auth] user:", authUser?.id, authUser?.email)
       }
@@ -165,7 +196,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       new Promise<void>((resolve) =>
         setTimeout(() => {
           setLoading((prev) => {
-            if (prev) console.warn("[auth] init timed out after %dms — forcing loading → false", AUTH_TIMEOUT_MS)
+            if (prev) {
+              console.warn("[auth] init timed out after %dms — forcing loading → false", AUTH_TIMEOUT_MS)
+              logAuthError("timeout", `auth init timed out after ${AUTH_TIMEOUT_MS}ms`)
+            }
             return false
           })
           resolve()
