@@ -259,17 +259,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === "INITIAL_SESSION") return
+        // INITIAL_SESSION with no user = normal unauthenticated load, let initSession handle it
+        if (event === "INITIAL_SESSION" && !session?.user) return
 
         const currentUser = session?.user ?? null
         setUser(currentUser)
 
         if (currentUser) {
           hadUser.current = true
-          if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-            await fetchProfile(currentUser.id)
-            await fetchOrgs(currentUser.id)
-          }
+          // Always fetch profile/orgs — not just SIGNED_IN
+          // On slow Supabase, INITIAL_SESSION or TOKEN_REFRESHED fires
+          // after our manual init times out, and this is the recovery path
+          await fetchProfile(currentUser.id)
+          await fetchOrgs(currentUser.id)
         } else {
           setProfile(null)
           setUserOrgs([])
