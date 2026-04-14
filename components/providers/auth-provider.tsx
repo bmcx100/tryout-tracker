@@ -170,20 +170,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // No local session (or getSession timed out) — fall back to getUser()
+      const GETUSER_TIMEOUT_MS = 3000
       console.debug("[auth] no local session, falling back to getUser()")
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      let authUser = null
+      let authError = null
+
+      try {
+        const result = await Promise.race([
+          supabase.auth.getUser(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("getUser timed out")), GETUSER_TIMEOUT_MS)
+          ),
+        ])
+        authUser = result.data.user
+        authError = result.error
+      } catch {
+        console.warn("[auth] getUser timed out after %dms — trying direct query", GETUSER_TIMEOUT_MS)
+        logAuthError("getUser:timeout", `getUser hung for ${GETUSER_TIMEOUT_MS}ms`)
+      }
 
       if (authError) {
         console.error("[auth] getUser error:", authError.message)
         logAuthError("getUser:fallback", authError.message)
-      } else {
-        console.debug("[auth] user:", authUser?.id, authUser?.email)
       }
 
       if (authUser) {
+        console.debug("[auth] user:", authUser.id, authUser.email)
         await loadUserData(authUser)
-      } else {
-        console.warn("[auth] no authenticated user found")
+        console.debug("[auth] init complete via getUser, loading → false")
+        setLoading(false)
+        return
+      }
+
+      // Step 3: Both auth SDK calls failed — bypass SDK entirely
+      // PostgREST reads the JWT from cookies independently of the auth module
+      console.debug("[auth] auth SDK unresponsive, trying direct profile query")
+      try {
+        const { data: directProfile, error: dbError } = await supabase
+          .from("profiles")
+          .select("*")
+          .limit(1)
+          .maybeSingle()
+
+        if (directProfile) {
+          console.debug("[auth] recovered via direct profile query:", directProfile.id, directProfile.email)
+          logAuthError("auth-sdk-bypass", "recovered via direct profile query", undefined, {
+            userId: directProfile.id,
+            email: directProfile.email,
+          })
+          hadUser.current = true
+          setUser({ id: directProfile.id, email: directProfile.email, user_metadata: {} } as User)
+          setProfile(directProfile)
+
+          const { data: orgsData } = await supabase
+            .from("org_members")
+            .select("org_id, role, organizations(id, name, slug)")
+            .eq("user_id", directProfile.id)
+            .neq("role", "pending")
+          setUserOrgs((orgsData as unknown as UserOrg[]) || [])
+        } else {
+          console.warn("[auth] direct profile query returned null:", dbError?.message)
+          logAuthError("all-methods-failed", dbError?.message ?? "no session found")
+        }
+      } catch (err) {
+        console.error("[auth] direct profile query error:", err)
       }
 
       console.debug("[auth] init complete, loading → false")
