@@ -75,6 +75,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadUserData = async (authUser: User) => {
       try {
+        // Force browser client to sync with latest cookies from middleware
+        await supabase.auth.getSession()
+
         let profileData = await fetchProfile(authUser.id)
         const orgsData = await fetchOrgs(authUser.id)
 
