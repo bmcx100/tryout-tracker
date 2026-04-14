@@ -26,6 +26,33 @@ export async function GET(request: Request) {
           .single()
 
         if (!profile?.active_org_id) {
+          // Auto-assign to Nepean Wildcats as pending if no org membership exists
+          const { data: defaultOrg } = await supabase
+            .from("organizations")
+            .select("id")
+            .eq("slug", "nepean-wildcats")
+            .single()
+
+          if (defaultOrg) {
+            const { data: existing } = await supabase
+              .from("org_members")
+              .select("id")
+              .eq("org_id", defaultOrg.id)
+              .eq("user_id", user.id)
+              .single()
+
+            if (!existing) {
+              await supabase
+                .from("org_members")
+                .insert({ org_id: defaultOrg.id, user_id: user.id, role: "pending" })
+            }
+
+            await supabase
+              .from("profiles")
+              .update({ active_org_id: defaultOrg.id })
+              .eq("id", user.id)
+          }
+
           return NextResponse.redirect(`${origin}/pending`)
         }
 

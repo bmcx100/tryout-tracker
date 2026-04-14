@@ -2634,6 +2634,17 @@
   margin-top: 12px;
 }
 
+.home-loading-debug {
+  @apply font-data;
+  position: fixed;
+  bottom: 80px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  color: oklch(0.6 0 0 / 0.35);
+}
+
 .loading-dots {
   @apply flex gap-1;
 }

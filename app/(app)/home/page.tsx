@@ -62,6 +62,9 @@ export default function HomePage() {
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingPhase, setLoadingPhase] = useState("auth")
+  const [loadingElapsed, setLoadingElapsed] = useState(0)
+  const loadingStart = useRef(Date.now())
   const [error, setError] = useState<string | null>(null)
 
   // Global team order (shared across all positions)
@@ -82,6 +85,14 @@ export default function HomePage() {
     onConfirm: () => void
   } | null>(null)
 
+  useEffect(() => {
+    if (!loading) return
+    const interval = setInterval(() => {
+      setLoadingElapsed(Math.floor((Date.now() - loadingStart.current) / 1000))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [loading])
+
   // Fast position lookup for splitting "all" tab reorders by position
   // Incorporates position overrides so drag-and-drop on "all" tab routes correctly
   const playerPositionMap = useMemo(() => {
@@ -97,7 +108,12 @@ export default function HomePage() {
   }, [players, currentPrefs.position_overrides])
 
   useEffect(() => {
-    if (authLoading || activeOrgId) return
+    if (authLoading) {
+      setLoadingPhase("auth")
+      return
+    }
+    if (activeOrgId) return
+    setLoadingPhase("org")
     if (!retried.current) {
       retried.current = true
       console.warn("[home] activeOrgId null after auth loaded — retrying orgs fetch")
@@ -113,6 +129,7 @@ export default function HomePage() {
       console.debug("[home] waiting for activeOrgId (authLoading=%s)", authLoading)
       return
     }
+    setLoadingPhase("data")
     console.debug("[home] fetching data for org:", activeOrgId)
 
     const controller = new AbortController()
@@ -694,6 +711,14 @@ export default function HomePage() {
   )
 
   if (loading) {
+    const phaseLabel =
+      loadingPhase === "auth" ? "Authenticating..."
+      : loadingPhase === "org" ? "Loading organization..."
+      : "Fetching players..."
+    const phaseDetail =
+      loadingPhase === "auth" ? `authLoading=${authLoading}`
+      : loadingPhase === "org" ? `activeOrgId=${activeOrgId ?? "null"}, retried=${retried.current}`
+      : `org=${activeOrgId?.slice(0, 8)}`
     return (
       <div className="app-page">
         <div className="home-loading">
@@ -702,8 +727,9 @@ export default function HomePage() {
             <span className="loading-dot" />
             <span className="loading-dot" />
           </div>
-          <p className="home-loading-text">Loading players...</p>
+          <p className="home-loading-text">{phaseLabel}</p>
         </div>
+        <p className="home-loading-debug">{phaseDetail} · {loadingElapsed}s</p>
       </div>
     )
   }
