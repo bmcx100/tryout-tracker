@@ -56,7 +56,7 @@ const defaultPrefs: UserCompetitionPrefs = {
 }
 
 export default function HomePage() {
-  const { activeOrgId, loading: authLoading, refreshOrgs } = useAuth()
+  const { user, profile, activeOrgId, userOrgs, loading: authLoading, refreshOrgs } = useAuth()
   const router = useRouter()
   const retried = useRef(false)
   const [players, setPlayers] = useState<Player[]>([])
@@ -717,7 +717,7 @@ export default function HomePage() {
       : "Fetching players..."
     const phaseDetail =
       loadingPhase === "auth" ? `authLoading=${authLoading}`
-      : loadingPhase === "org" ? `activeOrgId=${activeOrgId ?? "null"}, retried=${retried.current}`
+      : loadingPhase === "org" ? `user=${user ? "yes" : "no"}, profile=${profile ? (profile.active_org_id ? "has_org" : "no_org") : "null"}, orgs=${userOrgs.length}, retried=${retried.current}`
       : `org=${activeOrgId?.slice(0, 8)}`
     return (
       <div className="app-page">
