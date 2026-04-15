@@ -67,9 +67,10 @@ export default function PlayersPage() {
   }))
 
   // --- Teams tab data ---
+  const activePlayers = players.filter((p) => p.status !== "withdrawn")
   const agePlayers = teamsAge === "all"
-    ? players
-    : players.filter((p) => getAgeGroup(p.birth_year) === teamsAge)
+    ? activePlayers
+    : activePlayers.filter((p) => getAgeGroup(p.birth_year) === teamsAge)
   const previousTeams = teamsAge === "all"
     ? [...PREVIOUS_TEAMS.U15, ...PREVIOUS_TEAMS.U13]
     : PREVIOUS_TEAMS[teamsAge]

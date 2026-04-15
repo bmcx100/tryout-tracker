@@ -146,6 +146,8 @@ export default function HomePage() {
             .eq("org_id", activeOrgId)
             .not("position", "is", null)
             .not("previous_team", "is", null)
+            .neq("status", "withdrawn")
+            .neq("status", "placed_on_team")
             .abortSignal(controller.signal),
           supabase
             .from("user_competition_prefs")
