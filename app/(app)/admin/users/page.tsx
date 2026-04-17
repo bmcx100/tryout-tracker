@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
-import { approveUser, updateUserRole } from "@/lib/actions/users"
+import { approveUser, updateUserRole, reassignUserOrg } from "@/lib/actions/users"
 import { addPreApprovedEmail, removePreApprovedEmail } from "@/lib/actions/pre-approved-emails"
-import type { UserRole, PreApprovedEmail } from "@/lib/types"
+import type { UserRole, PreApprovedEmail, Organization } from "@/lib/types"
 import QRCode from "qrcode"
 import {
   Select,
@@ -50,8 +50,10 @@ interface OrgMemberWithProfile {
 }
 
 export default function AdminUsersPage() {
-  const { activeOrgId, userOrgs } = useAuth()
+  const { activeOrgId, userOrgs, profile } = useAuth()
+  const isSuperAdmin = profile?.is_super_admin ?? false
   const [members, setMembers] = useState<OrgMemberWithProfile[]>([])
+  const [allOrgs, setAllOrgs] = useState<Organization[]>([])
   const [preApproved, setPreApproved] = useState<PreApprovedEmail[]>([])
   const [qrDataUrl, setQrDataUrl] = useState("")
   const [copied, setCopied] = useState(false)
@@ -103,10 +105,20 @@ export default function AdminUsersPage() {
     if (data) setAuthErrors(data as AuthError[])
   }
 
+  const fetchAllOrgs = async () => {
+    if (!isSuperAdmin) return
+    const { data } = await supabase
+      .from("organizations")
+      .select("*")
+      .order("name")
+    if (data) setAllOrgs(data as Organization[])
+  }
+
   useEffect(() => {
     fetchMembers()
     fetchPreApproved()
     fetchAuthErrors()
+    fetchAllOrgs()
 
     if (!activeOrgId) return
 
@@ -168,6 +180,15 @@ export default function AdminUsersPage() {
   const handleRemovePreApproved = async (id: string) => {
     await removePreApprovedEmail(id)
     fetchPreApproved()
+  }
+
+  const handleReassignOrg = async (userId: string, newOrgId: string) => {
+    try {
+      await reassignUserOrg(userId, newOrgId)
+      fetchMembers()
+    } catch (err) {
+      console.error("reassign error:", err)
+    }
   }
 
   const pendingMembers = members.filter((m) => m.role === "pending")
@@ -271,6 +292,7 @@ export default function AdminUsersPage() {
               <TableHead>Email</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
+              {isSuperAdmin && <TableHead>Org</TableHead>}
               <TableHead>Approved</TableHead>
             </TableRow>
           </TableHeader>
@@ -282,6 +304,7 @@ export default function AdminUsersPage() {
                 <TableCell>
                   <Badge variant="outline">{entry.role}</Badge>
                 </TableCell>
+                {isSuperAdmin && <TableCell>—</TableCell>}
                 <TableCell>
                   <div className="preapproved-status">
                     <span className="preapproved-label">pre-approved</span>
@@ -314,6 +337,23 @@ export default function AdminUsersPage() {
                     </SelectContent>
                   </Select>
                 </TableCell>
+                {isSuperAdmin && (
+                  <TableCell>
+                    <Select
+                      value={activeOrgId ?? ""}
+                      onValueChange={(val) => handleReassignOrg(member.user_id, val)}
+                    >
+                      <SelectTrigger className="admin-role-select">
+                        {activeOrg?.organizations?.name ?? "—"}
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allOrgs.map((org) => (
+                          <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                )}
                 <TableCell>
                   {member.approved_at
                     ? new Date(member.approved_at).toLocaleDateString()

@@ -4970,3 +4970,11 @@
 .org-date-label {
   @apply text-xs text-muted-foreground ml-auto;
 }
+
+.org-card-row {
+  @apply flex items-center gap-3;
+}
+
+.org-card-info {
+  @apply flex items-center gap-2 flex-1;
+}

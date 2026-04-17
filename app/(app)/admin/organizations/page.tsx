@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
-import { createOrganization } from "@/lib/actions/organizations"
+import { createOrganization, setDefaultOrg } from "@/lib/actions/organizations"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import type { Organization } from "@/lib/types"
 
@@ -28,8 +29,27 @@ export default function OrganizationsPage() {
     fetchOrgs()
   }, [profile])
 
+  const refetchOrgs = async () => {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from("organizations")
+      .select("*")
+      .order("created_at", { ascending: false })
+    setOrgs(data || [])
+  }
+
   if (!profile?.is_super_admin) {
     return <p>Super admin access required.</p>
+  }
+
+  const handleSetDefault = async (orgId: string) => {
+    try {
+      await setDefaultOrg(orgId)
+      toast.success("Default organization updated")
+      await refetchOrgs()
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
   }
 
   const handleCreate = async () => {
@@ -39,9 +59,7 @@ export default function OrganizationsPage() {
       setName("")
       setSlug("")
       toast.success("Organization created")
-      const supabase = createClient()
-      const { data } = await supabase.from("organizations").select("*").order("created_at", { ascending: false })
-      setOrgs(data || [])
+      await refetchOrgs()
     } catch (e) {
       toast.error((e as Error).message)
     }
@@ -76,10 +94,18 @@ export default function OrganizationsPage() {
       <div className="admin-section">
         <h2 className="admin-section-title">All Organizations</h2>
         {orgs.map((org) => (
-          <div key={org.id} className="admin-card">
-            <strong>{org.name}</strong>
-            <span className="org-slug-label">/{org.slug}</span>
-            <span className="org-date-label">{new Date(org.created_at).toLocaleDateString()}</span>
+          <div key={org.id} className="admin-card org-card-row">
+            <div className="org-card-info">
+              <strong>{org.name}</strong>
+              <span className="org-slug-label">/{org.slug}</span>
+              {org.is_default && <Badge>Default</Badge>}
+              <span className="org-date-label">{new Date(org.created_at).toLocaleDateString()}</span>
+            </div>
+            {!org.is_default && (
+              <Button variant="outline" size="sm" onClick={() => handleSetDefault(org.id)}>
+                Set as Default
+              </Button>
+            )}
           </div>
         ))}
       </div>

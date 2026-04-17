@@ -12,6 +12,7 @@ create table public.organizations (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   slug text not null unique,
+  is_default boolean not null default false,
   created_at timestamptz not null default now()
 )
 
@@ -48,9 +49,26 @@ create table public.org_members (
 
 create or replace function public.handle_new_user()
 returns trigger as $$
+declare
+  default_org_id uuid;
 begin
   insert into public.profiles (id, email, display_name)
   values (new.id, new.email, new.raw_user_meta_data->>'full_name');
+
+  select id into default_org_id
+  from public.organizations
+  where is_default = true
+  limit 1;
+
+  if default_org_id is not null then
+    insert into public.org_members (org_id, user_id, role)
+    values (default_org_id, new.id, 'pending');
+
+    update public.profiles
+    set active_org_id = default_org_id
+    where id = new.id;
+  end if;
+
   return new;
 end;
 $$ language plpgsql security definer
