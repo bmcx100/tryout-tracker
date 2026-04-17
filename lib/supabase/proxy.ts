@@ -38,7 +38,7 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: getClaims() validates the JWT locally (no network call).
   // Using getUser() here caused intermittent auth failures because it makes
-  // a network request to Supabase Auth on every middleware invocation.
+  // a network request to Supabase Auth on every proxy invocation.
   const { data } = await supabase.auth.getClaims()
   const claims = data?.claims
   const userId = (claims?.sub as string) ?? null
