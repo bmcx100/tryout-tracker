@@ -37,6 +37,19 @@ export function buildProgressionMap(
     levelsWithSessions.add(s.level)
   }
 
+  // Assign sequential session numbers per level (S1, S2, S3...) sorted by date
+  const sessionsByLevel = new Map<PlayerLevel, Session[]>()
+  for (const s of sessions) {
+    const arr = sessionsByLevel.get(s.level) || []
+    arr.push(s)
+    sessionsByLevel.set(s.level, arr)
+  }
+  const sessionNumberMap = new Map<string, number>()
+  for (const [, levelSessions] of sessionsByLevel) {
+    levelSessions.sort((a, b) => a.date.localeCompare(b.date) || a.round_number - b.round_number || a.group_number - b.group_number)
+    levelSessions.forEach((s, i) => sessionNumberMap.set(s.id, i + 1))
+  }
+
   // Step 1: Build sessions per player per level
   for (const sp of sessionPlayers) {
     const session = sessionById.get(sp.session_id)
@@ -50,20 +63,17 @@ export function buildProgressionMap(
       playerMap.set(session.level, { sessions: [], result: null, resultColor: null })
     }
     const entry = playerMap.get(session.level)!
-    entry.sessions.push(`R${session.round_number}G${session.group_number}`)
+    const num = sessionNumberMap.get(session.id) || 1
+    entry.sessions.push(`S${num}`)
   }
 
-  // Sort sessions within each level by round then group
+  // Sort sessions within each level numerically
   for (const playerMap of map.values()) {
     for (const entry of playerMap.values()) {
       entry.sessions.sort((a, b) => {
-        const parseRG = (s: string) => {
-          const m = s.match(/R(\d+)G(\d+)/)
-          return m ? [parseInt(m[1]), parseInt(m[2])] : [0, 0]
-        }
-        const [ar, ag] = parseRG(a)
-        const [br, bg] = parseRG(b)
-        return ar !== br ? ar - br : ag - bg
+        const na = parseInt(a.slice(1))
+        const nb = parseInt(b.slice(1))
+        return na - nb
       })
     }
   }
