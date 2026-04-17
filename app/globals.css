@@ -1710,6 +1710,129 @@
 }
 
 /* ========================================
+   PROGRESSION TABLE
+   ======================================== */
+
+.prog-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.prog-toggle {
+  @apply font-data font-semibold;
+  font-size: 11px;
+  color: var(--color-steel);
+  background: none;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0.25rem;
+  padding: 2px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.prog-toggle:hover {
+  background: rgba(17, 17, 17, 0.04);
+}
+
+.prog-level-header {
+  @apply font-data font-bold text-center;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 2px solid rgba(17, 17, 17, 0.12);
+  padding: 4px 6px;
+}
+
+.prog-sub-header {
+  @apply font-data text-steel text-center;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.prog-cell {
+  @apply font-data text-center;
+  font-size: 11px;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+.prog-sessions {
+  color: var(--color-steel);
+}
+
+.prog-dash {
+  color: var(--color-ash);
+}
+
+.prog-active {
+  @apply font-bold;
+  color: var(--color-ink);
+}
+
+.prog-cut {
+  @apply font-bold;
+  color: #B8860B;
+}
+
+.prog-made {
+  @apply font-bold;
+  color: #228B22;
+}
+
+.prog-missing {
+  @apply font-bold;
+  color: #E63B2E;
+}
+
+.prog-withdrawn {
+  color: var(--color-steel);
+}
+
+.prog-row-placed {
+  background: rgba(34, 139, 34, 0.06);
+}
+
+.prog-row-missing {
+  background: rgba(230, 59, 46, 0.06);
+}
+
+.prog-status {
+  @apply font-data font-bold;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.prog-team {
+  @apply font-data;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.prog-table {
+  @apply w-full;
+  border-collapse: collapse;
+}
+
+.prog-table th,
+.prog-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+.prog-table th {
+  @apply font-data text-steel;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.prog-table tbody tr:hover {
+  background: rgba(17, 17, 17, 0.02);
+}
+
+/* ========================================
    LEVEL BADGES
    ======================================== */
 
@@ -2238,19 +2361,44 @@
   margin-bottom: 8px;
 }
 
-.session-card-crew {
-  @apply flex flex-wrap gap-1;
+.session-roster {
   padding-top: 8px;
   border-top: 1px solid rgba(17, 17, 17, 0.06);
 }
 
-.session-crew-badge {
-  @apply font-data font-bold;
+.session-roster-label {
+  @apply font-data font-semibold text-steel;
   font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.session-roster-row {
+  @apply flex items-baseline gap-1 font-data;
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+.session-roster-crew {
+  background: rgba(230, 59, 46, 0.06);
+  border-left: 2px solid #E63B2E;
+  border-radius: 2px;
   color: #E63B2E;
-  background: rgba(230, 59, 46, 0.08);
-  padding: 2px 8px;
-  border-radius: 0.25rem;
+}
+
+.session-roster-number {
+  @apply font-bold;
+  min-width: 28px;
+}
+
+.session-roster-name {
+  @apply flex-1;
+}
+
+.session-roster-team {
+  @apply text-steel;
+  font-size: 10px;
 }
 
 /* ========================================
