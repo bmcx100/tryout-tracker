@@ -10,7 +10,7 @@ const ADMIN_NAV = [
   { href: "/admin/players", label: "Players" },
   { href: "/admin/sessions", label: "Sessions" },
   { href: "/admin/rounds", label: "Rounds" },
-  { href: "/admin/import", label: "Import" },
+  { href: "/admin/import", label: "Continuations" },
   { href: "/admin/corrections", label: "Corrections" },
   { href: "/admin/organizations", label: "Orgs" },
   { href: "/admin/backup", label: "Backup" },

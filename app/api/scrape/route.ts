@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { parseHtml } from "@/lib/scraper/parser"
+import { parseHtml, parseContinuationsHtml } from "@/lib/scraper/parser"
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { url } = await request.json()
+    const { url, type, level } = await request.json()
 
     if (!url || typeof url !== "string") {
       return NextResponse.json({ error: "URL is required" }, { status: 400 })
@@ -50,8 +50,68 @@ export async function POST(request: Request) {
     }
 
     const html = await response.text()
-    const result = parseHtml(html)
 
+    if (type === "continuations") {
+      const result = parseContinuationsHtml(html)
+
+      const playerNames: Record<string, string> = {}
+      if (result.all_continuing_numbers.length > 0 && profile?.active_org_id) {
+        const { data: players } = await supabase
+          .from("players")
+          .select("number, first_name, last_name")
+          .eq("org_id", profile.active_org_id)
+          .in("number", result.all_continuing_numbers)
+
+        for (const p of players || []) {
+          const parts = [p.first_name, p.last_name].filter(Boolean)
+          if (parts.length > 0) {
+            playerNames[String(p.number)] = parts.join(" ")
+          }
+        }
+      }
+
+      let missingPlayers: Array<{ number: number; name: string; entry_level: string }> = []
+      if (level && profile?.active_org_id) {
+        const { data: cutPlayers } = await supabase
+          .from("players")
+          .select("number, first_name, last_name, entry_level")
+          .eq("org_id", profile.active_org_id)
+          .eq("current_level", level)
+          .eq("status", "cut_to_next_level")
+
+        missingPlayers = (cutPlayers || [])
+          .filter(p => !result.all_continuing_numbers.includes(p.number))
+          .map(p => ({
+            number: p.number,
+            name: [p.first_name, p.last_name].filter(Boolean).join(" "),
+            entry_level: p.entry_level || "higher level",
+          }))
+      }
+
+      let suggested_round = 1
+      if (level && profile?.active_org_id) {
+        const { data: existingSessions } = await supabase
+          .from("sessions")
+          .select("round_number")
+          .eq("org_id", profile.active_org_id)
+          .eq("level", level)
+          .order("round_number", { ascending: false })
+          .limit(1)
+
+        if (existingSessions && existingSessions.length > 0) {
+          suggested_round = existingSessions[0].round_number + 1
+        }
+      }
+
+      return NextResponse.json({
+        ...result,
+        playerNames,
+        missingPlayers,
+        suggested_round,
+      })
+    }
+
+    const result = parseHtml(html)
     return NextResponse.json(result)
   } catch (error) {
     return NextResponse.json(
