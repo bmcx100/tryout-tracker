@@ -144,15 +144,18 @@ export function parseContinuationsHtml(html: string): ContinuationsParseResult {
 
     const parsed = parseSessionLabel(text)
 
-    // Find the next table — may be a direct sibling or inside a wrapper div
+    // Find the next table — the <strong> is typically the last child of a
+    // wrapper <div>, so we walk siblings of the parent container, not the
+    // <strong> itself.
     let tableEl: ReturnType<typeof $> | null = null
-    let sibling = $(el).next()
+    const startEl = $(el).parent().is("div") ? $(el).parent() : $(el)
+    let sibling = startEl.next()
     while (sibling.length) {
       if (sibling.is("table")) {
         tableEl = sibling
         break
       }
-      if (sibling.is("strong")) break
+      if (sibling.find("strong").length || sibling.is("strong")) break
       const inner = sibling.find("table").first()
       if (inner.length) {
         tableEl = inner
