@@ -24,18 +24,24 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
-          if (headers) {
-            Object.entries(headers).forEach(([key, value]) =>
-              supabaseResponse.headers.set(key, value)
-            )
-          }
+          Object.entries(headers).forEach(([key, value]) =>
+            supabaseResponse.headers.set(key, value)
+          )
         },
       },
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const userId = user?.id ?? null
+  // Do not run code between createServerClient and
+  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
+  // issues with users being randomly logged out.
+
+  // IMPORTANT: getClaims() validates the JWT locally (no network call).
+  // Using getUser() here caused intermittent auth failures because it makes
+  // a network request to Supabase Auth on every middleware invocation.
+  const { data } = await supabase.auth.getClaims()
+  const claims = data?.claims
+  const userId = (claims?.sub as string) ?? null
 
   const pathname = request.nextUrl.pathname
 
