@@ -1810,6 +1810,21 @@
   white-space: nowrap;
 }
 
+.prog-sort-header {
+  @apply font-data text-steel;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.prog-sort-header:hover {
+  color: var(--color-ink);
+}
+
 .prog-table {
   @apply w-full;
   border-collapse: collapse;

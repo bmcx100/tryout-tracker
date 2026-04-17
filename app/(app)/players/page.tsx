@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
 import { addToCrew, removeFromCrew } from "@/lib/actions/crew"
 import { toast } from "sonner"
-import { getAgeGroup, playerName, AGE_GROUPS, PREVIOUS_TEAMS, type AgeGroup } from "@/lib/utils"
+import { getAgeGroup, playerName, extractLevelFromTeam, AGE_GROUPS, PREVIOUS_TEAMS, type AgeGroup } from "@/lib/utils"
 import type { Player, CrewMember, Session, Round, RoundResult as RoundResultType, PlayerLevel } from "@/lib/types"
 import {
   buildProgressionMap,
@@ -37,6 +37,9 @@ export default function PlayersPage() {
   const [search, setSearch] = useState("")
   const [ageFilter, setAgeFilter] = useState("all")
   const [levelFilter, setLevelFilter] = useState("all")
+  const [posFilter, setPosFilter] = useState("all")
+  const [sortCol, setSortCol] = useState<string>("number")
+  const [sortAsc, setSortAsc] = useState(true)
 
   // Teams filters
   const [teamsView, setTeamsView] = useState<"previous" | "new">("previous")
@@ -118,18 +121,38 @@ export default function PlayersPage() {
     .map(([name, teamPlayers]) => ({ name, players: teamPlayers }))
 
   // --- All Players tab data ---
+  const progressionMap: ProgressionMap = buildProgressionMap(
+    players, sessions, sessionPlayers, rounds, roundResults
+  )
+  const levelsWithSessions = getLevelsWithSessions(sessions)
+
+  const FORWARD_POSITIONS = ["C", "LW", "RW", "F"]
+  const DEFENSE_POSITIONS = ["D", "LD", "RD"]
+  const GOALIE_POSITIONS = ["G"]
+
+  const handleSort = (col: string) => {
+    if (sortCol === col) {
+      setSortAsc(!sortAsc)
+    } else {
+      setSortCol(col)
+      setSortAsc(true)
+    }
+  }
+
   const filtered = players.filter((p) => {
     if (ageFilter !== "all") {
       const ag = getAgeGroup(p.birth_year)
       if (ag !== ageFilter) return false
     }
     if (levelFilter !== "all") {
-      let level: string | null = p.current_level || p.entry_level
-      if (!level && p.previous_team) {
-        const match = p.previous_team.match(/^U\d+(.*)/i)
-        if (match) level = match[1].toUpperCase()
-      }
+      const level = extractLevelFromTeam(p.previous_team)
       if (level !== levelFilter) return false
+    }
+    if (posFilter !== "all") {
+      const pos = (p.position || "").toUpperCase()
+      if (posFilter === "forwards" && !FORWARD_POSITIONS.includes(pos)) return false
+      if (posFilter === "defense" && !DEFENSE_POSITIONS.includes(pos)) return false
+      if (posFilter === "goalies" && !GOALIE_POSITIONS.includes(pos)) return false
     }
     if (search) {
       const fullName = playerName(p.first_name, p.last_name).toLowerCase()
@@ -138,12 +161,24 @@ export default function PlayersPage() {
       }
     }
     return true
+  }).sort((a, b) => {
+    const dir = sortAsc ? 1 : -1
+    if (sortCol === "number") return (a.number - b.number) * dir
+    if (sortCol === "name") {
+      const an = playerName(a.first_name, a.last_name)
+      const bn = playerName(b.first_name, b.last_name)
+      return an.localeCompare(bn) * dir
+    }
+    if (sortCol === "position") return (a.position || "").localeCompare(b.position || "") * dir
+    if (sortCol === "previous_team") return (a.previous_team || "").localeCompare(b.previous_team || "") * dir
+    if (sortCol === "status") {
+      const as_ = getOverallStatus(a, progressionMap, levelsWithSessions).label
+      const bs_ = getOverallStatus(b, progressionMap, levelsWithSessions).label
+      return as_.localeCompare(bs_) * dir
+    }
+    if (sortCol === "team") return (a.team_placed || "").localeCompare(b.team_placed || "") * dir
+    return 0
   })
-
-  const progressionMap: ProgressionMap = buildProgressionMap(
-    players, sessions, sessionPlayers, rounds, roundResults
-  )
-  const levelsWithSessions = getLevelsWithSessions(sessions)
 
   const handleAddToCrew = async (player: Player) => {
     const name = playerName(player.first_name, player.last_name, player.number)
@@ -349,6 +384,18 @@ export default function PlayersPage() {
             ))}
           </div>
 
+          <div className="feed-filters">
+            {(["all", "forwards", "defense", "goalies"] as const).map((p) => (
+              <button
+                key={p}
+                className={`feed-filter-btn${posFilter === p ? " active" : ""}`}
+                onClick={() => setPosFilter(p)}
+              >
+                {p === "all" ? "All" : p.charAt(0).toUpperCase() + p.slice(1)}
+              </button>
+            ))}
+          </div>
+
           <div className="explore-search">
             <Input
               placeholder="Search by number or name..."
@@ -371,12 +418,24 @@ export default function PlayersPage() {
               <table className="prog-table">
                 <thead>
                   <tr>
-                    <th className="prog-sub-header">#</th>
-                    <th className="prog-sub-header" style={{ textAlign: "left" }}>Name</th>
-                    <th className="prog-sub-header">Pos</th>
-                    <th className="prog-sub-header">Prev Team</th>
-                    <th className="prog-sub-header">Status</th>
-                    <th className="prog-sub-header">Team</th>
+                    <th className="prog-sort-header" onClick={() => handleSort("number")}>
+                      # {sortCol === "number" ? (sortAsc ? "▲" : "▼") : ""}
+                    </th>
+                    <th className="prog-sort-header" style={{ textAlign: "left" }} onClick={() => handleSort("name")}>
+                      Name {sortCol === "name" ? (sortAsc ? "▲" : "▼") : ""}
+                    </th>
+                    <th className="prog-sort-header" onClick={() => handleSort("position")}>
+                      Pos {sortCol === "position" ? (sortAsc ? "▲" : "▼") : ""}
+                    </th>
+                    <th className="prog-sort-header" onClick={() => handleSort("previous_team")}>
+                      Prev Team {sortCol === "previous_team" ? (sortAsc ? "▲" : "▼") : ""}
+                    </th>
+                    <th className="prog-sort-header" onClick={() => handleSort("status")}>
+                      Status {sortCol === "status" ? (sortAsc ? "▲" : "▼") : ""}
+                    </th>
+                    <th className="prog-sort-header" onClick={() => handleSort("team")}>
+                      Team {sortCol === "team" ? (sortAsc ? "▲" : "▼") : ""}
+                    </th>
                     {showLevelDetails && LEVELS.map((l) => (
                       <th key={l} className="prog-level-header" colSpan={2}>{l}</th>
                     ))}
