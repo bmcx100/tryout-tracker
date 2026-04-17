@@ -1,11 +1,18 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Fragment } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { createPlayer, updatePlayer, deletePlayer, bulkCreatePlayers } from "@/lib/actions/players"
 import { useAuth } from "@/hooks/use-auth"
 import { getAgeGroup, playerName } from "@/lib/utils"
 import type { Player, PlayerLevel, PlayerStatus } from "@/lib/types"
+import type { Session, Round, RoundResult as RoundResultType } from "@/lib/types"
+import {
+  buildProgressionMap,
+  getOverallStatus,
+  getLevelsWithSessions,
+  type ProgressionMap,
+} from "@/lib/progression"
 import {
   Dialog,
   DialogContent,
@@ -63,30 +70,39 @@ export default function AdminPlayersPage() {
   const [bulkError, setBulkError] = useState("")
   const [bulkLoading, setBulkLoading] = useState(false)
   const { activeOrgId } = useAuth()
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [sessionPlayers, setSessionPlayers] = useState<{ session_id: string; player_number: number }[]>([])
+  const [rounds, setRounds] = useState<Round[]>([])
+  const [roundResults, setRoundResults] = useState<{ round_id: string; player_number: number; result: RoundResultType }[]>([])
+  const [showLevelDetails, setShowLevelDetails] = useState(false)
 
   const supabase = createClient()
 
   const fetchPlayers = async () => {
     if (!activeOrgId) return
-    const { data } = await supabase
-      .from("players")
-      .select("*")
-      .eq("org_id", activeOrgId)
-      .order("number")
-    if (data) setPlayers(data)
+    const [
+      { data: playerData },
+      { data: sessionData },
+      { data: spData },
+      { data: roundData },
+      { data: rrData },
+    ] = await Promise.all([
+      supabase.from("players").select("*").eq("org_id", activeOrgId).order("number"),
+      supabase.from("sessions").select("id, level, round_number, group_number, date").eq("org_id", activeOrgId),
+      supabase.from("session_players").select("session_id, player_number").eq("org_id", activeOrgId),
+      supabase.from("rounds").select("id, level, round_number").eq("org_id", activeOrgId),
+      supabase.from("round_results").select("round_id, player_number, result").eq("org_id", activeOrgId),
+    ])
+    if (playerData) setPlayers(playerData)
+    if (sessionData) setSessions(sessionData as Session[])
+    if (spData) setSessionPlayers(spData)
+    if (roundData) setRounds(roundData as Round[])
+    if (rrData) setRoundResults(rrData as { round_id: string; player_number: number; result: RoundResultType }[])
   }
 
   useEffect(() => {
     if (!activeOrgId) return
-    const load = async () => {
-      const { data } = await supabase
-        .from("players")
-        .select("*")
-        .eq("org_id", activeOrgId)
-        .order("number")
-      if (data) setPlayers(data)
-    }
-    load()
+    fetchPlayers()
   }, [activeOrgId])
 
   const filtered = players.filter((p) => {
@@ -105,6 +121,11 @@ export default function AdminPlayersPage() {
     if (filterStatus !== "all" && p.status !== filterStatus) return false
     return true
   })
+
+  const progressionMap: ProgressionMap = buildProgressionMap(
+    players, sessions, sessionPlayers, rounds, roundResults
+  )
+  const levelsWithSessions = getLevelsWithSessions(sessions)
 
   const parseBulkText = (text: string) => {
     setBulkError("")
@@ -379,50 +400,93 @@ export default function AdminPlayersPage() {
           <button key={s} className={`feed-filter-btn${filterStatus === s ? " active" : ""}`} onClick={() => setFilterStatus(s)}>{s.replace(/_/g, " ")}</button>
         ))}
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>#</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Pos</TableHead>
-            <TableHead>Prev Team</TableHead>
-            <TableHead>Birth Year</TableHead>
-            <TableHead>Level</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.map((player) => (
-            <TableRow key={player.id}>
-              <TableCell className="admin-cell-number">{player.number}</TableCell>
-              <TableCell>{playerName(player.first_name, player.last_name)}</TableCell>
-              <TableCell>{player.position || "—"}</TableCell>
-              <TableCell>{player.previous_team || "—"}</TableCell>
-              <TableCell>{player.birth_year || "—"}</TableCell>
-              <TableCell>
-                <span className="level-badge">{player.current_level || "—"}</span>
-              </TableCell>
-              <TableCell>
-                <span className={`status-badge status-${player.status === "active_tryout" ? "active" : player.status === "placed_on_team" ? "placed" : "cut"}`}>
-                  {player.status.replace(/_/g, " ")}
-                </span>
-              </TableCell>
-              <TableCell>
-                <div className="admin-actions">
-                  <button className="admin-action-btn" onClick={() => openEdit(player)}>Edit</button>
-                  <button className="admin-action-btn admin-action-danger" onClick={() => handleDelete(player.id)}>Delete</button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-          {filtered.length === 0 && (
+      <div className="prog-table-wrap">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={8} className="admin-empty-cell">No players found</TableCell>
+              <TableHead>#</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Pos</TableHead>
+              <TableHead>Prev Team</TableHead>
+              <TableHead>Birth Year</TableHead>
+              <TableHead>Level</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Team</TableHead>
+              {showLevelDetails && LEVELS.map((l) => (
+                <TableHead key={l} colSpan={2} className="prog-level-header">{l}</TableHead>
+              ))}
+              <TableHead>
+                <button
+                  className="prog-toggle"
+                  onClick={() => setShowLevelDetails(!showLevelDetails)}
+                >
+                  {showLevelDetails ? "Hide" : "Details"}
+                </button>
+              </TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+            {showLevelDetails && (
+              <TableRow>
+                <TableHead colSpan={8} />
+                {LEVELS.map((l) => (
+                  <Fragment key={l}>
+                    <TableHead className="prog-sub-header">Sessions</TableHead>
+                    <TableHead className="prog-sub-header">Result</TableHead>
+                  </Fragment>
+                ))}
+                <TableHead />
+              </TableRow>
+            )}
+          </TableHeader>
+          <TableBody>
+            {filtered.map((player) => {
+              const status = getOverallStatus(player, progressionMap, levelsWithSessions)
+              const playerProg = progressionMap.get(player.number)
+              return (
+                <TableRow key={player.id} className={status.rowClass || ""}>
+                  <TableCell className="admin-cell-number">{player.number}</TableCell>
+                  <TableCell>{playerName(player.first_name, player.last_name)}</TableCell>
+                  <TableCell>{player.position || "—"}</TableCell>
+                  <TableCell>{player.previous_team || "—"}</TableCell>
+                  <TableCell>{player.birth_year || "—"}</TableCell>
+                  <TableCell>
+                    <span className="level-badge">{player.current_level || "—"}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`prog-status${status.color ? ` ${status.color}` : ""}`}>
+                      {status.label}
+                    </span>
+                  </TableCell>
+                  <TableCell className="prog-team">{player.team_placed || "—"}</TableCell>
+                  {showLevelDetails && LEVELS.map((l) => {
+                    const entry = playerProg?.get(l as PlayerLevel)
+                    return (
+                      <Fragment key={l}>
+                        <TableCell className="prog-cell prog-sessions">
+                          {entry?.sessions.length ? entry.sessions.join(", ") : <span className="prog-dash">—</span>}
+                        </TableCell>
+                        <TableCell className={`prog-cell${entry?.resultColor ? ` ${entry.resultColor}` : ""}`}>
+                          {entry?.result || <span className="prog-dash">—</span>}
+                        </TableCell>
+                      </Fragment>
+                    )
+                  })}
+                  <TableCell>
+                    <div className="admin-actions">
+                      <button className="admin-action-btn" onClick={() => openEdit(player)}>Edit</button>
+                      <button className="admin-action-btn admin-action-danger" onClick={() => handleDelete(player.id)}>Delete</button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+            {filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={showLevelDetails ? 19 : 9} className="admin-empty-cell">No players found</TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
