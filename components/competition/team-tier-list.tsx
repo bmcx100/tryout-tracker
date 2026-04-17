@@ -32,6 +32,7 @@ interface TeamTierListProps {
   playerOrderMap: Record<string, number[]>
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
+  missingPlayerNumbers?: Set<number>
   positionFilter?: "F" | "D" | "G" | "ALL"
   positionOverrides?: Record<string, string>
   onTeamReorder: (newOrder: string[]) => void
@@ -51,6 +52,7 @@ export function TeamTierList({
   playerOrderMap,
   pinnedPlayers,
   crewNumbers,
+  missingPlayerNumbers,
   positionFilter,
   positionOverrides,
   onTeamReorder,
@@ -495,6 +497,7 @@ export function TeamTierList({
                     playerOrder={effectivePlayerOrder[teamCode]}
                     pinnedPlayers={effectivePinned}
                     crewNumbers={crewNumbers}
+                    missingPlayerNumbers={missingPlayerNumbers}
                     positionFilter={positionFilter}
                     positionOverrides={positionOverrides}
                     onLongPressPosition={setSwitchTarget}

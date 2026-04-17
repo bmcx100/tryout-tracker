@@ -70,6 +70,7 @@ function applyPositionOverrides(
 interface ResultingTeamsDndProps {
   teamOrder: string[]
   players: Player[]
+  missingPlayers?: Player[]
   pinnedPlayers: Record<string, PinnedPlayer>
   playerOrderMap: Record<string, number[]>
   teamSlots: Record<string, Record<string, number>>
@@ -339,6 +340,7 @@ function DroppableTeam({
   position,
   totalPlayers,
   positionOverrides,
+  missingPlayers,
   onOpenSlotEditor,
   onLongPressPosition,
 }: {
@@ -351,6 +353,7 @@ function DroppableTeam({
   position: "F" | "D" | "G" | "ALL"
   totalPlayers: number
   positionOverrides: Record<string, string>
+  missingPlayers?: Player[]
   onOpenSlotEditor: (teamCode: string) => void
   onLongPressPosition: (player: Player) => void
 }) {
@@ -494,6 +497,22 @@ function DroppableTeam({
           </SortableContext>
         </div>
       )}
+      {missingPlayers && missingPlayers.length > 0 && (
+        <div className="missing-footnote">
+          <div className="missing-footnote-title">Missing from tryout</div>
+          {missingPlayers.map((p) => (
+            <div key={p.number} className="missing-footnote-row">
+              <span className="missing-footnote-number">#{p.number}</span>
+              <span className="missing-footnote-name">
+                {playerName(p.first_name, p.last_name, p.number)}
+              </span>
+              <span className="missing-footnote-detail">
+                cut from {p.entry_level}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -501,6 +520,7 @@ function DroppableTeam({
 export function ResultingTeamsDnd({
   teamOrder,
   players,
+  missingPlayers,
   pinnedPlayers,
   playerOrderMap,
   teamSlots,
@@ -746,22 +766,28 @@ export function ResultingTeamsDnd({
         onDragEnd={handleDragEnd}
       >
         <div className="comp-new-teams">
-          {visibleTeams.map((teamCode) => (
-            <DroppableTeam
-              key={teamCode}
-              teamCode={teamCode}
-              players={displayRosters[teamCode]}
-              pinnedPlayers={pinnedPlayers}
-              crewNumbers={crewNumbers}
-              defaultCollapsed={false}
-              isCustom={isCustomSlots(teamCode, teamSlots)}
-              position={position}
-              totalPlayers={fullTeamTotals[teamCode] ?? 17}
-              positionOverrides={positionOverrides}
-              onOpenSlotEditor={setSlotEditorTeam}
-              onLongPressPosition={setSwitchTarget}
-            />
-          ))}
+          {visibleTeams.map((teamCode) => {
+            const teamMissing = missingPlayers?.filter(
+              (p) => p.previous_team === teamCode
+            )
+            return (
+              <DroppableTeam
+                key={teamCode}
+                teamCode={teamCode}
+                players={displayRosters[teamCode]}
+                pinnedPlayers={pinnedPlayers}
+                crewNumbers={crewNumbers}
+                defaultCollapsed={false}
+                isCustom={isCustomSlots(teamCode, teamSlots)}
+                position={position}
+                totalPlayers={fullTeamTotals[teamCode] ?? 17}
+                positionOverrides={positionOverrides}
+                missingPlayers={teamMissing}
+                onOpenSlotEditor={setSlotEditorTeam}
+                onLongPressPosition={setSwitchTarget}
+              />
+            )
+          })}
         </div>
       </DndContext>
       {slotEditorTeam && (

@@ -15,6 +15,7 @@ interface PlayerCardProps {
   isOverridden?: boolean
   isGhost?: boolean
   isOverlay?: boolean
+  isMissing?: boolean
   onLongPressPosition?: (player: Player) => void
 }
 
@@ -26,6 +27,7 @@ export function PlayerCard({
   isOverridden,
   isGhost,
   isOverlay,
+  isMissing,
   onLongPressPosition,
 }: PlayerCardProps) {
   const {
@@ -35,7 +37,7 @@ export function PlayerCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: isGhost ? `ghost-${player.number}` : `p-${player.number}`, disabled: isGhost })
+  } = useSortable({ id: isGhost ? `ghost-${player.number}` : `p-${player.number}`, disabled: isGhost || isMissing })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -78,7 +80,7 @@ export function PlayerCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`comp-player-card${isDragging ? " comp-player-dragging" : ""}${isDefense ? " comp-player-defense" : ""}${showDivider ? " comp-position-break" : ""}${isGhost ? " comp-player-ghost" : ""}${isOverlay ? " comp-player-overlay" : ""}`}
+      className={`comp-player-card${isDragging ? " comp-player-dragging" : ""}${isDefense ? " comp-player-defense" : ""}${showDivider ? " comp-position-break" : ""}${isGhost ? " comp-player-ghost" : ""}${isOverlay ? " comp-player-overlay" : ""}${isMissing ? " comp-player-missing" : ""}`}
       data-player-number={player.number}
       {...(isGhost ? {} : attributes)}
       {...(isGhost ? {} : listeners)}

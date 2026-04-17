@@ -14,6 +14,7 @@ interface PlayerListProps {
   playerOrder?: number[]
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
+  missingPlayerNumbers?: Set<number>
   positionFilter?: "F" | "D" | "G" | "ALL"
   positionOverrides?: Record<string, string>
   onLongPressPosition?: (player: Player) => void
@@ -25,6 +26,7 @@ export function PlayerList({
   playerOrder,
   pinnedPlayers,
   crewNumbers,
+  missingPlayerNumbers,
   positionFilter,
   positionOverrides,
   onLongPressPosition,
@@ -159,6 +161,7 @@ export function PlayerList({
               showDivider={isPositionBreak}
               isOverridden={overriddenNumbers.has(player.number)}
               isGhost={isGhost}
+              isMissing={missingPlayerNumbers?.has(player.number)}
               onLongPressPosition={isGhost ? undefined : onLongPressPosition}
             />
           )

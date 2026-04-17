@@ -143,6 +143,12 @@ export default function TryoutsPage() {
 
   const crewMap = new Map(crew.map((c) => [c.player_number, c]))
 
+  // Missing cut-down players: status=cut_to_next_level AND sessions exist for their current_level
+  const sessionLevelSet = new Set(sessions.map((s) => s.level))
+  const missingPlayers = players.filter(
+    (p) => p.status === "cut_to_next_level" && p.current_level && sessionLevelSet.has(p.current_level)
+  )
+
   // Current Rounds: show all rounds and upcoming sessions (no filtering)
   const today = new Date().toISOString().split("T")[0]
   const upcomingSessions = sessions.filter((s) => s.date >= today)
@@ -175,6 +181,7 @@ export default function TryoutsPage() {
               rounds={rounds}
               sessions={upcomingSessions}
               crewMap={crewMap}
+              missingPlayers={missingPlayers}
             />
           </div>
 

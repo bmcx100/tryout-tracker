@@ -22,6 +22,7 @@ interface ResultsViewProps {
   positionGroup: PositionGroup
   teamOrder: string[]
   players: Player[]
+  missingPlayers?: Player[]
   pinnedPlayers: Record<string, PinnedPlayer>
   playerOrderMap: Record<string, number[]>
   teamSlots: Record<string, Record<string, number>>
@@ -40,6 +41,7 @@ export function ResultsView({
   positionGroup,
   teamOrder,
   players,
+  missingPlayers,
   pinnedPlayers,
   playerOrderMap,
   teamSlots,
@@ -81,6 +83,7 @@ export function ResultsView({
           <ResultingTeamsDnd
             teamOrder={teamOrder}
             players={players}
+            missingPlayers={missingPlayers}
             pinnedPlayers={pinnedPlayers}
             playerOrderMap={playerOrderMap}
             teamSlots={teamSlots}

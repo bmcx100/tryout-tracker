@@ -19,6 +19,7 @@ interface StepRankPlayersProps {
   playerOrderMap: Record<string, number[]>
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
+  missingPlayerNumbers?: Set<number>
   positionFilter: "F" | "D" | "G" | "ALL"
   positionGroup: PositionGroup
   positionOverrides: Record<string, string>
@@ -39,6 +40,7 @@ export function StepRankPlayers({
   playerOrderMap,
   pinnedPlayers,
   crewNumbers,
+  missingPlayerNumbers,
   positionFilter,
   positionGroup,
   positionOverrides,
@@ -109,6 +111,7 @@ export function StepRankPlayers({
           playerOrderMap={playerOrderMap}
           pinnedPlayers={pinnedPlayers}
           crewNumbers={crewNumbers}
+          missingPlayerNumbers={missingPlayerNumbers}
           positionFilter={positionFilter}
           positionOverrides={positionOverrides}
           onTeamReorder={() => {}}

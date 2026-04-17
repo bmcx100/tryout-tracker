@@ -61,6 +61,7 @@ export default function HomePage() {
   const retried = useRef(false)
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
+  const [sessionLevels, setSessionLevels] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingPhase, setLoadingPhase] = useState("auth")
   const [loadingElapsed, setLoadingElapsed] = useState(0)
@@ -139,7 +140,7 @@ export default function HomePage() {
       try {
         const supabase = createClient()
 
-        const [playersRes, prefsRes, crewRes] = await Promise.all([
+        const [playersRes, prefsRes, crewRes, sessionsRes] = await Promise.all([
           supabase
             .from("players_view")
             .select("*")
@@ -160,6 +161,11 @@ export default function HomePage() {
             .select("*")
             .eq("org_id", activeOrgId)
             .abortSignal(controller.signal),
+          supabase
+            .from("sessions")
+            .select("level")
+            .eq("org_id", activeOrgId)
+            .abortSignal(controller.signal),
         ])
 
         if (playersRes.error) {
@@ -171,6 +177,9 @@ export default function HomePage() {
         console.debug("[home] loaded: %d players, %d prefs, %d crew", playersRes.data?.length, prefsRes.data?.length, crewRes.data?.length)
         setPlayers(playersRes.data || [])
         if (crewRes.data) setCrew(crewRes.data)
+        if (sessionsRes.data) {
+          setSessionLevels([...new Set(sessionsRes.data.map((s: { level: string }) => s.level))])
+        }
 
         const prefs = (prefsRes.data || []) as UserCompetitionPrefs[]
         const globalRow = prefs.find((p) => p.position_group === "global")
@@ -244,6 +253,24 @@ export default function HomePage() {
   }, [activeOrgId])
 
   const crewNumbers = new Set(crew.map((c) => c.player_number))
+
+  // Missing cut-down players: status=cut_to_next_level AND sessions exist for their current_level
+  const sessionLevelSet = useMemo(() => new Set(sessionLevels), [sessionLevels])
+
+  const missingPlayerNumbers = useMemo(() => {
+    const set = new Set<number>()
+    for (const p of players) {
+      if (p.status === "cut_to_next_level" && p.current_level && sessionLevelSet.has(p.current_level)) {
+        set.add(p.number)
+      }
+    }
+    return set
+  }, [players, sessionLevelSet])
+
+  const missingPlayers = useMemo(
+    () => players.filter((p) => missingPlayerNumbers.has(p.number)),
+    [players, missingPlayerNumbers]
+  )
 
   const teamOrder = globalTeamOrder.length
     ? globalTeamOrder
@@ -797,6 +824,7 @@ export default function HomePage() {
           playerOrderMap={globalPlayerOrder}
           pinnedPlayers={globalPinnedPlayers}
           crewNumbers={crewNumbers}
+          missingPlayerNumbers={missingPlayerNumbers}
           positionFilter={positionFilter}
           positionGroup={activeGroup}
           positionOverrides={currentPrefs.position_overrides || {}}
@@ -822,12 +850,18 @@ export default function HomePage() {
   }
 
   // step === "done" — results view
+  // Filter out missing players from slot-filling; pass them separately for footnotes
+  const activePlayers = missingPlayerNumbers.size > 0
+    ? players.filter((p) => !missingPlayerNumbers.has(p.number))
+    : players
+
   return (
     <>
       <ResultsView
         positionGroup={activeGroup}
         teamOrder={teamOrder}
-        players={players}
+        players={activePlayers}
+        missingPlayers={missingPlayers.length > 0 ? missingPlayers : undefined}
         pinnedPlayers={globalPinnedPlayers}
         playerOrderMap={resultsPlayerOrderMap}
         teamSlots={currentPrefs.team_slots || {}}

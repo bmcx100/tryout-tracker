@@ -15,6 +15,7 @@ interface TeamRowProps {
   playerOrder?: number[]
   pinnedPlayers: Record<string, PinnedPlayer>
   crewNumbers: Set<number>
+  missingPlayerNumbers?: Set<number>
   positionFilter?: "F" | "D" | "G" | "ALL"
   positionOverrides?: Record<string, string>
   onLongPressPosition?: (player: Player) => void
@@ -40,6 +41,7 @@ export function TeamRow({
   playerOrder,
   pinnedPlayers,
   crewNumbers,
+  missingPlayerNumbers,
   positionFilter,
   positionOverrides,
   onLongPressPosition,
@@ -119,6 +121,7 @@ export function TeamRow({
             playerOrder={playerOrder}
             pinnedPlayers={pinnedPlayers}
             crewNumbers={crewNumbers}
+            missingPlayerNumbers={missingPlayerNumbers}
             positionFilter={positionFilter}
             positionOverrides={positionOverrides}
             onLongPressPosition={onLongPressPosition}

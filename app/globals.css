@@ -5124,3 +5124,51 @@
 .org-card-info {
   @apply flex items-center gap-2 flex-1;
 }
+
+/* Missing cut-down players */
+.comp-player-missing {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.comp-player-missing .comp-player-grip {
+  visibility: hidden;
+}
+
+.missing-footnote {
+  border: 1.5px solid #d97706;
+  border-radius: 0.5rem;
+  background: rgba(217, 119, 6, 0.06);
+  padding: 10px 14px;
+  margin-top: 10px;
+}
+
+.missing-footnote-title {
+  @apply font-heading font-bold;
+  font-size: 12px;
+  color: #b45309;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.missing-footnote-row {
+  @apply flex items-center gap-2;
+  font-size: 13px;
+  color: #92400e;
+  padding: 3px 0;
+}
+
+.missing-footnote-number {
+  @apply font-data font-bold;
+  min-width: 32px;
+}
+
+.missing-footnote-name {
+  flex: 1;
+}
+
+.missing-footnote-detail {
+  @apply text-xs;
+  opacity: 0.7;
+}
