@@ -208,6 +208,8 @@ export default function AdminPlayersPage() {
             }
           }
           survivingId = await changePlayerNumber(editing.id, editing.number, newNumber)
+          // Update editing state so retries use surviving player ID
+          setEditing((prev) => prev ? { ...prev, id: survivingId, number: newNumber } : null)
         }
         const { number: _, ...rest } = data
         await updatePlayer(survivingId, {
@@ -222,6 +224,7 @@ export default function AdminPlayersPage() {
       setEditing(null)
       fetchPlayers()
     } catch (err) {
+      fetchPlayers()
       alert(err instanceof Error ? err.message : "Failed to save player")
     }
   }

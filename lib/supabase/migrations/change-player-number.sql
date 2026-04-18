@@ -28,35 +28,23 @@ BEGIN
     -- NO CONFLICT: simple rename
     -- ==========================================
 
-    -- Save + delete FK-linked records, update player, re-insert
-    CREATE TEMP TABLE _sp ON COMMIT DROP AS
-      SELECT session_id, org_id FROM session_players
-      WHERE org_id = v_org_id AND player_number = p_old_number;
+    -- Clean up any orphaned records at the target number (from previously deleted players)
+    DELETE FROM session_players WHERE org_id = v_org_id AND player_number = p_new_number;
+    DELETE FROM round_results WHERE org_id = v_org_id AND player_number = p_new_number;
+    DELETE FROM user_crew WHERE org_id = v_org_id AND player_number = p_new_number;
+    DELETE FROM corrections WHERE org_id = v_org_id AND player_number = p_new_number;
 
-    CREATE TEMP TABLE _rr ON COMMIT DROP AS
-      SELECT round_id, org_id, result, notes FROM round_results
+    -- Update all references from old number to new number
+    UPDATE session_players SET player_number = p_new_number
       WHERE org_id = v_org_id AND player_number = p_old_number;
-
-    CREATE TEMP TABLE _uc ON COMMIT DROP AS
-      SELECT id, org_id, user_id, personal_name, tag, notes, created_at, updated_at FROM user_crew
+    UPDATE round_results SET player_number = p_new_number
       WHERE org_id = v_org_id AND player_number = p_old_number;
-
-    DELETE FROM session_players WHERE org_id = v_org_id AND player_number = p_old_number;
-    DELETE FROM round_results WHERE org_id = v_org_id AND player_number = p_old_number;
-    DELETE FROM user_crew WHERE org_id = v_org_id AND player_number = p_old_number;
+    UPDATE user_crew SET player_number = p_new_number
+      WHERE org_id = v_org_id AND player_number = p_old_number;
     UPDATE corrections SET player_number = p_new_number
       WHERE org_id = v_org_id AND player_number = p_old_number;
 
     UPDATE players SET number = p_new_number, updated_at = now() WHERE id = p_player_id;
-
-    INSERT INTO session_players (session_id, player_number, org_id)
-      SELECT session_id, p_new_number, org_id FROM _sp;
-
-    INSERT INTO round_results (round_id, player_number, org_id, result, notes)
-      SELECT round_id, p_new_number, org_id, result, notes FROM _rr;
-
-    INSERT INTO user_crew (id, org_id, user_id, player_number, personal_name, tag, notes, created_at, updated_at)
-      SELECT id, org_id, user_id, p_new_number, personal_name, tag, notes, created_at, updated_at FROM _uc;
 
   ELSE
     -- ==========================================
