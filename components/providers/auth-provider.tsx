@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useRef, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
@@ -65,27 +65,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return (data as unknown as UserOrg[]) || []
   }
 
-  const refreshOrgs = async () => {
+  const refreshOrgs = useCallback(async () => {
     if (user) {
       await fetchOrgs(user.id)
       await fetchProfile(user.id)
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   useEffect(() => {
     const loadUserData = async (authUser: User) => {
       try {
-        // Force browser client to sync with latest cookies from middleware
+        // Force browser client to sync with latest cookies from proxy
         await supabase.auth.getSession()
 
         let profileData = await fetchProfile(authUser.id)
-        const orgsData = await fetchOrgs(authUser.id)
+        let orgsData = await fetchOrgs(authUser.id)
 
-        // Retry profile once if null (trigger may not have fired yet)
-        if (!profileData) {
-          console.warn("[auth] profile null on first try — retrying")
-          await new Promise((r) => setTimeout(r, 500))
-          profileData = await fetchProfile(authUser.id)
+        // If data is missing, the access token is likely stale — refresh and retry
+        if (!profileData || orgsData.length === 0) {
+          console.warn(
+            "[auth] data incomplete (profile=%s, orgs=%d) — refreshing session",
+            profileData ? "ok" : "null", orgsData.length
+          )
+          const { error: refreshError } = await supabase.auth.refreshSession()
+          if (refreshError) {
+            console.error("[auth] session refresh failed:", refreshError.message)
+          } else {
+            if (!profileData) profileData = await fetchProfile(authUser.id)
+            if (orgsData.length === 0) orgsData = await fetchOrgs(authUser.id)
+          }
         }
 
         // Auto-fix: patch missing profile fields

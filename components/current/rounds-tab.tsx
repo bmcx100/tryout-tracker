@@ -1,14 +1,15 @@
 import { RoundCard } from "@/components/current/round-card"
 import { SessionCard } from "@/components/schedule/session-card"
 import type { Player, Round, RoundResultRecord, Session, CrewMember } from "@/lib/types"
+import type { RosterPlayer } from "@/app/(app)/current/page"
 import { playerName } from "@/lib/utils"
 
 interface RoundWithResults extends Round {
   results: RoundResultRecord[]
 }
 
-interface SessionWithCrew extends Session {
-  crewHighlights: Array<{ number: number; name: string }>
+interface SessionWithRoster extends Session {
+  roster: RosterPlayer[]
 }
 
 export function RoundsTab({
@@ -18,7 +19,7 @@ export function RoundsTab({
   missingPlayers,
 }: {
   rounds: RoundWithResults[]
-  sessions: SessionWithCrew[]
+  sessions: SessionWithRoster[]
   crewMap: Map<number, CrewMember>
   missingPlayers?: Player[]
 }) {
@@ -43,13 +44,13 @@ export function RoundsTab({
       </div>
 
       <div className="current-section">
-        <h2 className="current-section-title">Upcoming Sessions</h2>
+        <h2 className="current-section-title">{sessions.length} Upcoming Session{sessions.length !== 1 ? "s" : ""}</h2>
         {sessions.length === 0 ? (
           <p className="current-section-empty">No upcoming sessions.</p>
         ) : (
           <div className="schedule-grid">
             {sessions.map((s) => (
-              <SessionCard key={s.id} session={s} crewHighlights={s.crewHighlights} />
+              <SessionCard key={s.id} session={s} roster={s.roster} />
             ))}
           </div>
         )}

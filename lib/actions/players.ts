@@ -62,6 +62,24 @@ export async function deletePlayer(id: string) {
   revalidatePath("/admin/players")
 }
 
+export async function changePlayerNumber(
+  playerId: string,
+  oldNumber: number,
+  newNumber: number
+): Promise<string> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc("change_player_number", {
+    p_player_id: playerId,
+    p_old_number: oldNumber,
+    p_new_number: newNumber,
+  })
+  if (error) throw new Error(error.message)
+
+  revalidatePath("/admin/players")
+  revalidatePath("/players")
+  return data as string
+}
+
 export async function bulkCreatePlayers(
   rows: {
     number: number

@@ -2,9 +2,9 @@
 
 import { useEffect, useState, Fragment } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { createPlayer, updatePlayer, deletePlayer, bulkCreatePlayers } from "@/lib/actions/players"
+import { createPlayer, updatePlayer, deletePlayer, bulkCreatePlayers, changePlayerNumber } from "@/lib/actions/players"
 import { useAuth } from "@/hooks/use-auth"
-import { getAgeGroup, playerName } from "@/lib/utils"
+import { getAgeGroup, playerName, extractLevelFromTeam } from "@/lib/utils"
 import type { Player, PlayerLevel, PlayerStatus } from "@/lib/types"
 import type { Session, Round, RoundResult as RoundResultType } from "@/lib/types"
 import {
@@ -111,11 +111,7 @@ export default function AdminPlayersPage() {
       if (ag !== ageFilter) return false
     }
     if (filterLevel !== "all") {
-      let level: string | null = p.current_level || p.entry_level
-      if (!level && p.previous_team) {
-        const match = p.previous_team.match(/^U\d+(.*)/i)
-        if (match) level = match[1].toUpperCase()
-      }
+      const level = extractLevelFromTeam(p.previous_team)
       if (level !== filterLevel) return false
     }
     if (filterStatus !== "all" && p.status !== filterStatus) return false
@@ -185,8 +181,9 @@ export default function AdminPlayersPage() {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
     const yr = Number(form.get("birth_year"))
+    const newNumber = Number(form.get("number"))
     const data = {
-      number: Number(form.get("number")),
+      number: newNumber,
       first_name: form.get("first_name") as string || undefined,
       last_name: form.get("last_name") as string || undefined,
       previous_team: (form.get("previous_team") as string) === "__none__" ? null : (form.get("previous_team") as string) || undefined,
@@ -197,19 +194,36 @@ export default function AdminPlayersPage() {
       current_level: (form.get("current_level") as string) === "__none__" ? null : (form.get("current_level") as PlayerLevel) || undefined,
     }
 
-    if (editing) {
-      await updatePlayer(editing.id, {
-        ...data,
-        status: form.get("status") as PlayerStatus,
-        team_placed: form.get("team_placed") as string || null,
-      })
-    } else {
-      await createPlayer(data)
+    try {
+      if (editing) {
+        const numberChanged = editing.number !== newNumber
+        let survivingId = editing.id
+        if (numberChanged) {
+          const conflict = players.find((p) => p.number === newNumber && p.id !== editing.id)
+          if (conflict) {
+            const editingName = playerName(editing.first_name, editing.last_name, editing.number)
+            const conflictName = playerName(conflict.first_name, conflict.last_name, conflict.number)
+            if (!confirm(`Reassign #${newNumber} to ${editingName}?\n\n#${newNumber} (${conflictName}) will be deleted.\nAll session assignments from both numbers will be kept.`)) {
+              return
+            }
+          }
+          survivingId = await changePlayerNumber(editing.id, editing.number, newNumber)
+        }
+        const { number: _, ...rest } = data
+        await updatePlayer(survivingId, {
+          ...(numberChanged ? rest : data),
+          status: form.get("status") as PlayerStatus,
+          team_placed: form.get("team_placed") as string || null,
+        })
+      } else {
+        await createPlayer(data)
+      }
+      setDialogOpen(false)
+      setEditing(null)
+      fetchPlayers()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to save player")
     }
-
-    setDialogOpen(false)
-    setEditing(null)
-    fetchPlayers()
   }
 
   const handleDelete = async (id: string) => {

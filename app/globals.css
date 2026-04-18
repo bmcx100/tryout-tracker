@@ -1736,25 +1736,25 @@
 
 .prog-level-header {
   @apply font-data font-bold text-center;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   border-bottom: 2px solid rgba(17, 17, 17, 0.12);
-  padding: 4px 6px;
+  padding: 4px 8px;
 }
 
 .prog-sub-header {
   @apply font-data text-steel text-center;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.04em;
-  padding: 2px 6px;
+  padding: 4px 8px;
   white-space: nowrap;
 }
 
 .prog-cell {
   @apply font-data text-center;
-  font-size: 11px;
-  padding: 4px 6px;
+  font-size: 14px;
+  padding: 6px 8px;
   white-space: nowrap;
 }
 
@@ -1800,19 +1800,19 @@
 
 .prog-status {
   @apply font-data font-bold;
-  font-size: 11px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
 .prog-team {
   @apply font-data;
-  font-size: 11px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
 .prog-sort-header {
   @apply font-data text-steel;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 2px 6px;
@@ -1838,7 +1838,7 @@
 
 .prog-table th {
   @apply font-data text-steel;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -2341,9 +2341,7 @@
 
 @media (min-width: 768px) {
   .schedule-grid {
-    @apply grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    max-width: 480px;
   }
 }
 
@@ -2365,15 +2363,31 @@
 }
 
 .session-card-time {
-  @apply font-data font-bold text-ink;
+  @apply font-data text-steel;
   font-size: 13px;
-  margin-bottom: 2px;
+  margin-left: auto;
 }
 
 .session-card-rink {
   @apply font-data text-steel;
   font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.session-card-counts {
+  @apply flex items-baseline;
   margin-bottom: 8px;
+}
+
+.session-card-count {
+  @apply font-data;
+  font-size: 16px;
+}
+
+.session-card-breakdown {
+  @apply font-data text-steel;
+  font-size: 13px;
+  margin-left: 16px;
 }
 
 .session-roster {
@@ -2389,10 +2403,24 @@
   margin-bottom: 6px;
 }
 
+.session-roster-section {
+  @apply font-data font-semibold text-steel;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  padding: 0 4px;
+}
+
+.session-roster-section:first-child {
+  margin-top: 0;
+}
+
 .session-roster-row {
   @apply flex items-baseline gap-1 font-data;
-  font-size: 11px;
-  padding: 2px 4px;
+  font-size: 14px;
+  padding: 3px 4px;
 }
 
 .session-roster-crew {
@@ -2403,8 +2431,8 @@
 }
 
 .session-roster-number {
-  @apply font-bold;
-  min-width: 28px;
+  min-width: 36px;
+  margin-right: 6px;
 }
 
 .session-roster-name {
@@ -2413,7 +2441,7 @@
 
 .session-roster-team {
   @apply text-steel;
-  font-size: 10px;
+  font-size: 14px;
 }
 
 /* ========================================
@@ -2730,8 +2758,8 @@
 
 .cont-player-number {
   @apply font-data font-semibold;
-  font-size: 22px;
-  min-width: 56px;
+  font-size: 14px;
+  min-width: 40px;
   text-align: right;
   color: #111;
 }
@@ -3554,7 +3582,7 @@
 }
 
 .round-result-number {
-  @apply font-data font-bold text-signal;
+  @apply font-data text-signal;
   font-size: 13px;
   min-width: 40px;
 }

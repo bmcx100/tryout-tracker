@@ -7,8 +7,17 @@ import { RoundsTab } from "@/components/current/rounds-tab"
 import { ResultsTab } from "@/components/current/results-tab"
 import type { Player, Round, RoundResultRecord, Session, CrewMember } from "@/lib/types"
 
-interface SessionWithCrew extends Session {
-  crewHighlights: Array<{ number: number; name: string }>
+export interface RosterPlayer {
+  number: number
+  firstName: string | null
+  lastName: string | null
+  previousTeam: string | null
+  position: string | null
+  isCrew: boolean
+}
+
+interface SessionWithRoster extends Session {
+  roster: RosterPlayer[]
 }
 
 interface RoundWithResults extends Round {
@@ -21,7 +30,7 @@ export default function TryoutsPage() {
   const { activeOrgId } = useAuth()
   const [activeTab, setActiveTab] = useState<TryoutsTab>("rounds")
   const [rounds, setRounds] = useState<RoundWithResults[]>([])
-  const [sessions, setSessions] = useState<SessionWithCrew[]>([])
+  const [sessions, setSessions] = useState<SessionWithRoster[]>([])
   const [players, setPlayers] = useState<Player[]>([])
   const [crew, setCrew] = useState<CrewMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,8 +58,11 @@ export default function TryoutsPage() {
     if (playerData) setPlayers(playerData)
     if (crewData) setCrew(crewData)
 
-    const crewNameMap = new Map(
-      (crewData || []).map((c: CrewMember) => [c.player_number, c.personal_name])
+    const pMap = new Map(
+      (playerData || []).map((p: Player) => [p.number, p])
+    )
+    const cSet = new Set(
+      (crewData || []).map((c: CrewMember) => c.player_number)
     )
 
     const resultsByRound = new Map<string, RoundResultRecord[]>()
@@ -75,10 +87,20 @@ export default function TryoutsPage() {
     setSessions(
       (sessionData || []).map((s: Session) => {
         const playerNumbers = spMap.get(s.id) || []
-        const crewHighlights = playerNumbers
-          .filter((num) => crewNameMap.has(num))
-          .map((num) => ({ number: num, name: crewNameMap.get(num)! }))
-        return { ...s, crewHighlights }
+        const roster: RosterPlayer[] = playerNumbers
+          .map((num) => {
+            const p = pMap.get(num)
+            return {
+              number: num,
+              firstName: p?.first_name ?? null,
+              lastName: p?.last_name ?? null,
+              previousTeam: p?.previous_team ?? null,
+              position: p?.position ?? null,
+              isCrew: cSet.has(num),
+            }
+          })
+          .sort((a, b) => a.number - b.number)
+        return { ...s, roster }
       })
     )
 
@@ -106,9 +128,14 @@ export default function TryoutsPage() {
       ])
       if (playerData) setPlayers(playerData)
       if (crewData) setCrew(crewData)
-      const crewNameMap = new Map(
-        (crewData || []).map((c: CrewMember) => [c.player_number, c.personal_name])
+
+      const playerMap = new Map(
+        (playerData || []).map((p: Player) => [p.number, p])
       )
+      const crewSet = new Set(
+        (crewData || []).map((c: CrewMember) => c.player_number)
+      )
+
       const resultsByRound = new Map<string, RoundResultRecord[]>()
       for (const r of resultData || []) {
         const existing = resultsByRound.get(r.round_id) || []
@@ -121,6 +148,7 @@ export default function TryoutsPage() {
           results: resultsByRound.get(round.id) || [],
         }))
       )
+
       const spMap = new Map<string, number[]>()
       for (const sp of sessionPlayers || []) {
         const existing = spMap.get(sp.session_id) || []
@@ -130,10 +158,20 @@ export default function TryoutsPage() {
       setSessions(
         (sessionData || []).map((s: Session) => {
           const playerNumbers = spMap.get(s.id) || []
-          const crewHighlights = playerNumbers
-            .filter((num) => crewNameMap.has(num))
-            .map((num) => ({ number: num, name: crewNameMap.get(num)! }))
-          return { ...s, crewHighlights }
+          const roster: RosterPlayer[] = playerNumbers
+            .map((num) => {
+              const p = playerMap.get(num)
+              return {
+                number: num,
+                firstName: p?.first_name ?? null,
+                lastName: p?.last_name ?? null,
+                previousTeam: p?.previous_team ?? null,
+                position: p?.position ?? null,
+                isCrew: crewSet.has(num),
+              }
+            })
+            .sort((a, b) => a.number - b.number)
+          return { ...s, roster }
         })
       )
       setLoading(false)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { confirmContinuationsImport } from "@/lib/actions/import"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -37,9 +37,18 @@ interface ContinuationsScrapeResult {
 const LEVELS: PlayerLevel[] = ["AA", "A", "BB", "B", "C"]
 
 export default function AdminImportPage() {
-  const [url, setUrl] = useState("")
+  const [url, setUrl] = useState("https://www.gowildcats.ca/content/U15-Continuations")
   const [level, setLevel] = useState<PlayerLevel>("AA")
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const saved = localStorage.getItem("cont-scrape")
+    if (saved) {
+      const { url: savedUrl, level: savedLevel } = JSON.parse(saved)
+      if (savedUrl) setUrl(savedUrl)
+      if (savedLevel) setLevel(savedLevel)
+    }
+  }, [])
   const [confirming, setConfirming] = useState(false)
   const [result, setResult] = useState<ContinuationsScrapeResult | null>(null)
   const [imported, setImported] = useState(false)
@@ -64,6 +73,7 @@ export default function AdminImportPage() {
 
       const data = await res.json()
       setResult(data)
+      localStorage.setItem("cont-scrape", JSON.stringify({ url, level }))
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Scrape failed")
     } finally {
