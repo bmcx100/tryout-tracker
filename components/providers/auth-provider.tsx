@@ -40,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userOrgs, setUserOrgs] = useState<UserOrg[]>([])
   const [loading, setLoading] = useState(true)
   const hadUser = useRef(false)
+  const hasRefreshed = useRef(false)
   const supabase = createClient()
   const router = useRouter()
 
@@ -82,19 +83,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let profileData = await fetchProfile(authUser.id)
         let orgsData = await fetchOrgs(authUser.id)
 
-        // If data is missing, the access token is likely stale — refresh and retry
-        if (!profileData || orgsData.length === 0) {
+        // If data is missing, retry once after a short delay (trigger may not have fired yet)
+        if ((!profileData || orgsData.length === 0) && !hasRefreshed.current) {
+          hasRefreshed.current = true
           console.warn(
-            "[auth] data incomplete (profile=%s, orgs=%d) — refreshing session",
+            "[auth] data incomplete (profile=%s, orgs=%d) — retrying",
             profileData ? "ok" : "null", orgsData.length
           )
-          const { error: refreshError } = await supabase.auth.refreshSession()
-          if (refreshError) {
-            console.error("[auth] session refresh failed:", refreshError.message)
-          } else {
-            if (!profileData) profileData = await fetchProfile(authUser.id)
-            if (orgsData.length === 0) orgsData = await fetchOrgs(authUser.id)
-          }
+          await new Promise((r) => setTimeout(r, 500))
+          if (!profileData) profileData = await fetchProfile(authUser.id)
+          if (orgsData.length === 0) orgsData = await fetchOrgs(authUser.id)
         }
 
         // Auto-fix: patch missing profile fields
